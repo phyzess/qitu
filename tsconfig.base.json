@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": true,
+    "paths": {
+      "@qitu/ai-advisory": ["./packages/ai-advisory/src/index.ts"],
+      "@qitu/audit": ["./packages/audit/src/index.ts"],
+      "@qitu/auth": ["./packages/auth/src/index.ts"],
+      "@qitu/charts": ["./packages/charts/src/index.tsx"],
+      "@qitu/config": ["./packages/config/src/index.ts"],
+      "@qitu/db": ["./packages/db/src/index.ts"],
+      "@qitu/design-system": ["./packages/design-system/src/index.ts"],
+      "@qitu/email": ["./packages/email/src/index.ts"],
+      "@qitu/files": ["./packages/files/src/index.ts"],
+      "@qitu/import-pipeline": ["./packages/import-pipeline/src/index.ts"],
+      "@qitu/jobs": ["./packages/jobs/src/index.ts"],
+      "@qitu/rbac": ["./packages/rbac/src/index.ts"],
+      "@qitu/testing": ["./packages/testing/src/index.ts"],
+      "@qitu/ui": ["./packages/ui/src/index.ts"],
+      "@qitu/example-import-review": ["./examples/import-review/src/index.ts"],
+      "@qitu/example-json-records": ["./examples/json-records/src/index.ts"]
+    }
+  }
+}

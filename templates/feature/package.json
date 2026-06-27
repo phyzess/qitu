@@ -1,0 +1,16 @@
+{
+  "name": "@qitu/template-feature",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/registry.ts",
+    "./import-feature": "./src/import-feature.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@qitu/import-pipeline": "workspace:*"
+  }
+}

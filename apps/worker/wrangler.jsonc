@@ -1,0 +1,153 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qitu-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "vars": {
+    "APP_ENV": "local",
+    "PUBLIC_APP_NAME": "qitu",
+    "PUBLIC_APP_URL": "http://localhost:5173",
+    "MAIL_FROM": "noreply@example.com",
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "remote": false,
+    },
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qitu-dev",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SOURCE_FILES",
+      "bucket_name": "qitu-source-files-dev",
+    },
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "IMPORT_JOBS",
+        "queue": "qitu-import-jobs-dev",
+      },
+    ],
+    "consumers": [
+      {
+        "queue": "qitu-import-jobs-dev",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+        "dead_letter_queue": "qitu-import-jobs-dev-dlq",
+      },
+    ],
+  },
+  "env": {
+    "preview": {
+      "name": "qitu-worker-preview",
+      "vars": {
+        "APP_ENV": "preview",
+        "PUBLIC_APP_NAME": "qitu",
+        "PUBLIC_APP_URL": "https://preview.example.com",
+        "MAIL_FROM": "noreply@example.com",
+      },
+      "assets": {
+        "directory": "../web/dist",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/health"],
+      },
+      "send_email": [
+        {
+          "name": "EMAIL",
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "qitu-preview",
+          "database_id": "REPLACE_WITH_PREVIEW_D1_DATABASE_ID",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SOURCE_FILES",
+          "bucket_name": "qitu-source-files-preview",
+        },
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "IMPORT_JOBS",
+            "queue": "qitu-import-jobs-preview",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "qitu-import-jobs-preview",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3,
+            "dead_letter_queue": "qitu-import-jobs-preview-dlq",
+          },
+        ],
+      },
+    },
+    "production": {
+      "name": "qitu-worker-production",
+      "vars": {
+        "APP_ENV": "production",
+        "PUBLIC_APP_NAME": "qitu",
+        "PUBLIC_APP_URL": "https://app.example.com",
+        "MAIL_FROM": "noreply@example.com",
+      },
+      "assets": {
+        "directory": "../web/dist",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/health"],
+      },
+      "send_email": [
+        {
+          "name": "EMAIL",
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "qitu-production",
+          "database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SOURCE_FILES",
+          "bucket_name": "qitu-source-files-production",
+        },
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "IMPORT_JOBS",
+            "queue": "qitu-import-jobs-production",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "qitu-import-jobs-production",
+            "max_batch_size": 10,
+            "max_batch_timeout": 30,
+            "max_retries": 3,
+            "dead_letter_queue": "qitu-import-jobs-production-dlq",
+          },
+        ],
+      },
+    },
+  },
+}

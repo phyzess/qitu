@@ -1,0 +1,123 @@
+# Cloudflare 部署准备
+
+Status: draft  
+Date: 2026-06-27
+
+本文用于准备真实 Cloudflare account。它不会自动部署，因为 account IDs、resource IDs、verified senders 和最终 hostnames 都是环境相关的。
+
+## 1. Dry Run
+
+触碰远端资源前，先执行 Worker bundle dry-run：
+
+```sh
+vp run deploy:dry-run
+```
+
+Preview 和 production dry-runs 会先 build web app，再验证 Worker + Static Assets bundle：
+
+```sh
+vp run deploy:preview:dry-run
+vp run deploy:production:dry-run
+```
+
+`apps/worker/wrangler.jsonc` 在 preview/production 中使用 Worker Static Assets 托管 React build。`/api/*` 与 `/health` 仍然优先走 Worker，所以 web app 可以继续使用相对 API URL 和 HttpOnly cookies。
+
+## 2. 所需资源
+
+Worker 需要：
+
+| Binding        | Product | Local name                 | Preview name                   | Production name                   |
+| -------------- | ------- | -------------------------- | ------------------------------ | --------------------------------- |
+| `DB`           | D1      | `qitu-dev`                 | `qitu-preview`                 | `qitu-production`                 |
+| `SOURCE_FILES` | R2      | `qitu-source-files-dev`    | `qitu-source-files-preview`    | `qitu-source-files-production`    |
+| `IMPORT_JOBS`  | Queues  | `qitu-import-jobs-dev`     | `qitu-import-jobs-preview`     | `qitu-import-jobs-production`     |
+| DLQ            | Queues  | `qitu-import-jobs-dev-dlq` | `qitu-import-jobs-preview-dlq` | `qitu-import-jobs-production-dlq` |
+| `EMAIL`        | Email   | local metadata only        | Cloudflare Email Sending       | Cloudflare Email Sending          |
+
+创建远端资源：
+
+```sh
+wrangler d1 create qitu-preview
+wrangler r2 bucket create qitu-source-files-preview
+wrangler queues create qitu-import-jobs-preview
+wrangler queues create qitu-import-jobs-preview-dlq
+wrangler d1 create qitu-production
+wrangler r2 bucket create qitu-source-files-production
+wrangler queues create qitu-import-jobs-production
+wrangler queues create qitu-import-jobs-production-dlq
+```
+
+然后在远端 migration 或 deploy 前，替换 `apps/worker/wrangler.jsonc` 中的 `REPLACE_WITH_PREVIEW_D1_DATABASE_ID` 和 `REPLACE_WITH_PRODUCTION_D1_DATABASE_ID`。
+
+Cloudflare Email Service 在 local 之外需要 verified sender。目标环境的 `MAIL_FROM` 必须是已验证地址，`PUBLIC_APP_URL` 必须匹配部署后的 web origin。
+
+## 3. Secrets
+
+当前 baseline 使用 deterministic local AI advisory generation，不需要 model-provider secrets。未来 provider adapters 应通过 Wrangler 或 Cloudflare dashboard 设置 secrets：
+
+```sh
+wrangler secret put PROVIDER_API_KEY --env preview
+wrangler secret put PROVIDER_API_KEY --env production
+```
+
+不要把 secret values 提交到 `.env`、`.dev.vars`、docs 或 `wrangler.jsonc`。
+
+`MAIL_FROM`、`PUBLIC_APP_NAME`、`PUBLIC_APP_URL` 是配置值，不是 secrets，但部署前仍需按环境 review。
+
+## 4. Remote Migration
+
+资源 ID 配好后：
+
+```sh
+vp run db:migrate:preview
+vp run db:migrate:production
+```
+
+远端 migration 必须显式执行并 review，不要隐藏在默认本地 setup 里。
+
+执行后检查 migration list 和至少一个预期表：
+
+```sh
+wrangler d1 migrations list qitu-preview --env preview --remote
+wrangler d1 execute qitu-preview --env preview --remote --command "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;"
+```
+
+## 5. Deployment Gate
+
+真实部署前：
+
+1. 运行 `vp run verify:kit`。
+2. 运行 `vp run deploy:dry-run`。
+3. 运行目标环境 dry-run：`vp run deploy:preview:dry-run` 或 `vp run deploy:production:dry-run`。
+4. 确认远端 resource IDs 不是 placeholder。
+5. 确认 `PUBLIC_APP_URL` 匹配部署 web origin。
+6. 如果启用真实 AI provider，确认 provider secrets 存在。
+7. 确认 `MAIL_FROM` 是 verified Cloudflare Email sender。
+8. 确认 invitation bootstrap routes 在 `APP_ENV=local` 之外禁用。
+9. 确认目标 Queue 有 DLQ。
+10. 对目标环境运行 failed-job snapshot。
+
+```sh
+vp run ops:failed-jobs -- preview --limit 50
+vp run ops:failed-jobs -- production --limit 50
+```
+
+## 6. DLQ 与失败任务恢复
+
+当 Queue messages 进入 DLQ 或 import jobs 卡住时，使用 `docs/operations/dlq-remediation.zh-CN.md`。
+
+Baseline 恢复路径故意是人工的：
+
+1. 用 `vp run ops:failed-jobs` 检查 failed/suspicious jobs。
+2. retry 前先恢复缺失的 R2 source object 或部署缺失 adapter。
+3. 通过 app/API retry，保留 RBAC、audit、idempotency 和 Queue dispatch。
+4. 重复失败时升级处理，不要 blind replay DLQ messages。
+
+Starter 不挂自动 DLQ consumer。只有真实生产 Queue 证明人工恢复不够时，才增加自动化。
+
+## 7. Known Gaps
+
+生产使用前仍需：
+
+1. Auth、email、upload、queue、D1、R2、audit 的更多 runtime integration tests。
+2. 部署自动化或 infrastructure-as-code 路径。

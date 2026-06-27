@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@import "@qitu/design-system/tokens.css";
+@import "@qitu/ui/styles.css";
+
+@source "../../../packages/ui/src";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+::selection {
+  background: rgb(15 118 110 / 0.2);
+}

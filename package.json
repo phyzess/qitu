@@ -1,0 +1,42 @@
+{
+  "name": "qitu",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "vp install && node scripts/setup-local.mjs",
+    "setup:local": "node scripts/setup-local.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "dev": "vp dev apps/web --host 0.0.0.0",
+    "dev:all": "node scripts/dev-all.mjs",
+    "dev:worker": "vp run --filter @qitu/worker dev",
+    "db:migrate:local": "vp run --filter @qitu/worker db:migrate:local",
+    "db:migrate:remote": "vp run db:migrate:preview",
+    "db:migrate:preview": "vp run --filter @qitu/worker db:migrate:preview",
+    "db:migrate:production": "vp run --filter @qitu/worker db:migrate:production",
+    "deploy:dry-run": "vp run -r build && vp run --filter @qitu/worker deploy:dry-run",
+    "deploy:preview:dry-run": "vp run -r build && vp run --filter @qitu/worker deploy:preview:dry-run",
+    "deploy:production:dry-run": "vp run -r build && vp run --filter @qitu/worker deploy:production:dry-run",
+    "ops:failed-jobs": "node scripts/ops-failed-jobs.mjs",
+    "build": "vp run -r build",
+    "cf:typegen": "vp run --filter @qitu/worker cf:typegen",
+    "typecheck": "vp run -r typecheck",
+    "check": "vp check",
+    "smoke": "node scripts/smoke.mjs && node scripts/worker-integration.mjs",
+    "smoke:browser": "node scripts/browser-smoke.mjs",
+    "test": "vp run smoke",
+    "test:browser": "vp run smoke:browser",
+    "test:integration": "node scripts/worker-integration.mjs",
+    "test:worker-runtime": "vp run --filter @qitu/worker test:runtime",
+    "test:unit": "vp test run",
+    "validate": "vp run smoke && vp run -r typecheck && vp check && vp run -r build",
+    "verify:kit": "vp run validate && vp run test:worker-runtime && vp run db:migrate:local && vp run smoke:browser"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.0",
+    "typescript": "7.0.1-rc",
+    "vite-plus": "0.2.1",
+    "wrangler": "4.103.0"
+  },
+  "packageManager": "pnpm@11.5.2"
+}

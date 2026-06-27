@@ -1,0 +1,10 @@
+.qitu-card {
+  border-radius: 0.75rem;
+  background: var(--color-panel);
+  box-shadow: var(--shadow-panel);
+}
+
+.qitu-number {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
+}

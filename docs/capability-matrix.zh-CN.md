@@ -1,0 +1,56 @@
+# 能力矩阵
+
+Status: draft  
+Date: 2026-06-27
+
+## 状态定义
+
+| 状态             | 含义                                                |
+| ---------------- | --------------------------------------------------- |
+| Designed         | 架构与决策已记录。                                  |
+| Scaffolded       | package 或 app shell 已存在。                       |
+| Runnable         | 有本地命令路径。                                    |
+| Verified         | 被 smoke、type、unit、integration 或 runtime 覆盖。 |
+| Production-ready | 可以给真实用户使用，并有运维 runbook。              |
+
+## 当前矩阵
+
+| 能力                  | Designed | Scaffolded | Runnable | Verified | Production-ready | 说明                                                                                                                                                |
+| --------------------- | -------- | ---------- | -------- | -------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React app shell       | Yes      | Yes        | Yes      | Partial  | No               | 已接入 invite/reset/login/upload/review/AI advisory/commit/retry/audit console，并有 browser smoke。                                                |
+| Worker API shell      | Yes      | Yes        | Yes      | Partial  | No               | `apps/worker` 暴露 health/runtime primitives，并有最小 Cloudflare Vitest runtime smoke。                                                            |
+| Auth                  | Yes      | Yes        | Partial  | Partial  | No               | Invite link、accept page、login、logout、`me`、reset page、session revocation 和 audit 已集成。                                                     |
+| RBAC                  | Yes      | Partial    | Partial  | Partial  | No               | `@qitu/rbac` 定义 owner/admin/reviewer/viewer；Worker 写路由检查权限并 audit `rbac.denied`；多租户 scope 仍是未来工作。                             |
+| Files                 | Yes      | Yes        | Partial  | Partial  | No               | 鉴权上传会写 R2/D1/audit；source list API 和 upload UI 已接 Worker API。                                                                            |
+| Jobs                  | Yes      | Partial    | Partial  | Partial  | No               | 上传创建 queued import job；handler/local drain 推进 processing/needs_review/failed；failed jobs 可只读列出并手动 retry。                           |
+| Import pipeline       | Yes      | Partial    | Partial  | Partial  | No               | Worker 注册 app-owned text 和 JSON starter adapters；queue 使用 adapter parse/stage/validate；非法数字停留在 review；commit 使用 `commitApproved`。 |
+| Human review          | Yes      | Partial    | Partial  | Partial  | No               | Review/decision/commit/retry API 和 demo console 已存在；handler 与 browser smoke 覆盖 approve、commit、reject。                                    |
+| Audit                 | Yes      | Partial    | Partial  | Partial  | No               | 敏感路径写 audit；audit list API 和 web timeline 已存在；handler integration 验证可见性。                                                           |
+| Email                 | Yes      | Partial    | Partial  | Partial  | No               | Invitation/reset templates、本地 delivery metadata、Cloudflare `send_email`、React token landing pages 已接入。                                     |
+| AI advisory           | Yes      | Partial    | Partial  | Partial  | No               | 本地 deterministic import-review advisory artifacts、list/generate/confirm/dismiss routes、web panel、audit events 已接入。                         |
+| Charts                | Yes      | Partial    | Partial  | Partial  | No               | `@qitu/charts` 暴露 visx-backed `TimeSeriesChart`，starter console 已使用；完整 chart catalog 是未来工作。                                          |
+| Design system         | Yes      | Partial    | Yes      | Partial  | No               | Tokens 和 UI package 已存在。                                                                                                                       |
+| Feature templates     | Yes      | Yes        | Yes      | Partial  | No               | `templates/app` 有 verified copy manifest；`templates/feature` 是 typechecked copyable adapter 和 registry starter。                                |
+| Agent docs            | Yes      | Yes        | N/A      | Partial  | No               | Codex、Claude Code、Pi entrypoints 已存在。                                                                                                         |
+| Cloudflare deployment | Yes      | Partial    | Partial  | Partial  | No               | local/preview/production binding stubs、dry-run scripts、DLQ remediation runbook 和 deployment runbook 已接入；尚未 provision 真实账号。            |
+
+## 近期验证目标
+
+按优先级增加验证：
+
+1. Template invariant 的 static smoke checks。
+2. 使用 local D1/R2/Queue fakes 的 Worker handler integration。
+3. TypeScript 7 RC package type checks。
+4. 超出当前最小 runtime smoke 的 Cloudflare Email Service、Queues、D1、R2 binding runtime tests。
+5. 只有当新真实 adapter 带来 parser-specific risk 时，才增加更广的 adapter edge-case tests。
+
+## Production Readiness Gate
+
+某项能力只有满足以下条件才算 production-ready：
+
+1. 有覆盖成功与失败路径的测试。
+2. 敏感操作写 audit events。
+3. 相关场景有 rate limit 或 abuse control。
+4. 有运维恢复路径。
+5. 不依赖 AI output 自动提交，必须有人确认。
+6. Cloudflare bindings 与 secrets 已记录。

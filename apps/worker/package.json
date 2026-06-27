@@ -1,0 +1,40 @@
+{
+  "name": "@qitu/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "cf:typegen": "wrangler types",
+    "db:migrate:local": "wrangler d1 migrations apply qitu-dev --local",
+    "db:migrate:remote": "vp run db:migrate:preview",
+    "db:migrate:preview": "wrangler d1 migrations apply qitu-preview --env preview --remote",
+    "db:migrate:production": "wrangler d1 migrations apply qitu-production --env production --remote",
+    "deploy:dry-run": "wrangler deploy --env=\"\" --dry-run --outdir ../../.tmp/worker-dry-run",
+    "deploy:preview:dry-run": "wrangler deploy --env preview --dry-run --outdir ../../.tmp/worker-preview-dry-run",
+    "deploy:production:dry-run": "wrangler deploy --env production --dry-run --outdir ../../.tmp/worker-production-dry-run",
+    "build": "vp run typecheck",
+    "test:runtime": "vitest run --config vitest.config.ts",
+    "typecheck": "vp run cf:typegen && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@qitu/ai-advisory": "workspace:*",
+    "@qitu/audit": "workspace:*",
+    "@qitu/auth": "workspace:*",
+    "@qitu/config": "workspace:*",
+    "@qitu/email": "workspace:*",
+    "@qitu/files": "workspace:*",
+    "@qitu/import-pipeline": "workspace:*",
+    "@qitu/jobs": "workspace:*",
+    "@qitu/rbac": "workspace:*",
+    "hono": "4.12.26",
+    "valibot": "1.4.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.16.18",
+    "@types/node": "26.0.0",
+    "@vitest/runner": "4.1.9",
+    "@vitest/snapshot": "4.1.9",
+    "vitest": "4.1.9"
+  }
+}
