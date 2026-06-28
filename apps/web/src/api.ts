@@ -5,6 +5,7 @@ import type {
   ImportJobEvent,
   ImportJobListItem,
   ImportJobReview,
+  InvitationSummary,
   ReviewIssue,
   SourceFile,
   StagedRecord,
@@ -26,7 +27,7 @@ export type LoginResponse = {
   };
 };
 
-export type LocalReviewerBootstrapResponse = LoginResponse & {
+export type LocalUserBootstrapResponse = LoginResponse & {
   created: boolean;
 };
 
@@ -40,14 +41,22 @@ export type BootstrapInvitationResponse = {
   delivery: string;
   inviteToken: string;
   inviteUrl: string;
-  invitation: {
-    id: string;
-    email: string;
-    role: string;
-    status: string;
-    expiresAt: string;
-    createdAt: string;
-  };
+  invitation: InvitationSummary;
+};
+
+export type CreateInvitationResponse = {
+  delivery: string;
+  inviteToken?: string;
+  inviteUrl?: string;
+  invitation: InvitationSummary;
+};
+
+export type UsersResponse = {
+  users: ApiUser[];
+};
+
+export type InvitationsResponse = {
+  invitations: InvitationSummary[];
 };
 
 export type RequestPasswordResetResponse = {
@@ -151,12 +160,53 @@ export async function createLocalInvitation(input: {
   });
 }
 
+export async function createInvitation(input: {
+  email: string;
+  role?: string;
+}): Promise<CreateInvitationResponse> {
+  return apiJson<CreateInvitationResponse>("/api/invitations", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+}
+
+export async function listUsers(input: { limit?: number } = {}): Promise<UsersResponse> {
+  const search = new URLSearchParams();
+  if (input.limit) search.set("limit", String(input.limit));
+  return apiJson<UsersResponse>(withSearch("/api/users", search));
+}
+
+export async function listInvitations(
+  input: { limit?: number } = {},
+): Promise<InvitationsResponse> {
+  const search = new URLSearchParams();
+  if (input.limit) search.set("limit", String(input.limit));
+  return apiJson<InvitationsResponse>(withSearch("/api/invitations", search));
+}
+
 export async function bootstrapLocalReviewer(input: {
   email: string;
   displayName?: string;
   password: string;
-}): Promise<LocalReviewerBootstrapResponse> {
-  return apiJson<LocalReviewerBootstrapResponse>("/api/bootstrap/local-reviewer", {
+}): Promise<LocalUserBootstrapResponse> {
+  return apiJson<LocalUserBootstrapResponse>("/api/bootstrap/local-reviewer", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+}
+
+export async function bootstrapLocalAdmin(input: {
+  email: string;
+  displayName?: string;
+  password: string;
+}): Promise<LocalUserBootstrapResponse> {
+  return apiJson<LocalUserBootstrapResponse>("/api/bootstrap/local-admin", {
     method: "POST",
     body: JSON.stringify(input),
     headers: {

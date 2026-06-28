@@ -10,7 +10,7 @@ Date: 2026-06-27
 Current scaffold status:
 
 1. `@qitu/auth` owns email normalization, invitation token hashing, PBKDF2 password hashing, and session token hashing.
-2. `apps/worker` exposes local baseline routes for bootstrap invite, local demo reviewer bootstrap, authenticated invite, accept, login, logout, current user lookup, and password reset.
+2. `apps/worker` exposes local baseline routes for bootstrap invite, local demo user bootstraps, authenticated invite, user/invitation management, accept, login, logout, current user lookup, and password reset.
 3. `apps/worker/migrations` store token hashes and password hashes, never plaintext tokens or passwords.
 4. `@qitu/email` renders invitation and password-reset messages. Worker delivery uses Cloudflare `send_email` in non-local environments and stores local delivery metadata during development.
 5. `@qitu/rbac` owns the starter role/permission table. Worker write routes check permissions before mutating data and audit denied attempts.
@@ -43,16 +43,33 @@ Default:
 invite token expires after 1 day
 ```
 
-## 2.1 Local Demo Reviewer
+## 2.1 Local Demo Users
 
-Development uses a local-only reviewer bootstrap so a fresh checkout has a usable login path without manual database edits:
+Development uses local-only user bootstraps so a fresh checkout has usable login and admin-management paths without manual database edits:
 
 ```text
 email: reviewer@example.com
+email: admin@example.com
 password: correct horse battery staple
 ```
 
-The bootstrap route creates or resets this reviewer only when `APP_ENV=local` and immediately creates a session. Deployed environments must use invitation-only onboarding.
+The bootstrap routes create or reset these users only when `APP_ENV=local` and immediately create a session. The reviewer account exercises the review workflow; the admin account exercises user and invitation management. Deployed environments must use invitation-only onboarding.
+
+## 2.2 User Management
+
+The authenticated app shell includes user-facing account controls and an admin-only user management route.
+
+Baseline routes:
+
+```text
+GET /api/users
+GET /api/invitations
+POST /api/invitations
+```
+
+These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, and create invitations. `reviewer` and `viewer` can still use the authenticated workbench, but they see an admin-only state for user management.
+
+Local development may return the generated invite URL for authenticated invitation creation. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
 
 ## 3. Session Defaults
 

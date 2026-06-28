@@ -135,14 +135,15 @@ vp run dev:all
 
 `dev` and `dev:all` use the same small Node wrapper that runs the web and Worker dev servers concurrently and prefixes output by process.
 
-Local auth starts with a reusable demo reviewer:
+Local auth starts with reusable demo users:
 
 ```text
 email: reviewer@example.com
+email: admin@example.com
 password: correct horse battery staple
 ```
 
-On a fresh local D1 database, click `Use local demo reviewer` once to create or reset that local-only account and sign in. After that, the same credentials work through the `Login` tab. The bootstrap route is disabled outside `APP_ENV=local`.
+On a fresh local D1 database, use the `Setup` tab to create or reset a local-only reviewer or admin account and sign in. After that, the same credentials work through the `Login` tab. The reviewer account exercises the review workflow, and the admin account exercises user management. The bootstrap routes are disabled outside `APP_ENV=local`.
 
 ## 7. Validation
 

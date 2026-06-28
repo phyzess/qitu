@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ChartDatum } from "@qitu/charts";
-import { AppShell, Button, StatusBadge } from "@qitu/ui";
-import { Activity, LockKeyhole, ShieldCheck } from "lucide-react";
+import { AppShell, Button, StatusBadge, type AppShellNavItem } from "@qitu/ui";
+import { Activity, ChevronDown, LockKeyhole, RefreshCw, ShieldCheck } from "lucide-react";
 import {
   acceptInvitation,
+  bootstrapLocalAdmin,
   approveStagedRecord,
   bootstrapLocalReviewer,
   commitImportJob,
   confirmAiAdvisory,
   confirmPasswordReset,
+  createInvitation,
   dismissAiAdvisory,
   drainLocalImportJobs,
   generateAiAdvisory,
@@ -16,9 +18,11 @@ import {
   health,
   listAiAdvisories,
   listAuditEvents,
+  listInvitations,
   listImportJobEvents,
   listImportJobs,
   listSourceFiles,
+  listUsers,
   login,
   logout,
   me,
@@ -27,28 +31,56 @@ import {
   retryImportJob,
   uploadSourceFile,
 } from "./api";
-import { readAuthRoute, replaceAuthPath } from "./auth-route";
+import {
+  type AppPrimaryRoute,
+  defaultAuthenticatedPath,
+  isWorkspaceAppRoute,
+  isProtectedRoute,
+  loginPath,
+  primaryRouteFor,
+  readAppRoute,
+  type AppRoute,
+  type WorkspaceAppRoute,
+} from "./app-routes";
+import { readAuthRoute } from "./auth-route";
 import {
   AuthLinkLayout,
+  type AppNavigationModel,
+  buildNavigation,
   ErrorText,
   Field,
   Panel,
   RuntimeRow,
   SectionTitle,
-  nav,
   tabClass,
+  type WorkspaceRouteEntry,
 } from "./app-ui";
 import { ReviewConsole } from "./review-console";
+import {
+  type SearchEntry,
+  ThemeToggleButton,
+  UserPanel,
+  WorkspaceSearchDialog,
+} from "./shell-controls";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
   AuditEvent,
   ImportJobEvent,
   ImportJobListItem,
+  InvitationSummary,
   ReviewIssue,
   SourceFile,
   StagedRecord,
 } from "./types";
+import {
+  AccountPage,
+  AuditPage,
+  ImportsPage,
+  OverviewPage,
+  SourcesPage,
+  UsersPage,
+} from "./workspace-pages";
 
 const defaultAuthForm = {
   email: "reviewer@example.com",
@@ -57,21 +89,52 @@ const defaultAuthForm = {
   resetToken: "",
 };
 
+const defaultInvitationForm = {
+  email: "new-user@example.com",
+  role: "viewer",
+};
+
+type RouteMemory = Partial<Record<AppPrimaryRoute, WorkspaceAppRoute>>;
+
+const routeMemoryStorageKey = "qitu.route-memory";
+
+const localDemoProfiles = {
+  admin: {
+    displayName: "Admin",
+    email: "admin@example.com",
+  },
+  reviewer: {
+    displayName: "Reviewer",
+    email: "reviewer@example.com",
+  },
+} as const;
+
 export function App() {
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [authForm, setAuthForm] = useState(defaultAuthForm);
   const [authMode, setAuthMode] = useState<"login" | "setup" | "reset">("setup");
+  const [setupRole, setSetupRole] = useState<"admin" | "reviewer">("reviewer");
   const [authRoute, setAuthRoute] = useState(readAuthRoute);
+  const [route, setRoute] = useState<AppRoute>(readAppRoute);
+  const [routeMemory, setRouteMemory] = useState<RouteMemory>(() => readRouteMemory());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
   const [user, setUser] = useState<ApiUser | null>(null);
   const [runtimeEnvironment, setRuntimeEnvironment] = useState("unknown");
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [notice, setNotice] = useState("Connect to the local Worker to begin");
   const [error, setError] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJobListItem[]>([]);
   const [importJobEvents, setImportJobEvents] = useState<ImportJobEvent[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [users, setUsers] = useState<ApiUser[]>([]);
+  const [invitations, setInvitations] = useState<InvitationSummary[]>([]);
+  const [invitationForm, setInvitationForm] = useState(defaultInvitationForm);
+  const [createdInvitationUrl, setCreatedInvitationUrl] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [reviewRecords, setReviewRecords] = useState<StagedRecord[]>([]);
   const [reviewIssues, setReviewIssues] = useState<ReviewIssue[]>([]);
@@ -113,12 +176,67 @@ export function App() {
 
   useEffect(() => {
     function handlePopState() {
-      setAuthRoute(readAuthRoute());
+      syncRouteState();
     }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k" || !user) return;
+
+      event.preventDefault();
+      setSearchOpen(true);
+      setUserPanelOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [user]);
+
+  useEffect(() => {
+    setSearchOpen(false);
+    setUserPanelOpen(false);
+  }, [route]);
+
+  useEffect(() => {
+    if (!user || !isWorkspaceAppRoute(route)) return;
+    if (route === "users" && !canManageUsers(user)) return;
+
+    const primaryRoute = primaryRouteFor(route);
+    if (!primaryRoute) return;
+
+    setRouteMemory((current) => {
+      if (current[primaryRoute] === route) return current;
+
+      const next = {
+        ...current,
+        [primaryRoute]: route,
+      };
+      writeRouteMemory(next);
+      return next;
+    });
+  }, [route, user]);
+
+  useEffect(() => {
+    if (isLoadingSession || authRoute.kind !== "home") return;
+
+    if (!user && isProtectedRoute(route)) {
+      navigate(loginPath, { replace: true });
+      return;
+    }
+
+    if (user && route === "login") {
+      navigate(defaultAuthenticatedPath, { replace: true });
+    }
+  }, [authRoute.kind, isLoadingSession, route, user]);
+
+  useEffect(() => {
+    if (route !== "users" || !user || !canManageUsers(user)) return;
+    void loadUserManagement();
+  }, [route, user]);
 
   const counts = useMemo(() => {
     return reviewRecords.reduce(
@@ -150,6 +268,91 @@ export function App() {
   const selectedJob = importJobs.find((job) => job.id === selectedJobId) ?? null;
   const canCommit = Boolean(selectedJobId && counts.approved > 0);
   const canRetry = Boolean(selectedJobId && selectedJob?.status === "failed");
+  const navigationModel = useMemo<AppNavigationModel>(
+    () =>
+      buildNavigation(route, {
+        authenticated: Boolean(user),
+        canManageUsers: user ? canManageUsers(user) : false,
+        onNavigate: (path) => navigate(path),
+        resolvePrimaryRoute: (primaryRoute, fallbackRoute) =>
+          routeMemory[primaryRoute] ?? fallbackRoute,
+      }),
+    [route, routeMemory, user],
+  );
+  const searchEntries = useMemo(
+    () =>
+      buildSearchEntries({
+        auditEvents,
+        importJobs,
+        onNavigate: (path) => navigate(path),
+        onSelectJob: (jobId) => void selectJob(jobId),
+        routeEntries: navigationModel.routeEntries,
+        sourceFiles,
+        user,
+        users,
+      }),
+    [auditEvents, importJobs, navigationModel.routeEntries, sourceFiles, user, users],
+  );
+  const shellActions = user ? (
+    <ShellActions
+      disabled={isBusy}
+      onOpenUserPanel={toggleUserPanel}
+      onRefresh={() => void handleRefreshWorkspace()}
+      user={user}
+    />
+  ) : (
+    <ThemeToggleButton compact />
+  );
+  const shellOverlays = user ? (
+    <>
+      <WorkspaceSearchDialog
+        entries={searchEntries}
+        open={searchOpen}
+        query={searchQuery}
+        onOpenChange={(open) => {
+          setSearchOpen(open);
+          if (open) setUserPanelOpen(false);
+        }}
+        onQueryChange={setSearchQuery}
+      />
+      <UserPanel
+        canManageUsers={canManageUsers(user)}
+        notice={notice}
+        open={userPanelOpen}
+        runtimeEnvironment={runtimeEnvironment}
+        user={user}
+        onClose={() => setUserPanelOpen(false)}
+        onLogout={() => {
+          setUserPanelOpen(false);
+          void handleLogout();
+        }}
+        onNavigate={(path) => navigate(path)}
+      />
+    </>
+  ) : null;
+
+  function syncRouteState() {
+    setAuthRoute(readAuthRoute());
+    setRoute(readAppRoute());
+  }
+
+  function navigate(path: string, options: { replace?: boolean } = {}) {
+    if (window.location.pathname !== path) {
+      const method = options.replace ? "replaceState" : "pushState";
+      window.history[method](null, "", path);
+    }
+    syncRouteState();
+  }
+
+  function openSearch() {
+    setSearchOpen(true);
+    setUserPanelOpen(false);
+  }
+
+  function toggleUserPanel() {
+    setUserPanelOpen((current) => !current);
+    setSearchOpen(false);
+  }
 
   async function loadWorkspace(preferredJobId?: string) {
     const [sourceFileResponse, importJobResponse, auditResponse] = await Promise.all([
@@ -173,6 +376,32 @@ export function App() {
       setReviewIssues([]);
       setAiAdvisories([]);
       setImportJobEvents([]);
+    }
+  }
+
+  async function handleRefreshWorkspace() {
+    await runAction(async () => {
+      await loadWorkspace();
+      if (route === "users") {
+        await loadUserManagement();
+      }
+      setNotice("Workspace data refreshed");
+    });
+  }
+
+  async function loadUserManagement() {
+    if (!user || !canManageUsers(user)) return;
+
+    setAdminError(null);
+    try {
+      const [userResponse, invitationResponse] = await Promise.all([
+        listUsers({ limit: 50 }),
+        listInvitations({ limit: 50 }),
+      ]);
+      setUsers(userResponse.users);
+      setInvitations(invitationResponse.invitations);
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
     }
   }
 
@@ -212,18 +441,47 @@ export function App() {
     }
   }
 
+  function clearWorkspace() {
+    setSourceFiles([]);
+    setImportJobs([]);
+    setAuditEvents([]);
+    setUsers([]);
+    setInvitations([]);
+    setCreatedInvitationUrl(null);
+    setReviewRecords([]);
+    setReviewIssues([]);
+    setAiAdvisories([]);
+    setImportJobEvents([]);
+    setSelectedJobId(null);
+  }
+
   async function handleLocalSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await runAction(async () => {
-      const response = await bootstrapLocalReviewer({
+      const bootstrapDemoUser =
+        setupRole === "admin" ? bootstrapLocalAdmin : bootstrapLocalReviewer;
+      const response = await bootstrapDemoUser({
         email: authForm.email,
         password: authForm.password,
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
       setUser(response.user);
-      setNotice(response.created ? "Local demo reviewer created" : "Local demo reviewer reset");
+      setNotice(
+        response.created ? `Local demo ${setupRole} created` : `Local demo ${setupRole} reset`,
+      );
       await loadWorkspace();
+      navigate(defaultAuthenticatedPath, { replace: true });
     });
+  }
+
+  function selectSetupRole(role: "admin" | "reviewer") {
+    const profile = localDemoProfiles[role];
+    setSetupRole(role);
+    setAuthForm((current) => ({
+      ...current,
+      displayName: profile.displayName,
+      email: profile.email,
+    }));
   }
 
   async function handleInviteAccept(event: FormEvent<HTMLFormElement>) {
@@ -238,8 +496,8 @@ export function App() {
       });
       setUser(accepted.user);
       setNotice("Invitation accepted");
-      replaceAuthPath("/", setAuthRoute);
       await loadWorkspace();
+      navigate(defaultAuthenticatedPath, { replace: true });
     });
   }
 
@@ -253,6 +511,7 @@ export function App() {
       setUser(response.user);
       setNotice("Signed in");
       await loadWorkspace();
+      navigate(defaultAuthenticatedPath, { replace: true });
     });
   }
 
@@ -266,17 +525,10 @@ export function App() {
         password: authForm.password,
       });
       setUser(null);
-      setSourceFiles([]);
-      setImportJobs([]);
-      setAuditEvents([]);
-      setReviewRecords([]);
-      setReviewIssues([]);
-      setAiAdvisories([]);
-      setImportJobEvents([]);
-      setSelectedJobId(null);
+      clearWorkspace();
       setAuthMode("login");
       setNotice("Password reset complete. Sign in with the new password.");
-      replaceAuthPath("/", setAuthRoute);
+      navigate(loginPath, { replace: true });
     });
   }
 
@@ -301,23 +553,43 @@ export function App() {
       });
       setAuthMode("login");
       setNotice("Password reset complete");
+      navigate(loginPath, { replace: true });
     });
   }
 
   async function handleLogout() {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setUserPanelOpen(false);
+
     await runAction(async () => {
       await logout();
       setUser(null);
-      setSourceFiles([]);
-      setImportJobs([]);
-      setAuditEvents([]);
-      setReviewRecords([]);
-      setReviewIssues([]);
-      setAiAdvisories([]);
-      setImportJobEvents([]);
-      setSelectedJobId(null);
+      clearWorkspace();
       setNotice("Signed out");
+      navigate(loginPath, { replace: true });
     });
+  }
+
+  async function handleCreateInvitation() {
+    setIsBusy(true);
+    setError(null);
+    setAdminError(null);
+    try {
+      const response = await createInvitation({
+        email: invitationForm.email,
+        role: invitationForm.role,
+      });
+      setCreatedInvitationUrl(response.inviteUrl ?? null);
+      setNotice(
+        response.inviteUrl ? "Local invitation link created" : "Invitation email requested",
+      );
+      await loadUserManagement();
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   async function handleUploadSelected() {
@@ -446,7 +718,13 @@ export function App() {
 
   if (isLoadingSession) {
     return (
-      <AppShell brand="qitu" navigation={nav}>
+      <AppShell
+        actions={<ThemeToggleButton compact />}
+        brand="qitu"
+        commandLabel="Loading workspace"
+        navigation={navigationModel.primaryNavigation}
+        subNavigation={navigationModel.subNavigation}
+      >
         <Panel>
           <div className="text-sm text-[var(--color-text-muted)]">Loading session...</div>
         </Panel>
@@ -456,7 +734,13 @@ export function App() {
 
   if (authRoute.kind === "invite") {
     return (
-      <AppShell brand="qitu" navigation={nav}>
+      <AppShell
+        actions={<ThemeToggleButton compact />}
+        brand="qitu"
+        commandLabel="Accept invitation"
+        navigation={navigationModel.primaryNavigation}
+        subNavigation={navigationModel.subNavigation}
+      >
         <AuthLinkLayout
           badge="invitation"
           description="Create your reviewer account from the secure link sent by email."
@@ -487,7 +771,13 @@ export function App() {
 
   if (authRoute.kind === "reset") {
     return (
-      <AppShell brand="qitu" navigation={nav}>
+      <AppShell
+        actions={<ThemeToggleButton compact />}
+        brand="qitu"
+        commandLabel="Reset password"
+        navigation={navigationModel.primaryNavigation}
+        subNavigation={navigationModel.subNavigation}
+      >
         <AuthLinkLayout
           badge="password reset"
           description="Choose a new password. Existing sessions will be revoked after confirmation."
@@ -513,7 +803,13 @@ export function App() {
 
   if (!user) {
     return (
-      <AppShell brand="qitu" navigation={nav}>
+      <AppShell
+        actions={<ThemeToggleButton compact />}
+        brand="qitu"
+        commandLabel="Sign in to search workspace"
+        navigation={navigationModel.primaryNavigation}
+        subNavigation={navigationModel.subNavigation}
+      >
         <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-[1fr_0.8fr]">
           <Panel>
             <div className="flex items-start justify-between gap-4">
@@ -524,7 +820,7 @@ export function App() {
               <LockKeyhole size={18} className="text-[var(--color-accent)]" />
             </div>
 
-            <div className="mt-6 grid grid-cols-3 gap-2 rounded-lg bg-[var(--color-panel-subtle)] p-1">
+            <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
               <button
                 className={tabClass(authMode === "setup")}
                 onClick={() => setAuthMode("setup")}
@@ -547,6 +843,25 @@ export function App() {
                 Reset
               </button>
             </div>
+
+            {authMode === "setup" ? (
+              <div className="qitu-segment-track mt-3 grid grid-cols-2 gap-2">
+                <button
+                  className={tabClass(setupRole === "reviewer")}
+                  onClick={() => selectSetupRole("reviewer")}
+                  type="button"
+                >
+                  Reviewer
+                </button>
+                <button
+                  className={tabClass(setupRole === "admin")}
+                  onClick={() => selectSetupRole("admin")}
+                  type="button"
+                >
+                  Admin
+                </button>
+              </div>
+            ) : null}
 
             <form
               className="mt-5 space-y-4"
@@ -592,7 +907,7 @@ export function App() {
               <Button disabled={isBusy} type="submit">
                 <ShieldCheck size={15} />
                 {authMode === "setup"
-                  ? "Use local demo reviewer"
+                  ? `Use local demo ${setupRole}`
                   : authMode === "reset"
                     ? authForm.resetToken
                       ? "Reset password"
@@ -603,12 +918,14 @@ export function App() {
           </Panel>
 
           <Panel>
-            <SectionTitle icon={<Activity size={16} />} label="Runtime" />
+            <SectionTitle icon={<Activity size={16} />} label="Protected workspace" />
             <div className="mt-4 space-y-3">
-              <RuntimeRow label="Worker" value="/api" />
+              <RuntimeRow label="Routes" value="Workbench / Intake / Governance" />
+              <RuntimeRow label="Reviewer" value="reviewer@example.com" />
+              <RuntimeRow label="Admin" value="admin@example.com" />
+              <RuntimeRow label="Password" value={defaultAuthForm.password} />
               <RuntimeRow label="Environment" value={runtimeEnvironment} />
               <RuntimeRow label="Session" value={notice} />
-              <RuntimeRow label="Database" value="D1 local" />
             </div>
           </Panel>
         </div>
@@ -616,41 +933,309 @@ export function App() {
     );
   }
 
+  if (route === "reviews") {
+    return (
+      <>
+        <ReviewConsole
+          actions={shellActions}
+          aiAdvisories={aiAdvisories}
+          auditEvents={auditEvents}
+          canCommit={canCommit}
+          canRetry={canRetry}
+          counts={counts}
+          error={error}
+          importJobEvents={importJobEvents}
+          importJobs={importJobs}
+          isBusy={isBusy}
+          navigation={navigationModel.primaryNavigation}
+          notice={notice}
+          subNavigation={navigationModel.subNavigation}
+          onCommand={openSearch}
+          onCommitApproved={() => void commitApproved()}
+          onConfirmAdvisory={(advisoryId) => void confirmAdvisory(advisoryId)}
+          onDecide={(recordId, status) => void decide(recordId, status)}
+          onDismissAdvisory={(advisoryId) => void dismissAdvisory(advisoryId)}
+          onGenerateAdvisory={() => void generateAdvisory()}
+          onProcessLocalQueue={() => void processLocalQueue()}
+          onRetrySelectedJob={() => void retrySelectedJob()}
+          onSelectJob={(jobId) => void selectJob(jobId)}
+          onUploadSample={() => void handleUploadSample()}
+          onUploadSelected={() => void handleUploadSelected()}
+          reviewIssues={reviewIssues}
+          reviewRecords={reviewRecords}
+          reviewTrend={reviewTrend}
+          runtimeEnvironment={runtimeEnvironment}
+          selectedJob={selectedJob}
+          selectedJobId={selectedJobId}
+          sourceFiles={sourceFiles}
+          uploadInputRef={uploadInputRef}
+          user={user}
+        />
+        {shellOverlays}
+      </>
+    );
+  }
+
   return (
-    <ReviewConsole
-      aiAdvisories={aiAdvisories}
-      auditEvents={auditEvents}
-      canCommit={canCommit}
-      canRetry={canRetry}
-      counts={counts}
-      error={error}
-      importJobEvents={importJobEvents}
-      importJobs={importJobs}
-      isBusy={isBusy}
-      notice={notice}
-      onCommitApproved={() => void commitApproved()}
-      onConfirmAdvisory={(advisoryId) => void confirmAdvisory(advisoryId)}
-      onDecide={(recordId, status) => void decide(recordId, status)}
-      onDismissAdvisory={(advisoryId) => void dismissAdvisory(advisoryId)}
-      onGenerateAdvisory={() => void generateAdvisory()}
-      onLogout={() => void handleLogout()}
-      onProcessLocalQueue={() => void processLocalQueue()}
-      onRefresh={() => void loadWorkspace()}
-      onRetrySelectedJob={() => void retrySelectedJob()}
-      onSelectJob={(jobId) => void selectJob(jobId)}
-      onUploadSample={() => void handleUploadSample()}
-      onUploadSelected={() => void handleUploadSelected()}
-      reviewIssues={reviewIssues}
-      reviewRecords={reviewRecords}
-      reviewTrend={reviewTrend}
-      runtimeEnvironment={runtimeEnvironment}
-      selectedJob={selectedJob}
-      selectedJobId={selectedJobId}
-      sourceFiles={sourceFiles}
-      uploadInputRef={uploadInputRef}
-      user={user}
-    />
+    <>
+      <WorkspaceShell
+        actions={shellActions}
+        navigation={navigationModel.primaryNavigation}
+        notice={notice}
+        subNavigation={navigationModel.subNavigation}
+        onCommand={openSearch}
+      >
+        {route === "overview" ? (
+          <OverviewPage
+            auditEvents={auditEvents}
+            counts={counts}
+            importJobs={importJobs}
+            onNavigate={(path) => navigate(path)}
+            sourceFiles={sourceFiles}
+          />
+        ) : null}
+        {route === "sources" ? (
+          <SourcesPage
+            importJobs={importJobs}
+            isBusy={isBusy}
+            onUploadSample={() => void handleUploadSample()}
+            onUploadSelected={() => void handleUploadSelected()}
+            sourceFiles={sourceFiles}
+            uploadInputRef={uploadInputRef}
+          />
+        ) : null}
+        {route === "imports" ? (
+          <ImportsPage
+            canRetry={canRetry}
+            importJobs={importJobs}
+            isBusy={isBusy}
+            onNavigate={(path) => navigate(path)}
+            onProcessLocalQueue={() => void processLocalQueue()}
+            onRetrySelectedJob={() => void retrySelectedJob()}
+            onSelectJob={(jobId) => void selectJob(jobId)}
+            runtimeEnvironment={runtimeEnvironment}
+            selectedJobId={selectedJobId}
+          />
+        ) : null}
+        {route === "audit" ? <AuditPage auditEvents={auditEvents} /> : null}
+        {route === "users" ? (
+          <UsersPage
+            adminError={adminError}
+            createdInvitationUrl={createdInvitationUrl}
+            invitationForm={invitationForm}
+            invitations={invitations}
+            isBusy={isBusy}
+            onCreateInvitation={() => void handleCreateInvitation()}
+            onInvitationFormChange={setInvitationForm}
+            onRefreshUsers={() => void loadUserManagement()}
+            user={user}
+            users={users}
+          />
+        ) : null}
+        {route === "account" ? (
+          <AccountPage
+            notice={notice}
+            onLogout={() => void handleLogout()}
+            runtimeEnvironment={runtimeEnvironment}
+            user={user}
+          />
+        ) : null}
+        {route === "not-found" ? (
+          <Panel>
+            <SectionTitle icon={<Activity size={16} />} label="Route not found" />
+            <div className="mt-4">
+              <Button onClick={() => navigate(defaultAuthenticatedPath)}>
+                <ShieldCheck size={15} /> Open reviews
+              </Button>
+            </div>
+          </Panel>
+        ) : null}
+      </WorkspaceShell>
+      {shellOverlays}
+    </>
   );
+}
+
+function WorkspaceShell(props: {
+  actions: ReactNode;
+  children: ReactNode;
+  navigation: AppShellNavItem[];
+  notice: string;
+  subNavigation: AppShellNavItem[];
+  onCommand: () => void;
+}) {
+  return (
+    <AppShell
+      actions={props.actions}
+      brand="qitu"
+      commandLabel="Find source, job, user, or audit event"
+      commandShortcutLabel="Cmd K"
+      eyebrow={props.notice}
+      navigation={props.navigation}
+      subNavigation={props.subNavigation}
+      onCommand={props.onCommand}
+    >
+      {props.children}
+    </AppShell>
+  );
+}
+
+function ShellActions(props: {
+  disabled: boolean;
+  onOpenUserPanel: () => void;
+  onRefresh: () => void;
+  user: ApiUser;
+}) {
+  const displayName = props.user.displayName ?? props.user.email;
+  const initial = displayName.slice(0, 1).toUpperCase();
+
+  return (
+    <>
+      <Button
+        aria-label="Refresh workspace"
+        className="qitu-topbar-control"
+        disabled={props.disabled}
+        size="sm"
+        title="Refresh workspace data"
+        variant="ghost"
+        onClick={props.onRefresh}
+      >
+        <RefreshCw size={15} />
+        <span className="sr-only">Refresh</span>
+      </Button>
+      <ThemeToggleButton className="qitu-topbar-control" compact />
+      <Button
+        aria-label={`Open user panel for ${displayName}`}
+        className="qitu-account-trigger"
+        size="sm"
+        title={`Open user panel for ${displayName}`}
+        variant="ghost"
+        onClick={props.onOpenUserPanel}
+      >
+        <span className="qitu-avatar-mark size-8 text-[length:var(--text-label-12)] font-semibold">
+          {initial}
+        </span>
+        <ChevronDown size={14} className="text-[var(--dim)]" />
+      </Button>
+    </>
+  );
+}
+
+function buildSearchEntries(props: {
+  auditEvents: AuditEvent[];
+  importJobs: ImportJobListItem[];
+  onNavigate: (path: string) => void;
+  onSelectJob: (jobId: string) => void;
+  routeEntries: WorkspaceRouteEntry[];
+  sourceFiles: SourceFile[];
+  user: ApiUser | null;
+  users: ApiUser[];
+}): SearchEntry[] {
+  const entries: SearchEntry[] = props.routeEntries.map((entry) => ({
+    description: entry.description,
+    group: entry.group,
+    id: `route:${entry.path}`,
+    label: entry.label,
+    onSelect: () => props.onNavigate(entry.path),
+  }));
+
+  if (props.user) {
+    entries.push({
+      description: `Current ${props.user.role} session`,
+      group: "Account",
+      id: `account:${props.user.id}`,
+      label: props.user.email,
+      onSelect: () => props.onNavigate("/account"),
+    });
+  }
+
+  for (const file of props.sourceFiles.slice(0, 8)) {
+    entries.push({
+      description: file.size === null ? "Source file" : `Source file, ${file.size} bytes`,
+      group: "Sources",
+      id: `source:${file.id}`,
+      label: file.filename,
+      onSelect: () => props.onNavigate("/sources"),
+    });
+  }
+
+  for (const job of props.importJobs.slice(0, 8)) {
+    entries.push({
+      description: `${job.status} import job`,
+      group: "Imports",
+      id: `job:${job.id}`,
+      label: job.sourceFile.filename,
+      onSelect: () => {
+        props.onNavigate("/imports");
+        props.onSelectJob(job.id);
+      },
+    });
+  }
+
+  for (const apiUser of props.users.slice(0, 8)) {
+    entries.push({
+      description: `${apiUser.role} user`,
+      group: "Users",
+      id: `user:${apiUser.id}`,
+      label: apiUser.email,
+      onSelect: () => props.onNavigate("/users"),
+    });
+  }
+
+  for (const event of props.auditEvents.slice(0, 8)) {
+    entries.push({
+      description: `${event.subject.kind}:${event.subject.id}`,
+      group: "Audit",
+      id: `audit:${event.id}`,
+      label: event.action,
+      onSelect: () => props.onNavigate("/audit"),
+    });
+  }
+
+  return entries;
+}
+
+function readRouteMemory(): RouteMemory {
+  try {
+    const raw = window.sessionStorage.getItem(routeMemoryStorageKey);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw) as Partial<Record<AppPrimaryRoute, string>>;
+    const memory: RouteMemory = {};
+    for (const primaryRoute of primaryRoutes) {
+      const route = parsed[primaryRoute];
+      if (route && isWorkspaceRouteName(route)) {
+        memory[primaryRoute] = route;
+      }
+    }
+
+    return memory;
+  } catch {
+    return {};
+  }
+}
+
+function writeRouteMemory(memory: RouteMemory) {
+  window.sessionStorage.setItem(routeMemoryStorageKey, JSON.stringify(memory));
+}
+
+const primaryRoutes: AppPrimaryRoute[] = ["workbench", "intake", "governance", "account"];
+const workspaceRouteNames: WorkspaceAppRoute[] = [
+  "overview",
+  "sources",
+  "imports",
+  "reviews",
+  "audit",
+  "users",
+  "account",
+];
+
+function isWorkspaceRouteName(route: string): route is WorkspaceAppRoute {
+  return workspaceRouteNames.includes(route as WorkspaceAppRoute);
+}
+
+function canManageUsers(user: ApiUser): boolean {
+  return user.role === "owner" || user.role === "admin";
 }
 
 function errorMessage(error: unknown): string {

@@ -177,7 +177,7 @@ Does not own:
 Owns:
 
 1. App shell.
-2. Navigation.
+2. Topbar primary navigation and secondary route tabs.
 3. Common panels.
 4. Forms.
 5. Tables.

@@ -6,17 +6,216 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   ListChecks,
+  LogIn,
   LockKeyhole,
   ShieldCheck,
+  UserCog,
+  UserRound,
 } from "lucide-react";
+import {
+  type AppPrimaryRoute,
+  primaryRouteFor,
+  routePath,
+  type AppRoute,
+  type WorkspaceAppRoute,
+} from "./app-routes";
 
-export const nav: AppShellNavItem[] = [
-  { label: "Overview", icon: <LayoutDashboard size={17} />, disabled: true },
-  { label: "Sources", icon: <FileSpreadsheet size={17} />, disabled: true },
-  { label: "Imports", icon: <Database size={17} />, disabled: true },
-  { label: "Reviews", icon: <ListChecks size={17} />, active: true },
-  { label: "Audit", icon: <ShieldCheck size={17} />, disabled: true },
+export type WorkspaceRouteEntry = {
+  description: string;
+  group: string;
+  label: string;
+  path: string;
+  route: WorkspaceAppRoute;
+};
+
+export type AppNavigationModel = {
+  activePrimaryLabel: string;
+  activeRouteLabel: string;
+  primaryNavigation: AppShellNavItem[];
+  routeEntries: WorkspaceRouteEntry[];
+  subNavigation: AppShellNavItem[];
+};
+
+type NavigationGroup = {
+  defaultRoute: WorkspaceAppRoute;
+  icon: ReactNode;
+  id: AppPrimaryRoute;
+  label: string;
+  routes: WorkspaceAppRoute[];
+};
+
+const routeMeta: Record<
+  WorkspaceAppRoute,
+  {
+    description: string;
+    icon: ReactNode;
+    label: string;
+  }
+> = {
+  overview: {
+    description: "Authenticated workspace summary.",
+    icon: <LayoutDashboard size={15} />,
+    label: "Overview",
+  },
+  reviews: {
+    description: "Review staged records and advisory output.",
+    icon: <ListChecks size={15} />,
+    label: "Reviews",
+  },
+  sources: {
+    description: "Upload source files and inspect intake state.",
+    icon: <FileSpreadsheet size={15} />,
+    label: "Sources",
+  },
+  imports: {
+    description: "Process import jobs and retry failures.",
+    icon: <Database size={15} />,
+    label: "Imports",
+  },
+  audit: {
+    description: "Read compliance and security audit events.",
+    icon: <ShieldCheck size={15} />,
+    label: "Audit",
+  },
+  users: {
+    description: "Manage users and local invitations.",
+    icon: <UserCog size={15} />,
+    label: "Users",
+  },
+  account: {
+    description: "Review the current session and account profile.",
+    icon: <UserRound size={15} />,
+    label: "Account",
+  },
+};
+
+const navigationGroups: NavigationGroup[] = [
+  {
+    defaultRoute: "reviews",
+    icon: <LayoutDashboard size={17} />,
+    id: "workbench",
+    label: "Workbench",
+    routes: ["overview", "reviews"],
+  },
+  {
+    defaultRoute: "sources",
+    icon: <FileSpreadsheet size={17} />,
+    id: "intake",
+    label: "Intake",
+    routes: ["sources", "imports"],
+  },
+  {
+    defaultRoute: "audit",
+    icon: <ShieldCheck size={17} />,
+    id: "governance",
+    label: "Governance",
+    routes: ["audit", "users"],
+  },
+  {
+    defaultRoute: "account",
+    icon: <UserRound size={17} />,
+    id: "account",
+    label: "Account",
+    routes: ["account"],
+  },
 ];
+
+export function buildNavigation(
+  route: AppRoute,
+  options: {
+    authenticated: boolean;
+    canManageUsers?: boolean;
+    onNavigate: (path: string) => void;
+    resolvePrimaryRoute?: (
+      primaryRoute: AppPrimaryRoute,
+      fallbackRoute: WorkspaceAppRoute,
+    ) => WorkspaceAppRoute;
+  },
+): AppNavigationModel {
+  if (!options.authenticated) {
+    return {
+      activePrimaryLabel: "Login",
+      activeRouteLabel: "Login",
+      primaryNavigation: [
+        {
+          label: "Login",
+          icon: <LogIn size={17} />,
+          active: route === "login",
+          href: routePath("login"),
+          onSelect: () => options.onNavigate(routePath("login")),
+        },
+      ],
+      routeEntries: [],
+      subNavigation: [],
+    };
+  }
+
+  const canManageUsers = Boolean(options.canManageUsers);
+  const activeGroup =
+    navigationGroups.find((group) => group.id === primaryRouteFor(route)) ?? navigationGroups[0]!;
+  const primaryNavigation = navigationGroups.map((group) => {
+    const rememberedRoute =
+      options.resolvePrimaryRoute?.(group.id, group.defaultRoute) ?? group.defaultRoute;
+    const targetRoute = routeAvailable(rememberedRoute, canManageUsers)
+      ? rememberedRoute
+      : group.defaultRoute;
+    const href = routePath(targetRoute);
+
+    return {
+      label: group.label,
+      icon: group.icon,
+      href,
+      active: activeGroup.id === group.id,
+      onSelect: () => options.onNavigate(href),
+    };
+  });
+  const subNavigation: AppShellNavItem[] = activeGroup.routes.map((routeId) => {
+    const meta = routeMeta[routeId];
+    const href = routePath(routeId);
+    const disabled = !routeAvailable(routeId, canManageUsers);
+
+    const item: AppShellNavItem = {
+      label: meta.label,
+      icon: meta.icon,
+      href,
+      active: route === routeId,
+      disabled,
+    };
+
+    if (!disabled) {
+      item.onSelect = () => options.onNavigate(href);
+    }
+
+    return item;
+  });
+  const routeEntries = navigationGroups.flatMap((group) =>
+    group.routes
+      .filter((routeId) => routeAvailable(routeId, canManageUsers))
+      .map((routeId) => {
+        const meta = routeMeta[routeId];
+        return {
+          description: meta.description,
+          group: group.label,
+          label: meta.label,
+          path: routePath(routeId),
+          route: routeId,
+        };
+      }),
+  );
+  const activeRoute = route !== "login" && route !== "not-found" ? routeMeta[route] : null;
+
+  return {
+    activePrimaryLabel: activeGroup.label,
+    activeRouteLabel: activeRoute?.label ?? activeGroup.label,
+    primaryNavigation,
+    routeEntries,
+    subNavigation,
+  };
+}
+
+function routeAvailable(route: WorkspaceAppRoute, canManageUsers: boolean): boolean {
+  return route !== "users" || canManageUsers;
+}
 
 export function Panel(props: { children: ReactNode }) {
   return <Surface className="p-[var(--s1)]">{props.children}</Surface>;
@@ -46,7 +245,7 @@ export function AuthLinkLayout(props: {
               {props.description}
             </div>
           </div>
-          <LockKeyhole size={18} className="text-[var(--green)]" />
+          <LockKeyhole size={18} className="text-[var(--chroma-lime-ink)]" />
         </div>
         {props.children}
       </Panel>
@@ -64,13 +263,9 @@ export function AuthLinkLayout(props: {
 
 export function RuntimeRow(props: { label: string; value: string }) {
   return (
-    <div className="qitu-surface-subtle flex items-center justify-between gap-3 px-3 py-2">
-      <div className="text-[length:var(--text-label-13)] leading-[var(--leading-label-13)] text-[var(--muted)]">
-        {props.label}
-      </div>
-      <div className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--text)]">
-        {props.value}
-      </div>
+    <div className="qitu-readonly-field">
+      <div className="qitu-readonly-label">{props.label}</div>
+      <div className="qitu-readonly-value">{props.value}</div>
     </div>
   );
 }
@@ -82,16 +277,38 @@ export function Field(props: {
   value: string;
 }) {
   return (
-    <label className="block">
-      <span className="text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--muted)]">
-        {props.label}
-      </span>
+    <label className="qitu-form-field">
+      <span className="qitu-form-label">{props.label}</span>
       <input
-        className="mt-2 block h-10 w-full rounded-[var(--radius-md)] bg-[var(--surface-2)] px-3 text-[length:var(--text-copy-14)] text-[var(--text)] outline-none shadow-[0_0_0_1px_var(--line)] transition-[background,box-shadow] duration-300 ease-[var(--ease)] placeholder:text-[var(--dim)] focus:bg-[var(--surface-3)] focus:shadow-[0_0_0_2px_var(--green)]"
+        className="qitu-field-control"
         onChange={(event) => props.onChange(event.target.value)}
         type={props.type ?? "text"}
         value={props.value}
       />
+    </label>
+  );
+}
+
+export function SelectField(props: {
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  return (
+    <label className="qitu-form-field">
+      <span className="qitu-form-label">{props.label}</span>
+      <select
+        className="qitu-field-control"
+        onChange={(event) => props.onChange(event.target.value)}
+        value={props.value}
+      >
+        {props.options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -109,10 +326,5 @@ export function EmptyText(props: { children: ReactNode }) {
 }
 
 export function tabClass(active: boolean): string {
-  return [
-    "h-8 rounded-[var(--radius-sm)] text-[length:var(--text-label-13)] transition-[background,box-shadow,color] duration-300 ease-[var(--ease)]",
-    active
-      ? "bg-[var(--surface-3)] text-[var(--text)] shadow-[0_0_0_1px_var(--line-strong)]"
-      : "text-[var(--muted)] hover:bg-[rgb(255_255_255_/_0.04)] hover:text-[var(--text)]",
-  ].join(" ");
+  return ["qitu-segment-tab", active ? "qitu-segment-tab-active" : ""].join(" ");
 }

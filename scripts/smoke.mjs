@@ -473,10 +473,12 @@ assert(
 assert(
   workerSources.includes("/api/bootstrap/invitations") &&
     workerSources.includes("/api/bootstrap/local-reviewer") &&
+    workerSources.includes("/api/bootstrap/local-admin") &&
     workerSources.includes("auth.local_reviewer_bootstrapped") &&
+    workerSources.includes("auth.local_admin_bootstrapped") &&
     workerSources.includes("bootstrap_disabled") &&
     workerSources.includes("returnToken: isLocalRuntime(context)"),
-  "invitation creation and demo reviewer bootstrap must stay local-only and separate from authenticated invitation creation.",
+  "invitation creation and demo user bootstraps must stay local-only and separate from authenticated invitation creation.",
 );
 assert(
   workerSources.includes("requirePermission(context") &&
@@ -563,8 +565,10 @@ assert(
 assert(
   workerSources.includes('app.get("/api/source-files"') &&
     workerSources.includes('app.get("/api/import-jobs"') &&
-    workerSources.includes('app.get("/api/audit-events"'),
-  "worker must expose source file, import job, and audit list routes.",
+    workerSources.includes('app.get("/api/audit-events"') &&
+    workerSources.includes('app.get("/api/users"') &&
+    workerSources.includes('app.get("/api/invitations"'),
+  "worker must expose source file, import job, audit, user, and invitation list routes.",
 );
 assert(
   workerSources.includes("INSERT INTO import_review_decisions") &&
@@ -593,6 +597,10 @@ assert(
   webApi.includes('credentials: "include"') &&
     webApi.includes("health") &&
     webApi.includes("createLocalInvitation") &&
+    webApi.includes("createInvitation") &&
+    webApi.includes("listUsers") &&
+    webApi.includes("listInvitations") &&
+    webApi.includes("bootstrapLocalAdmin") &&
     webApi.includes("acceptInvitation") &&
     webApi.includes("requestPasswordReset") &&
     webApi.includes("confirmPasswordReset") &&
@@ -625,6 +633,9 @@ assert(
     webSources.includes("Process local queue") &&
     webSources.includes("Accept invitation") &&
     webSources.includes("Reset password") &&
+    webSources.includes("User management") &&
+    webSources.includes("Account") &&
+    webSources.includes("buildNavigation") &&
     webSources.includes("readAuthRoute") &&
     webAuthRoute.includes('kind === "invite"') &&
     webAuthRoute.includes('kind === "reset-password"') &&
@@ -647,6 +658,7 @@ assert(
     workerIntegration.includes("viewer@example.com") &&
     workerIntegration.includes("source_file:upload") &&
     workerIntegration.includes("rbac.denied") &&
+    workerIntegration.includes("/api/users") &&
     workerIntegration.includes("/api/auth/login") &&
     workerIntegration.includes("/api/auth/password-reset/request") &&
     workerIntegration.includes("/api/auth/password-reset/confirm") &&
@@ -654,7 +666,9 @@ assert(
     workerIntegration.includes("fixture-invalid-number.txt") &&
     workerIntegration.includes("invalid_number") &&
     workerIntegration.includes("/api/bootstrap/local-reviewer") &&
+    workerIntegration.includes("/api/bootstrap/local-admin") &&
     workerIntegration.includes("local demo credentials log in") &&
+    workerIntegration.includes("local demo admin can list users") &&
     workerIntegration.includes("fixture-json-records.json") &&
     workerIntegration.includes("starter.json-records") &&
     workerIntegration.includes("commitKey") &&
@@ -665,8 +679,9 @@ assert(
     workerIntegration.includes("/review") &&
     workerIntegration.includes("/approve") &&
     workerIntegration.includes("/commit") &&
+    workerIntegration.includes("admin can list invitations") &&
     workerIntegration.includes("/api/audit-events"),
-  "Worker integration must exercise invite, login, password reset, text adapter, JSON adapter, AI advisory, retry, review, approve, commit, and audit visibility.",
+  "Worker integration must exercise invite, user management, login, password reset, text adapter, JSON adapter, AI advisory, retry, review, approve, commit, and audit visibility.",
 );
 assert(
   workerIntegration.includes("DatabaseSync") &&

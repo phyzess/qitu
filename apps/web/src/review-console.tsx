@@ -1,4 +1,4 @@
-import { useMemo, type RefObject } from "react";
+import { useMemo, type ReactNode, type RefObject } from "react";
 import { BarChart, TimeSeriesChart, type CategoryDatum, type ChartDatum } from "@qitu/charts";
 import {
   AppShell,
@@ -9,6 +9,7 @@ import {
   StatusBadge,
   Surface,
   Timeline,
+  type AppShellNavItem,
   type MetricItem,
   type StatusBadgeTone,
   type TimelineItem,
@@ -28,7 +29,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { ErrorText, nav } from "./app-ui";
+import { ErrorText } from "./app-ui";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
@@ -48,6 +49,7 @@ export type ReviewCounts = {
 };
 
 export function ReviewConsole(props: {
+  actions: ReactNode;
   aiAdvisories: AiAdvisoryArtifact[];
   auditEvents: AuditEvent[];
   canCommit: boolean;
@@ -57,15 +59,15 @@ export function ReviewConsole(props: {
   importJobEvents: ImportJobEvent[];
   importJobs: ImportJobListItem[];
   isBusy: boolean;
+  navigation: AppShellNavItem[];
   notice: string;
   onCommitApproved: () => void;
   onConfirmAdvisory: (advisoryId: string) => void;
+  onCommand: () => void;
   onDecide: (recordId: string, status: "approved" | "rejected") => void;
   onDismissAdvisory: (advisoryId: string) => void;
   onGenerateAdvisory: () => void;
-  onLogout: () => void;
   onProcessLocalQueue: () => void;
-  onRefresh: () => void;
   onRetrySelectedJob: () => void;
   onSelectJob: (jobId: string) => void;
   onUploadSample: () => void;
@@ -77,6 +79,7 @@ export function ReviewConsole(props: {
   selectedJob: ImportJobListItem | null;
   selectedJobId: string | null;
   sourceFiles: SourceFile[];
+  subNavigation: AppShellNavItem[];
   uploadInputRef: RefObject<HTMLInputElement | null>;
   user: ApiUser;
 }) {
@@ -129,22 +132,16 @@ export function ReviewConsole(props: {
 
   return (
     <AppShell
-      actions={
-        <>
-          <Button disabled={props.isBusy} size="sm" variant="ghost" onClick={props.onRefresh}>
-            <RefreshCw size={15} /> Refresh
-          </Button>
-          <Button disabled={props.isBusy} size="sm" variant="ghost" onClick={props.onLogout}>
-            <X size={15} /> Logout
-          </Button>
-        </>
-      }
+      actions={props.actions}
       brand="qitu"
       commandLabel="Find source, job, or staged record"
+      commandShortcutLabel="Cmd K"
       eyebrow={props.notice}
-      navigation={nav}
+      navigation={props.navigation}
+      subNavigation={props.subNavigation}
+      onCommand={props.onCommand}
     >
-      <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(260px,0.7fr)_minmax(680px,1.7fr)_minmax(300px,0.85fr)]">
+      <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.7fr)_minmax(280px,0.85fr)]">
         <section className="space-y-[var(--gutter)]">
           <Surface className="p-[var(--s1)]">
             <div className="flex items-start justify-between gap-4">
@@ -157,7 +154,7 @@ export function ReviewConsole(props: {
                   {props.notice}
                 </div>
               </div>
-              <LockKeyhole size={17} className="shrink-0 text-[var(--green)]" />
+              <LockKeyhole size={17} className="shrink-0 text-[var(--chroma-lime-ink)]" />
             </div>
             {props.error ? <ErrorText>{props.error}</ErrorText> : null}
             <MetricStrip className="mt-[var(--s1)]" items={metrics} />
@@ -174,11 +171,7 @@ export function ReviewConsole(props: {
               title="Source files"
             />
             <div className="mt-[var(--s1)] space-y-3">
-              <input
-                ref={props.uploadInputRef}
-                className="block h-10 w-full rounded-[var(--radius-md)] bg-[var(--surface-2)] px-3 text-[length:var(--text-copy-13)] text-[var(--text)] shadow-[0_0_0_1px_var(--line)] file:mr-3 file:border-0 file:bg-transparent file:text-[var(--muted)] focus:outline-none focus:shadow-[0_0_0_2px_var(--green)]"
-                type="file"
-              />
+              <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={props.isBusy}
@@ -286,7 +279,14 @@ export function ReviewConsole(props: {
           </div>
 
           <div className="overflow-x-auto px-3 pb-4">
-            <table className="w-full min-w-[680px] border-separate border-spacing-y-2 text-left">
+            <table className="w-full min-w-[560px] table-fixed border-separate border-spacing-y-2 text-left">
+              <colgroup>
+                <col className="w-[22%]" />
+                <col className="w-[24%]" />
+                <col className="w-[28%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+              </colgroup>
               <thead>
                 <tr className="text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
                   <th className="px-3 py-2 font-medium">Record</th>
@@ -412,16 +412,12 @@ function SourceFileItem(props: { file: SourceFile; job: ImportJobListItem | null
 function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () => void }) {
   return (
     <button
-      className={[
-        "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-left transition-[background,box-shadow,color] duration-300 ease-[var(--ease)]",
-        props.active
-          ? "bg-[var(--surface-3)] shadow-[0_0_0_1px_var(--line-strong)]"
-          : "hover:bg-[var(--surface-2)]",
-      ].join(" ")}
+      className="qitu-panel-action w-full text-left"
+      data-active={props.active ? "true" : undefined}
       onClick={props.onSelect}
       type="button"
     >
-      <div className="grid size-7 shrink-0 place-items-center rounded-full bg-[rgb(255_255_255_/_0.055)] text-[var(--green)]">
+      <div className="qitu-icon-chip size-7">
         {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
       </div>
       <div className="min-w-0 flex-1">
@@ -448,7 +444,7 @@ function ReviewRow(props: {
 
   return (
     <tr>
-      <td className="rounded-l-[var(--radius-md)] bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+      <td className="qitu-table-cell rounded-l-[var(--radius-md)] px-3 py-3 align-top">
         <div className="text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
           {props.record.sourceRowKey}
         </div>
@@ -456,22 +452,22 @@ function ReviewRow(props: {
           {props.record.stagedRecordKey}
         </div>
       </td>
-      <td className="bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+      <td className="qitu-table-cell px-3 py-3 align-top">
         <div className="qitu-number max-w-[160px] truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)]">
           {payloadSummary(props.record.payload)}
         </div>
       </td>
-      <td className="max-w-[190px] bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+      <td className="qitu-table-cell max-w-[190px] px-3 py-3 align-top">
         <div className="text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--muted)]">
           {props.issue?.message ?? "No issue"}
         </div>
       </td>
-      <td className="bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+      <td className="qitu-table-cell px-3 py-3 align-top">
         <StatusBadge tone={statusTone(props.record.reviewStatus)}>
           {props.record.reviewStatus}
         </StatusBadge>
       </td>
-      <td className="rounded-r-[var(--radius-md)] bg-[var(--surface-2)] px-3 py-3 text-right align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+      <td className="qitu-table-cell rounded-r-[var(--radius-md)] px-3 py-3 text-right align-top">
         <div className="flex justify-end gap-2">
           <Button
             aria-label="Reject record"

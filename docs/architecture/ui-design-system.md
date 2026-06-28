@@ -39,8 +39,8 @@ packages/charts
 `packages/ui` owns:
 
 1. App shell.
-2. Rail navigation.
-3. Topbar and command/search affordance.
+2. Topbar primary navigation and secondary route tabs.
+3. Command/search affordance, theme controls, and user trigger/panel.
 4. Layout and surfaces.
 5. Forms.
 6. Tables.
@@ -72,12 +72,79 @@ packages/charts
 The default qitu application surface is:
 
 ```text
-rail | topbar
-     | main work surface + contextual inspector
-     | event/import stream when needed
+topbar: brand | primary tabs | search + actions + user trigger
+subnav: current primary section route tabs
+main: work surface + contextual inspector + event/import stream when needed
 ```
 
 Reusable pages should start from this workbench model. A concrete app may reorder regions for its domain, but should not rebuild the app shell from scratch.
+
+Authenticated apps must expose the shell as real routes, not a single stateful demo screen. The baseline routes are:
+
+```text
+/login
+/overview
+/sources
+/imports
+/reviews
+/audit
+/users
+/account
+```
+
+The shell must keep unauthenticated, authenticated, admin-only, not-found, loading, empty, and error states visually consistent. The account entry belongs in the authenticated topbar, logout belongs in the user panel opened from that entry, and user management belongs behind RBAC rather than being hidden as a code-only capability.
+
+Shell interaction rules:
+
+1. Primary navigation groups existing routes into a small number of business-neutral sections.
+2. The active primary section exposes its subroutes in a topbar secondary navigation row.
+3. Primary navigation may remember the last visited subroute for each section in session storage, but only route ids are stored.
+4. Topbar command search is a real `Cmd/Ctrl+K` control over route and app-owned data projections.
+5. Authenticated account controls open a user panel with profile, RBAC role, user management entry when permitted, theme switching, and logout.
+6. Theme switching is token-driven and supports light, dark, and system preferences without changing reusable package semantics.
+7. Desktop route navigation must not use a side rail or sidebar. A drawer may exist only as a compact/mobile disclosure pattern.
+8. Desktop primary navigation follows the oodon system shape: icon-only main route buttons, a compact active underline, then a divider and adjacent active/hover live label.
+9. Under constrained width, primary navigation remains pure icon and may hide the adjacent live label.
+10. Secondary route tabs are text-only with an active underline.
+11. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
+12. Theme is a pure icon control. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+
+Visual extraction rules:
+
+1. qitu keeps its own business-neutral token names and component contracts.
+2. oodon is the reference for the non-business visual layer: OKLCH purple-gray neutrals, compact controls, soft chroma status colors, thin lines, and restrained shadows.
+3. Primary surfaces use the shared hierarchy tokens: `--surface-panel`, `--surface-row`, `--surface-row-hover`, `--surface-row-active`, `--surface-field`, and `--popover`; app pages should not hard-code RGB overlays or one-off surface colors.
+4. Controls follow the 28/32/36px scale with `--radius-control` and shared focus rings.
+5. Shadows are reserved for overlays or active affordances. Most cards use surface tone plus a single subtle line.
+6. Icon chips, avatar/initial triggers, form fields, list actions, table cells, and overlay backdrops should use shared `packages/ui` utilities instead of page-local Tailwind recipes.
+
+Surface hierarchy rules:
+
+1. App background uses `--bg` plus `--app-bg-gradient`; topbar uses `--topbar-bg` and does not add a divider or shadow.
+2. Ordinary page panels use `.qitu-surface`: `--surface-panel`, `--surface-panel-border`, and a subtle inset highlight only.
+3. Nested metrics, list rows, guardrails, timeline items, and data states use `.qitu-surface-subtle`: `--surface-row` with `--surface-row-border`.
+4. Hover moves nested rows to `--surface-row-hover`; selected or active rows move to `--surface-row-active` plus `--shadow-active-ring`.
+5. Form controls and read-only fields use `--input-bg`, `--input-border`, `--surface-row`, and `--shadow-focus-ring`; do not invent page-local field backgrounds.
+6. Review table cells use the same row surface as list rows. Table structure may use spacing and radius, not separate local shadows.
+7. Search dialogs, popovers, and user panels add `.qitu-overlay-surface`, using `--popover` and `--shadow-overlay`; ordinary page panels must not use overlay shadows.
+8. Layering uses `--z-shell`, `--z-shell-front`, `--z-overlay-backdrop`, and `--z-overlay` rather than page-local z-index numbers.
+
+Control refinement rules:
+
+1. Topbar actions share a 36px control track. Search is icon-only when compact and becomes icon + truncated label + 20px keyboard shortcut at wide widths.
+2. Keyboard shortcut chips use a shared kbd style: 20px tall, mono 10px text, tabular numbers, `--radius-control`, and tonal surface background.
+3. Pure icon buttons are used for repeated tools such as refresh and theme. Text + icon is reserved for commands whose meaning is not obvious from the icon alone.
+4. The authenticated user trigger is a 36px identity control with a 32px avatar or initial and a chevron. User actions stay inside the panel.
+5. Form inputs and selects use the 32px control height, `--radius-control`, `--input-bg`, `--input-border`, compact control typography, and the shared focus ring.
+6. Read-only account/runtime rows use a shared label/value field grid, not ad hoc flex rows. Values must truncate, align consistently, and use tabular number styling when appropriate.
+
+Oodon parity rules:
+
+1. qitu design tokens mirror oodon's semantic color tree first, then expose qitu compatibility aliases such as `--bg`, `--text`, `--line`, and `--surface`.
+2. Topbar primary navigation uses oodon's icon-button route controls plus a divider and live label. Do not put route text inside the primary buttons.
+3. Ordinary panels use oodon-style tone separation through `--surface-panel`, `--surface-row`, and `--surface-row-active`; avoid page-local borders or shadows unless elevation communicates an overlay or active state.
+4. Active topbar indicators use the same chroma token as oodon. Do not introduce page-local underline colors.
+5. Topbar does not draw a bottom separator line; content separation comes from spacing and surface tone.
 
 Responsive rules:
 
@@ -91,7 +158,7 @@ Responsive rules:
 1. Do not create a landing page for internal tools.
 2. Start with the actual working interface.
 3. Use compact page headers.
-4. Prefer tonal separation and shadow over excessive borders.
+4. Prefer tonal separation and fine lines over heavy borders or page-local shadows.
 5. Keep cards shallow and purposeful.
 6. Do not nest cards inside cards.
 7. Use fixed dimensions for toolbars, grids, counters, tiles, and chart shells.

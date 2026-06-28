@@ -24,12 +24,12 @@ export function SectionHeader(props: {
     <div className={cn("flex min-w-0 items-start justify-between gap-3", props.className)}>
       <div className="flex min-w-0 items-start gap-2">
         {props.icon ? (
-          <span className="mt-0.5 text-[var(--green)]" aria-hidden="true">
+          <span className="mt-0.5 text-[var(--chroma-lime-ink)]" aria-hidden="true">
             {props.icon}
           </span>
         ) : null}
         <div className="min-w-0">
-          <h2 className="truncate text-[length:var(--text-heading-16)] font-semibold leading-[var(--leading-heading-16)] text-[var(--text)]">
+          <h2 className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)] text-[var(--text)]">
             {props.title}
           </h2>
           {props.description ? (
@@ -68,12 +68,12 @@ export function DataState(props: {
   return (
     <div
       className={cn(
-        "qitu-surface-subtle grid min-h-28 place-items-center px-4 py-6 text-center",
+        "qitu-surface-subtle grid min-h-28 place-items-center px-[var(--o4)] py-[var(--o5)] text-center",
         props.className,
       )}
     >
       <div className="max-w-[34rem]">
-        <div className="mx-auto mb-3 grid size-8 place-items-center rounded-full bg-[rgb(255_255_255_/_0.055)] text-[var(--muted)]">
+        <div className="mx-auto mb-3 grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--surface-row-active)] text-[var(--muted)]">
           {icon}
         </div>
         {props.title ? (
@@ -102,21 +102,20 @@ export type MetricItem = {
 
 export function MetricStrip(props: { items: MetricItem[]; className?: string | undefined }) {
   return (
-    <div className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-4", props.className)}>
+    <div
+      className={cn("grid grid-cols-[repeat(auto-fit,minmax(88px,1fr))] gap-3", props.className)}
+    >
       {props.items.map((item) => (
-        <div
-          className="qitu-surface-subtle min-h-[calc(var(--s3)+var(--s1))] p-[var(--s0)]"
-          key={item.id}
-        >
+        <div className="qitu-surface-subtle min-h-[86px] p-[var(--o4)]" key={item.id}>
           <div className="text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
             {item.label}
           </div>
           <div
             className={cn(
               "qitu-number mt-[var(--s-1)] text-[length:var(--text-heading-20)] font-semibold leading-[var(--leading-heading-20)]",
-              item.tone === "positive" && "text-[var(--green)]",
+              item.tone === "positive" && "text-[var(--chroma-lime-ink)]",
               item.tone === "negative" && "text-[var(--red)]",
-              item.tone === "warning" && "text-[var(--amber)]",
+              item.tone === "warning" && "text-[var(--chroma-pink-ink)]",
               (!item.tone || item.tone === "neutral") && "text-[var(--text)]",
             )}
           >
@@ -158,19 +157,19 @@ export function Timeline(props: {
   }
 
   return (
-    <div className={cn("space-y-3", props.className)}>
+    <div className={cn("space-y-[var(--o3)]", props.className)}>
       {props.items.map((item) => (
-        <div className="qitu-surface-subtle p-3" key={item.id}>
+        <div className="qitu-surface-subtle p-[var(--o4)]" key={item.id}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 gap-2">
               <span
                 aria-hidden="true"
                 className={cn(
                   "mt-1.5 size-2 shrink-0 rounded-full",
-                  item.tone === "success" && "bg-[var(--green)]",
-                  item.tone === "warning" && "bg-[var(--amber)]",
+                  item.tone === "success" && "bg-[var(--chroma-lime-ink)]",
+                  item.tone === "warning" && "bg-[var(--chroma-pink-ink)]",
                   item.tone === "error" && "bg-[var(--red)]",
-                  item.tone === "info" && "bg-[var(--blue)]",
+                  item.tone === "info" && "bg-[var(--chroma-lilac-ink)]",
                   (!item.tone || item.tone === "neutral") && "bg-[var(--dim)]",
                 )}
               />

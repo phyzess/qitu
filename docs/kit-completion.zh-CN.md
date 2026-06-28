@@ -32,13 +32,13 @@ Date: 2026-06-27
 
 最终 kit 必须包括：
 
-1. App-managed auth：invite、accept、login、logout、current user、password reset、session revocation 和 audit events。
+1. App-managed auth：invite、accept、login、protected routing、account/logout、admin user management、current user、password reset、session revocation 和 audit events。
 2. 最小 RBAC：邀请时分配角色、写路由守卫、只读 viewer、拒绝访问写 audit。
 3. Source file intake：鉴权上传、R2 存储、D1 元数据、import job 创建、audit。
 4. Queue-backed import processing：幂等 job 状态、可见失败、失败分类、retry、audit。
 5. 基于 `ImportFeatureAdapter` 的通用 import/review/commit workflow。
 6. 一条完整 example feature，覆盖 parse、stage、review、approve、commit、audit。
-7. React app shell：login、source files、import jobs、review table、audit timeline。
+7. React app shell：login、account、user management、source files、import jobs、review table、audit timeline。
 8. 面向数据密集内部工具的业务中立 UI、design tokens 和 chart primitives。
 9. Email abstraction，兼容 Cloudflare invite/reset delivery path。
 10. AI advisory abstraction，存储 advisory output，commit 前需要人工确认。

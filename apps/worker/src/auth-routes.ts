@@ -30,11 +30,11 @@ import {
   prepareSecurityEventInsert,
   requestFingerprint,
 } from "./event-store";
-import { authError, parseRequestJson, type AppContext } from "./http-utils";
+import { authError, parseQueryLimit, parseRequestJson, type AppContext } from "./http-utils";
 import { appName, buildAppUrl, isLocalAppEnv, runtimeConfig } from "./runtime";
 
 const sessionCookieName = "qitu_session";
-const LocalReviewerBootstrapInputSchema = v.object({
+const LocalUserBootstrapInputSchema = v.object({
   email: EmailSchema,
   displayName: v.optional(v.string()),
   password: PasswordSchema,
@@ -105,129 +105,72 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 
   app.post("/api/bootstrap/local-reviewer", async (context) => {
-    if (!isLocalRuntime(context)) {
-      return authError(
-        context,
-        "bootstrap_disabled",
-        "Local reviewer bootstrap is local-only.",
-        403,
-      );
+    return createLocalUserBootstrapResponse(context, {
+      action: "auth.local_reviewer_bootstrap",
+      defaultDisplayName: "Reviewer",
+      eventType: "auth.local_reviewer_bootstrapped",
+      role: "reviewer",
+    });
+  });
+
+  app.post("/api/bootstrap/local-admin", async (context) => {
+    return createLocalUserBootstrapResponse(context, {
+      action: "auth.local_admin_bootstrap",
+      defaultDisplayName: "Admin",
+      eventType: "auth.local_admin_bootstrapped",
+      role: "admin",
+    });
+  });
+
+  app.get("/api/users", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
     }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
 
-    const input = await parseRequestJson(context, LocalReviewerBootstrapInputSchema);
-    if (!input.ok) return input.response;
-
-    const email = normalizeEmail(input.value.email);
-    const now = new Date().toISOString();
-    const displayName = input.value.displayName || "Reviewer";
-    const fingerprint = await requestFingerprint(context);
-    const emailHash = (await hashEventValue(email)) ?? email;
-    const existingUser = await context.env.DB.prepare(
+    const limit = parseQueryLimit(context.req.query("limit"), 50);
+    const result = await context.env.DB.prepare(
       `
         SELECT id, email, role, display_name, created_at
         FROM users
-        WHERE email = ?
-        LIMIT 1
+        ORDER BY created_at DESC
+        LIMIT ?
       `,
     )
-      .bind(email)
-      .first<UserRow>();
-    const passwordHash = await hashPassword(input.value.password);
-    const user: User = existingUser
-      ? {
-          id: existingUser.id,
-          email: existingUser.email,
-          role: "reviewer",
-          displayName,
-          createdAt: existingUser.created_at,
-        }
-      : {
-          id: crypto.randomUUID(),
-          email,
-          role: "reviewer",
-          displayName,
-          createdAt: now,
-        };
-    const { session, token } = await createSession({
-      userId: user.id,
+      .bind(limit)
+      .all<UserRow>();
+
+    return context.json({
+      users: result.results.map(mapUser),
     });
+  });
 
-    await context.env.DB.batch([
-      existingUser
-        ? context.env.DB.prepare("UPDATE users SET role = ?, display_name = ? WHERE id = ?").bind(
-            user.role,
-            user.displayName ?? null,
-            user.id,
-          )
-        : context.env.DB.prepare(
-            "INSERT INTO users (id, email, role, display_name, created_at) VALUES (?, ?, ?, ?, ?)",
-          ).bind(user.id, user.email, user.role, user.displayName ?? null, user.createdAt),
-      context.env.DB.prepare(
-        `
-          INSERT INTO password_credentials (user_id, password_hash, updated_at)
-          VALUES (?, ?, ?)
-          ON CONFLICT(user_id) DO UPDATE SET
-            password_hash = excluded.password_hash,
-            updated_at = excluded.updated_at
-        `,
-      ).bind(user.id, passwordHash, now),
-      context.env.DB.prepare(
-        "UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
-      ).bind(now, user.id),
-      prepareSessionInsert(context.env, session),
-      prepareLoginAttemptInsert(context.env, {
-        ...fingerprint,
-        emailHash,
-        userId: user.id,
-        outcome: "succeeded",
-        createdAt: now,
-      }),
-      prepareSecurityEventInsert(context.env, {
-        ...fingerprint,
-        eventType: "auth.local_reviewer_bootstrapped",
-        severity: "info",
-        actorUserId: user.id,
-        targetUserId: user.id,
-        action: "auth.local_reviewer_bootstrap",
-        outcome: "succeeded",
-        sessionId: session.id,
-        createdAt: now,
-        metadata: {
-          created: !existingUser,
-          role: user.role,
-        },
-      }),
-      prepareAuditInsert(
-        context.env,
-        createAuditEvent({
-          action: "auth.local_reviewer_bootstrapped",
-          actor: {
-            id: "system",
-            kind: "system",
-          },
-          subject: {
-            id: user.id,
-            kind: "user",
-          },
-          metadata: {
-            created: !existingUser,
-            email: user.email,
-            role: user.role,
-          },
-        }),
-      ),
-    ]);
+  app.get("/api/invitations", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
+    }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
 
-    writeSessionCookie(context, token, session.expiresAt);
+    const limit = parseQueryLimit(context.req.query("limit"), 50);
+    const result = await context.env.DB.prepare(
+      `
+        SELECT
+          id, email, role, status, token_hash, expires_at, created_by, created_at, accepted_at, revoked_at
+        FROM invitations
+        ORDER BY created_at DESC
+        LIMIT ?
+      `,
+    )
+      .bind(limit)
+      .all<InvitationRow>();
 
-    return context.json(
-      {
-        user,
-        session: publicSession(session),
-        created: !existingUser,
-      },
-      existingUser ? 200 : 201,
-    );
+    return context.json({
+      invitations: result.results.map(publicInvitationListItem),
+    });
   });
 
   app.post("/api/invitations", async (context) => {
@@ -706,6 +649,135 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   });
 }
 
+async function createLocalUserBootstrapResponse(
+  context: AppContext,
+  options: {
+    action: string;
+    defaultDisplayName: string;
+    eventType: string;
+    role: "admin" | "reviewer";
+  },
+): Promise<Response> {
+  if (!isLocalRuntime(context)) {
+    return authError(context, "bootstrap_disabled", "Local user bootstrap is local-only.", 403);
+  }
+
+  const input = await parseRequestJson(context, LocalUserBootstrapInputSchema);
+  if (!input.ok) return input.response;
+
+  const email = normalizeEmail(input.value.email);
+  const now = new Date().toISOString();
+  const displayName = input.value.displayName || options.defaultDisplayName;
+  const fingerprint = await requestFingerprint(context);
+  const emailHash = (await hashEventValue(email)) ?? email;
+  const existingUser = await context.env.DB.prepare(
+    `
+      SELECT id, email, role, display_name, created_at
+      FROM users
+      WHERE email = ?
+      LIMIT 1
+    `,
+  )
+    .bind(email)
+    .first<UserRow>();
+  const passwordHash = await hashPassword(input.value.password);
+  const user: User = existingUser
+    ? {
+        id: existingUser.id,
+        email: existingUser.email,
+        role: options.role,
+        displayName,
+        createdAt: existingUser.created_at,
+      }
+    : {
+        id: crypto.randomUUID(),
+        email,
+        role: options.role,
+        displayName,
+        createdAt: now,
+      };
+  const { session, token } = await createSession({
+    userId: user.id,
+  });
+
+  await context.env.DB.batch([
+    existingUser
+      ? context.env.DB.prepare("UPDATE users SET role = ?, display_name = ? WHERE id = ?").bind(
+          user.role,
+          user.displayName ?? null,
+          user.id,
+        )
+      : context.env.DB.prepare(
+          "INSERT INTO users (id, email, role, display_name, created_at) VALUES (?, ?, ?, ?, ?)",
+        ).bind(user.id, user.email, user.role, user.displayName ?? null, user.createdAt),
+    context.env.DB.prepare(
+      `
+        INSERT INTO password_credentials (user_id, password_hash, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+          password_hash = excluded.password_hash,
+          updated_at = excluded.updated_at
+      `,
+    ).bind(user.id, passwordHash, now),
+    context.env.DB.prepare(
+      "UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
+    ).bind(now, user.id),
+    prepareSessionInsert(context.env, session),
+    prepareLoginAttemptInsert(context.env, {
+      ...fingerprint,
+      emailHash,
+      userId: user.id,
+      outcome: "succeeded",
+      createdAt: now,
+    }),
+    prepareSecurityEventInsert(context.env, {
+      ...fingerprint,
+      eventType: options.eventType,
+      severity: "info",
+      actorUserId: user.id,
+      targetUserId: user.id,
+      action: options.action,
+      outcome: "succeeded",
+      sessionId: session.id,
+      createdAt: now,
+      metadata: {
+        created: !existingUser,
+        role: user.role,
+      },
+    }),
+    prepareAuditInsert(
+      context.env,
+      createAuditEvent({
+        action: options.eventType,
+        actor: {
+          id: "system",
+          kind: "system",
+        },
+        subject: {
+          id: user.id,
+          kind: "user",
+        },
+        metadata: {
+          created: !existingUser,
+          email: user.email,
+          role: user.role,
+        },
+      }),
+    ),
+  ]);
+
+  writeSessionCookie(context, token, session.expiresAt);
+
+  return context.json(
+    {
+      user,
+      session: publicSession(session),
+      created: !existingUser,
+    },
+    existingUser ? 200 : 201,
+  );
+}
+
 async function createInvitationResponse(
   context: AppContext,
   input: { email: string; role?: string | undefined },
@@ -868,6 +940,20 @@ function publicInvitation(invitation: {
     status: invitation.status,
     expiresAt: invitation.expiresAt,
     createdAt: invitation.createdAt,
+  };
+}
+
+function publicInvitationListItem(invitation: InvitationRow): Record<string, string | null> {
+  return {
+    id: invitation.id,
+    email: invitation.email,
+    role: invitation.role,
+    status: invitation.status,
+    expiresAt: invitation.expires_at,
+    createdBy: invitation.created_by,
+    createdAt: invitation.created_at,
+    acceptedAt: invitation.accepted_at,
+    revokedAt: invitation.revoked_at,
   };
 }
 

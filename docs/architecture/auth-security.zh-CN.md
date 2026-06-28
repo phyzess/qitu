@@ -10,7 +10,7 @@ Date: 2026-06-27
 当前 scaffold：
 
 1. `@qitu/auth` 负责邮箱规范化、邀请 token hash、PBKDF2 密码 hash、session token hash。
-2. `apps/worker` 暴露 bootstrap invite、local demo reviewer bootstrap、authenticated invite、accept、login、logout、me、password reset 等基线路由。
+2. `apps/worker` 暴露 bootstrap invite、local demo user bootstraps、authenticated invite、user/invitation management、accept、login、logout、me、password reset 等基线路由。
 3. migration 只保存 token/password hash，不保存明文 token 或密码。
 4. `@qitu/email` 渲染邀请与密码重置邮件；Worker 在非 local 环境使用 Cloudflare `send_email`。
 5. `@qitu/rbac` 提供 starter role/permission 表；写路由在修改数据前做权限检查并审计拒绝事件。
@@ -43,16 +43,33 @@ admin 创建邀请
 1 day
 ```
 
-## 2.1 Local Demo Reviewer
+## 2.1 Local Demo Users
 
-本地开发提供 local-only reviewer bootstrap，让全新 checkout 不需要手改数据库也有可用登录路径：
+本地开发提供 local-only user bootstrap，让全新 checkout 不需要手改数据库也有可用登录和用户管理路径：
 
 ```text
 email: reviewer@example.com
+email: admin@example.com
 password: correct horse battery staple
 ```
 
-该 bootstrap route 只在 `APP_ENV=local` 时创建或重置这个 reviewer，并立即创建 session。部署环境必须继续使用 invitation-only onboarding。
+这些 bootstrap route 只在 `APP_ENV=local` 时创建或重置用户，并立即创建 session。reviewer 账号用于体验 review workflow；admin 账号用于体验 user/invitation management。部署环境必须继续使用 invitation-only onboarding。
+
+## 2.2 用户管理
+
+登录后的 app shell 包含账号控制与 admin-only 用户管理路由。
+
+基线路由：
+
+```text
+GET /api/users
+GET /api/invitations
+POST /api/invitations
+```
+
+这些路由要求当前 session，并要求 `invitation:create` 权限。starter RBAC 中 `owner` 与 `admin` 可以列出用户、列出邀请并创建邀请；`reviewer` 与 `viewer` 可以继续使用登录后的工作台，但用户管理页会显示 admin-only 状态。
+
+本地开发环境中，authenticated invitation creation 可以返回生成的 invite URL；非本地环境应依赖邮件投递，不应在 API response 中暴露明文 invite token。
 
 ## 3. Session 默认值
 

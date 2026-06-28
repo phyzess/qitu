@@ -97,6 +97,62 @@ async function main() {
     ).first();
     assert(rbacAudit?.subject_id === "source_file:upload", "rbac denial is audited");
 
+    await expectStatus(await viewerClient.request("/api/users"), 403);
+
+    const adminClient = createClient(worker, env);
+    const adminBootstrap = await adminClient.json("/api/bootstrap/invitations", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "admin@example.com",
+        role: "admin",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    const adminAccepted = await adminClient.json(
+      `/api/invitations/${adminBootstrap.inviteToken}/accept`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          displayName: "Admin",
+          password: "correct horse battery staple",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+    );
+    assert(adminAccepted.user.role === "admin", "admin invite creates admin role");
+
+    const managedInvitation = await adminClient.json("/api/invitations", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "managed-viewer@example.com",
+        role: "viewer",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    assert(
+      typeof managedInvitation.inviteToken === "string",
+      "local authenticated invitation returns token",
+    );
+
+    const managedUsers = await adminClient.json("/api/users?limit=20");
+    assert(
+      managedUsers.users.some((user) => user.email === "admin@example.com"),
+      "admin can list users",
+    );
+    const managedInvitations = await adminClient.json("/api/invitations?limit=20");
+    assert(
+      managedInvitations.invitations.some(
+        (invitation) => invitation.email === "managed-viewer@example.com",
+      ),
+      "admin can list invitations",
+    );
+
     const demoClient = createClient(worker, env);
     const demoReviewer = await demoClient.json("/api/bootstrap/local-reviewer", {
       method: "POST",
@@ -112,6 +168,27 @@ async function main() {
 
     assert(demoReviewer.created === true, "local demo reviewer bootstrap creates a user");
     assert(demoReviewer.user.role === "reviewer", "local demo reviewer uses reviewer role");
+
+    const demoAdminClient = createClient(worker, env);
+    const demoAdmin = await demoAdminClient.json("/api/bootstrap/local-admin", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "local-admin@example.com",
+        displayName: "Local Admin",
+        password: "correct horse battery staple",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    assert(demoAdmin.created === true, "local demo admin bootstrap creates a user");
+    assert(demoAdmin.user.role === "admin", "local demo admin uses admin role");
+    const demoAdminUsers = await demoAdminClient.json("/api/users?limit=20");
+    assert(
+      demoAdminUsers.users.some((user) => user.email === "local-admin@example.com"),
+      "local demo admin can list users",
+    );
 
     await demoClient.json("/api/auth/logout", {
       method: "POST",

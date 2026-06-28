@@ -11,13 +11,13 @@ export type StatusBadgeTone =
   | "info";
 
 const toneClass: Record<StatusBadgeTone, string> = {
-  neutral: "bg-[rgb(255_255_255_/_0.055)] text-[var(--muted)] shadow-[0_0_0_1px_var(--line)]",
-  active: "bg-[rgb(25_201_135_/_0.12)] text-[var(--green)]",
-  success: "bg-[rgb(25_201_135_/_0.12)] text-[var(--green)]",
-  warning: "bg-[rgb(231_183_95_/_0.14)] text-[var(--amber)]",
-  danger: "bg-[rgb(240_97_97_/_0.14)] text-[var(--red)]",
-  review: "bg-[rgb(140_183_255_/_0.14)] text-[var(--blue)]",
-  info: "bg-[rgb(140_183_255_/_0.14)] text-[var(--blue)]",
+  neutral: "bg-[var(--surface-row-active)] text-[var(--muted)]",
+  active: "bg-[var(--chroma-lime-soft)] text-[var(--chroma-lime-ink)]",
+  success: "bg-[var(--chroma-lime-soft)] text-[var(--chroma-lime-ink)]",
+  warning: "bg-[var(--chroma-pink-soft)] text-[var(--chroma-pink-ink)]",
+  danger: "bg-[var(--danger-soft)] text-[var(--red)]",
+  review: "bg-[var(--chroma-lilac-soft)] text-[var(--chroma-lilac-ink)]",
+  info: "bg-[var(--chroma-lilac-soft)] text-[var(--chroma-lilac-ink)]",
 };
 
 export type StatusBadgeProps = {
@@ -30,7 +30,7 @@ export function StatusBadge({ children, className, tone = "neutral" }: StatusBad
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-full px-2 text-xs font-medium",
+        "inline-flex min-h-[22px] items-center rounded-[var(--radius-md)] px-[var(--o3)] py-[var(--o0)] text-[10px] font-medium leading-4",
         toneClass[tone],
         className,
       )}

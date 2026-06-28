@@ -35,12 +35,15 @@ vp run dev
 vp run validate
 ```
 
-`vp run dev` 会同时启动 React app 和 Worker API。本地 auth 提供开发用 demo reviewer：
+`vp run dev` 会同时启动 React app 和 Worker API。本地 auth 提供开发用 demo users：
 
 ```text
 reviewer@example.com
+admin@example.com
 correct horse battery staple
 ```
+
+未登录时 web app 会进入 `/login`；登录后使用 `/overview`、`/sources`、`/imports`、`/reviews`、`/audit`、`/users`、`/account` 这些受保护路由。
 
 公司网络可能会在 `vp install` 从 `registry.npmjs.org` 拉取 package manager 时阻断。排查方式见 `docs/troubleshooting.md`。
 

@@ -13,5 +13,5 @@ body {
 }
 
 ::selection {
-  background: rgb(15 118 110 / 0.2);
+  background: var(--chroma-lime-soft);
 }

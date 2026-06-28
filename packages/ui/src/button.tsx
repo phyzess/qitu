@@ -3,21 +3,19 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "./utils";
 
 const buttonStyles = cva(
-  "qitu-button-press inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-md)] px-3 text-sm font-medium transition-[background,box-shadow,color,transform] duration-300 ease-[var(--ease)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--green)] disabled:pointer-events-none disabled:opacity-45",
+  "qitu-button-press inline-flex cursor-pointer items-center justify-center gap-[var(--o2)] whitespace-nowrap rounded-[var(--radius-control)] text-[length:var(--text-button-12)] font-medium leading-[var(--leading-button)] transition-[background-color,color,opacity,transform,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 [&>svg]:-translate-y-px [&>svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary:
-          "bg-[var(--text)] text-[var(--bg)] shadow-[0_10px_24px_rgba(247,247,248,0.08)] hover:bg-white",
-        secondary:
-          "bg-[rgb(255_255_255_/_0.055)] text-[var(--text)] shadow-[0_0_0_1px_var(--line)] hover:bg-[rgb(255_255_255_/_0.08)]",
+        primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90",
+        secondary: "bg-[var(--surface-row-active)] text-[var(--text)] hover:bg-[var(--accent)]",
         ghost:
-          "bg-transparent text-[var(--muted)] hover:bg-[rgb(255_255_255_/_0.055)] hover:text-[var(--text)]",
+          "bg-transparent text-[var(--muted)] hover:bg-[var(--control-hover-bg)] hover:text-[var(--text)]",
       },
       size: {
-        sm: "h-8 px-2.5 text-xs",
-        md: "h-9 px-3 text-sm",
-        lg: "h-10 px-4 text-sm",
+        sm: "h-7 px-[var(--o3)]",
+        md: "h-8 px-[var(--o3)]",
+        lg: "h-9 px-[var(--o4)]",
       },
     },
     defaultVariants: {

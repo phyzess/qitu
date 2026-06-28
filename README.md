@@ -37,12 +37,15 @@ vp run validate
 
 Corporate networks may block `vp install` while it bootstraps the package manager from `registry.npmjs.org`. See `docs/troubleshooting.md` for the registry workaround.
 
-`vp run dev` starts both the React app and Worker API. Local auth includes a demo reviewer for development:
+`vp run dev` starts both the React app and Worker API. Local auth includes demo users for development:
 
 ```text
 reviewer@example.com
+admin@example.com
 correct horse battery staple
 ```
+
+The web app opens at `/login` when signed out and uses protected routes for `/overview`, `/sources`, `/imports`, `/reviews`, `/audit`, `/users`, and `/account` after login.
 
 ## Core Idea
 

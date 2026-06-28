@@ -119,7 +119,7 @@ async function runBrowserSmoke() {
       timeout: 20_000,
     });
 
-    await page.getByRole("button", { name: "Approve", exact: true }).click();
+    await page.getByRole("button", { name: "Approve record", exact: true }).click();
     await expect(
       page.getByRole("table").getByText("approved", { exact: true }).first(),
     ).toBeVisible();
@@ -153,7 +153,7 @@ async function runBrowserSmoke() {
       timeout: 20_000,
     });
 
-    await page.getByRole("button", { name: "Reject", exact: true }).click();
+    await page.getByRole("button", { name: "Reject record", exact: true }).click();
     await expect(
       page.getByRole("table").getByText("rejected", { exact: true }).first(),
     ).toBeVisible();

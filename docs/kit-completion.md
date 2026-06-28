@@ -32,13 +32,13 @@ Do not add:
 
 The final kit must include:
 
-1. App-managed auth with invite, accept, login, logout, current user, password reset, session revocation, and audit events.
+1. App-managed auth with invite, accept, login, protected routing, account/logout, admin user management, current user, password reset, session revocation, and audit events.
 2. Minimal RBAC with invitation-assigned roles, guarded write routes, read-only viewer behavior, and audited denials.
 3. Source file intake with authenticated upload, R2 storage, D1 metadata, import job creation, and audit events.
 4. Queue-backed import processing with idempotent job state transitions, visible failures, retry classification, and audit events.
 5. A generic import/review/commit workflow based on `ImportFeatureAdapter`.
 6. One complete example feature that exercises parse, stage, review, approve, commit, and audit.
-7. React app shell with login, source files, import jobs, review table, and audit timeline screens.
+7. React app shell with login, account, user management, source files, import jobs, review table, and audit timeline screens.
 8. Business-neutral UI, design tokens, and chart primitives sufficient for data-heavy internal tools.
 9. Email abstraction with a Cloudflare-compatible invite/reset delivery path.
 10. AI advisory abstraction that stores advisory output and requires human confirmation before commit.

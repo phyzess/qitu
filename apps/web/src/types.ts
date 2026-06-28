@@ -6,6 +6,18 @@ export type ApiUser = {
   createdAt: string;
 };
 
+export type InvitationSummary = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  createdBy?: string;
+  acceptedAt?: string | null;
+  revokedAt?: string | null;
+};
+
 export type SourceFile = {
   id: string;
   workspaceId: string;
