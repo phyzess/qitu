@@ -83,6 +83,7 @@ const coreMigration = [
   text("apps/worker/migrations/0004_auth_email.sql"),
   text("apps/worker/migrations/0005_ai_advisories.sql"),
   text("apps/worker/migrations/0006_user_roles.sql"),
+  text("apps/worker/migrations/0007_event_foundations.sql"),
 ].join("\n");
 const readme = text("README.md");
 const deployment = text("docs/deployment.md");
@@ -118,6 +119,12 @@ const chineseDocs = [
 assert(
   packageJson.packageManager === "pnpm@11.5.2",
   "packageManager must stay pinned to pnpm@11.5.2.",
+);
+assert(
+  packageJson.scripts.dev === "node scripts/dev-all.mjs" &&
+    packageJson.scripts["dev:web"] === "vp dev apps/web --host 0.0.0.0" &&
+    packageJson.scripts["dev:all"] === "node scripts/dev-all.mjs",
+  "default dev command must start the full local stack, with dev:web reserved for web-only debugging.",
 );
 assert(
   packageJson.devDependencies.typescript === "7.0.1-rc",
@@ -446,6 +453,13 @@ assert(
   "AI advisory migration must include advisory artifacts and query indexes.",
 );
 assert(
+  coreMigration.includes("login_attempts") &&
+    coreMigration.includes("import_job_events") &&
+    coreMigration.includes("security_events") &&
+    coreMigration.includes("alert_events"),
+  "event foundation migration must include login attempts, import job events, security events, and alert events.",
+);
+assert(
   workerSources.includes("readCurrentUser(context)") &&
     workerSources.includes("INSERT INTO source_files") &&
     workerSources.includes("INSERT INTO import_jobs"),
@@ -458,19 +472,28 @@ assert(
 );
 assert(
   workerSources.includes("/api/bootstrap/invitations") &&
+    workerSources.includes("/api/bootstrap/local-reviewer") &&
+    workerSources.includes("auth.local_reviewer_bootstrapped") &&
     workerSources.includes("bootstrap_disabled") &&
     workerSources.includes("returnToken: isLocalRuntime(context)"),
-  "invitation creation must separate local bootstrap from authenticated invitation creation.",
+  "invitation creation and demo reviewer bootstrap must stay local-only and separate from authenticated invitation creation.",
 );
 assert(
   workerSources.includes("requirePermission(context") &&
     workerSources.includes('action: "rbac.denied"') &&
+    workerSources.includes("prepareSecurityEventInsert") &&
     workerSources.includes('"invitation:create"') &&
     workerSources.includes('"source_file:upload"') &&
     workerSources.includes('"review:decide"') &&
     workerSources.includes('"import_job:commit"') &&
     workerSources.includes('"ai_advisory:write"'),
   "worker write routes must enforce RBAC permissions and audit denials.",
+);
+assert(
+  workerSources.includes("prepareLoginAttemptInsert") &&
+    workerSources.includes("auth.login_failed") &&
+    workerSources.includes("auth.login_succeeded"),
+  "auth routes must record login attempts without storing raw credentials.",
 );
 assert(
   workerSources.includes("/api/auth/password-reset/request") &&
@@ -519,6 +542,7 @@ assert(
 );
 assert(
   workerSources.includes("/api/import-jobs/:jobId/review") &&
+    workerSources.includes("/api/import-jobs/:jobId/events") &&
     workerSources.includes("/api/import-jobs/:jobId/advisories") &&
     workerSources.includes("/api/import-jobs/:jobId/advisories/:advisoryId/confirm") &&
     workerSources.includes("/api/import-jobs/:jobId/advisories/:advisoryId/dismiss") &&
@@ -527,6 +551,14 @@ assert(
     workerSources.includes("/api/import-jobs/:jobId/commit") &&
     workerSources.includes("/api/import-jobs/:jobId/retry"),
   "worker must expose review, AI advisory, approve, reject, commit, and retry routes.",
+);
+assert(
+  workerSources.includes("prepareImportJobEventInsert") &&
+    workerSources.includes("import_job.processing_started") &&
+    workerSources.includes("import_job.needs_review") &&
+    workerSources.includes("import_job.committed") &&
+    workerSources.includes("prepareAlertEventInsert"),
+  "worker must write import job timeline events and alert events for failure paths.",
 );
 assert(
   workerSources.includes('app.get("/api/source-files"') &&
@@ -567,6 +599,7 @@ assert(
     webApi.includes("uploadSourceFile") &&
     webApi.includes("listSourceFiles") &&
     webApi.includes("listImportJobs") &&
+    webApi.includes("listImportJobEvents") &&
     webApi.includes("drainLocalImportJobs") &&
     webApi.includes("listAuditEvents") &&
     webApi.includes("getImportJobReview") &&
@@ -583,6 +616,7 @@ assert(
 assert(webTypes.includes("role: string"), "web API user type must include role.");
 assert(
   webSources.includes("Staged records") &&
+    webSources.includes("Event stream") &&
     webSources.includes("Audit timeline") &&
     webSources.includes("AI advisory") &&
     webSources.includes("Commit approved") &&
@@ -619,6 +653,8 @@ assert(
     workerIntegration.includes("/api/source-files") &&
     workerIntegration.includes("fixture-invalid-number.txt") &&
     workerIntegration.includes("invalid_number") &&
+    workerIntegration.includes("/api/bootstrap/local-reviewer") &&
+    workerIntegration.includes("local demo credentials log in") &&
     workerIntegration.includes("fixture-json-records.json") &&
     workerIntegration.includes("starter.json-records") &&
     workerIntegration.includes("commitKey") &&

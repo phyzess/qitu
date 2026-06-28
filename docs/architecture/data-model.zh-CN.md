@@ -26,15 +26,18 @@ invitations
 password_credentials
 sessions
 password_reset_tokens
+login_attempts
 source_files
 email_messages
 import_jobs
+import_job_events
 import_review_issues
 import_review_decisions
 import_review_record_decisions
 ai_advisory_artifacts
 audit_events
 security_events
+alert_events
 ```
 
 英文文档中的部分 schema 是更完整的目标模型，可能比当前 migration 更丰富。落地时以 migration 为真实结构，以本文作为边界说明。
@@ -49,6 +52,7 @@ invitations
 password_credentials
 sessions
 password_reset_tokens
+login_attempts
 ```
 
 目标模型可以扩展为：
@@ -144,6 +148,16 @@ needs_review -> rejected
 Advisory artifact 不是业务事实。commit 路由必须读取“已审批的 staging records”，不能读取 AI advisory 状态来直接提交业务数据。
 
 ## 8. 事件表
+
+当前基线已经实现：
+
+```text
+audit_events
+login_attempts
+import_job_events
+security_events
+alert_events
+```
 
 `audit_events` 记录业务与系统操作：
 

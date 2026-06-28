@@ -1,13 +1,23 @@
 import type { ReactNode } from "react";
 import { cn } from "./utils";
 
-export type StatusBadgeTone = "neutral" | "active" | "warning" | "danger";
+export type StatusBadgeTone =
+  | "neutral"
+  | "active"
+  | "success"
+  | "warning"
+  | "danger"
+  | "review"
+  | "info";
 
 const toneClass: Record<StatusBadgeTone, string> = {
-  neutral: "bg-[var(--color-panel-subtle)] text-[var(--color-text-muted)]",
-  active: "bg-teal-50 text-teal-800",
-  warning: "bg-amber-50 text-amber-800",
-  danger: "bg-red-50 text-red-800",
+  neutral: "bg-[rgb(255_255_255_/_0.055)] text-[var(--muted)] shadow-[0_0_0_1px_var(--line)]",
+  active: "bg-[rgb(25_201_135_/_0.12)] text-[var(--green)]",
+  success: "bg-[rgb(25_201_135_/_0.12)] text-[var(--green)]",
+  warning: "bg-[rgb(231_183_95_/_0.14)] text-[var(--amber)]",
+  danger: "bg-[rgb(240_97_97_/_0.14)] text-[var(--red)]",
+  review: "bg-[rgb(140_183_255_/_0.14)] text-[var(--blue)]",
+  info: "bg-[rgb(140_183_255_/_0.14)] text-[var(--blue)]",
 };
 
 export type StatusBadgeProps = {

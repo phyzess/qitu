@@ -11,6 +11,12 @@ import {
   type AiAdvisoryArtifactRow,
 } from "./ai-advisory-store";
 import { readCurrentUser, registerAuthRoutes, requirePermission } from "./auth-routes";
+import {
+  prepareImportJobEventInsert,
+  publicImportJobEvent,
+  readImportJobEvents,
+  requestFingerprint,
+} from "./event-store";
 import { authError, parseQueryLimit, type AppContext } from "./http-utils";
 import { selectImportAdapter } from "./import-adapters";
 import { markImportJobFailed, processImportJob } from "./import-job-runner";
@@ -166,6 +172,29 @@ app.get("/api/import-jobs", async (context) => {
   });
 });
 
+app.get("/api/import-jobs/:jobId/events", async (context) => {
+  const current = await readCurrentUser(context);
+  if (!current) {
+    return authError(context, "unauthorized", "Login is required.", 401);
+  }
+
+  const jobId = context.req.param("jobId");
+  const job = await readImportJobReview(context.env, jobId);
+  if (!job) {
+    return authError(context, "import_job_not_found", "Import job was not found.", 404);
+  }
+
+  const limit = parseQueryLimit(context.req.query("limit"), 50);
+  const events = await readImportJobEvents(context.env, {
+    importJobId: jobId,
+    limit,
+  });
+
+  return context.json({
+    events: events.map(publicImportJobEvent),
+  });
+});
+
 app.get("/api/audit-events", async (context) => {
   const current = await readCurrentUser(context);
   if (!current) {
@@ -281,6 +310,7 @@ app.post("/api/source-files", async (context) => {
     sourceFileId,
     filename,
   });
+  const fingerprint = await requestFingerprint(context);
 
   await context.env.SOURCE_FILES.put(objectKey, content, {
     httpMetadata: {
@@ -370,6 +400,22 @@ app.post("/api/source-files", async (context) => {
           },
         }),
       ),
+      prepareImportJobEventInsert(context.env, {
+        importJobId: jobId,
+        sourceFileId,
+        eventType: "source_file.uploaded",
+        statusTo: "stored",
+        actorUserId: current.user.id,
+        message: "Source file stored.",
+        requestId: fingerprint.requestId,
+        createdAt: now,
+        metadata: {
+          workspaceId,
+          filename,
+          contentType,
+          contentHash,
+        },
+      }),
       prepareAuditInsert(
         context.env,
         createAuditEvent({
@@ -390,6 +436,21 @@ app.post("/api/source-files", async (context) => {
           },
         }),
       ),
+      prepareImportJobEventInsert(context.env, {
+        importJobId: jobId,
+        sourceFileId,
+        eventType: "import_job.queued",
+        statusTo: "queued",
+        actorUserId: current.user.id,
+        message: "Import job queued.",
+        requestId: fingerprint.requestId,
+        createdAt: now,
+        metadata: {
+          objectKey,
+          adapterId: adapter.id,
+          jobKind: adapter.jobKind,
+        },
+      }),
     ]);
   } catch (error) {
     await context.env.SOURCE_FILES.delete(objectKey);
@@ -402,6 +463,7 @@ app.post("/api/source-files", async (context) => {
     const reason = error instanceof Error ? error.message : "Queue dispatch failed.";
     await markImportJobFailed(context.env, {
       jobId,
+      sourceFileId,
       reason,
       action: "import_job.dispatch_failed",
       failureClass: "queue_dispatch",
@@ -505,6 +567,7 @@ app.post("/api/import-jobs/:jobId/retry", async (context) => {
   }
 
   const now = new Date().toISOString();
+  const fingerprint = await requestFingerprint(context);
   const message: ImportJobMessage = {
     kind: "import.source_file",
     jobId,
@@ -546,6 +609,20 @@ app.post("/api/import-jobs/:jobId/retry", async (context) => {
         },
       }),
     ),
+    prepareImportJobEventInsert(context.env, {
+      importJobId: jobId,
+      sourceFileId: job.source_file_id,
+      eventType: "import_job.retry_queued",
+      statusFrom: "failed",
+      statusTo: "queued",
+      actorUserId: current.user.id,
+      message: "Import job retry queued.",
+      requestId: fingerprint.requestId,
+      createdAt: now,
+      metadata: {
+        previousFailureClass: job.failure_class,
+      },
+    }),
   ]);
 
   try {
@@ -554,6 +631,7 @@ app.post("/api/import-jobs/:jobId/retry", async (context) => {
     const reason = error instanceof Error ? error.message : "Queue dispatch failed.";
     await markImportJobFailed(context.env, {
       jobId,
+      sourceFileId: job.source_file_id,
       reason,
       action: "import_job.retry_dispatch_failed",
       failureClass: "queue_dispatch",
@@ -624,6 +702,20 @@ app.post("/api/import-jobs/:jobId/advisories", async (context) => {
 
   await context.env.DB.batch([
     prepareAiAdvisoryInsert(context.env, artifact),
+    prepareImportJobEventInsert(context.env, {
+      importJobId: job.id,
+      sourceFileId: job.source_file_id,
+      eventType: "ai_advisory.generated",
+      actorUserId: current.user.id,
+      message: "AI advisory generated for import review.",
+      createdAt: artifact.createdAt,
+      metadata: {
+        provider: artifact.provider,
+        model: artifact.model,
+        promptVersion: artifact.promptVersion,
+        humanConfirmationRequired: requiresHumanConfirmation(artifact),
+      },
+    }),
     prepareAuditInsert(
       context.env,
       createAuditEvent({
@@ -688,7 +780,7 @@ async function updateAiAdvisoryStatusResponse(
 
   const jobId = context.req.param("jobId");
   const advisoryId = context.req.param("advisoryId");
-  if (!advisoryId) {
+  if (!jobId || !advisoryId) {
     return authError(context, "ai_advisory_not_found", "AI advisory was not found.", 404);
   }
 
@@ -748,6 +840,16 @@ async function updateAiAdvisoryStatusResponse(
         WHERE id = ? AND import_job_id = ? AND status = 'suggested'
       `,
     ).bind(targetStatus, current.user.id, now, advisoryId, jobId),
+    prepareImportJobEventInsert(context.env, {
+      importJobId: jobId,
+      eventType: `ai_advisory.${targetStatus}`,
+      actorUserId: current.user.id,
+      message: `AI advisory ${targetStatus}.`,
+      createdAt: now,
+      metadata: {
+        advisoryId,
+      },
+    }),
     prepareAuditInsert(
       context.env,
       createAuditEvent({

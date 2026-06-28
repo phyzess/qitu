@@ -28,9 +28,10 @@ invitations
 password_credentials
 sessions
 password_reset_tokens
+login_attempts
 ```
 
-The schemas below describe the broader target auth model and may be richer than the current migration baseline.
+The schemas below describe the broader target auth model. The current implementation uses the table names above, while preserving the same capability boundaries.
 
 ```text
 users
@@ -320,6 +321,18 @@ ai_advisory_artifacts (
 Advisory artifacts are not business truth. They record model or local-helper output plus human disposition. Commit routes must continue to read approved staging records, not AI advisory status.
 
 ## 8. Event Tables
+
+Current migration baseline implements:
+
+```text
+audit_events
+login_attempts
+import_job_events
+security_events
+alert_events
+```
+
+`audit_events` remains the durable compliance trail for sensitive actions. The newer event tables support runtime visibility: login attempts for auth diagnostics, `security_events` for abuse/RBAC signals, `import_job_events` for job-local timeline views, and `alert_events` for operational follow-up.
 
 ### `audit_events`
 

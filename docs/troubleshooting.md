@@ -104,7 +104,7 @@ queued -> processing -> failed
 
 If jobs remain `queued`:
 
-1. Confirm the Queue consumer is running through `vp run dev:worker`.
+1. Confirm the Queue consumer is running through `vp run dev` or `vp run dev:worker`.
 2. Confirm `IMPORT_JOBS` is bound in `apps/worker/wrangler.jsonc`.
 3. Query local jobs:
 
@@ -142,14 +142,14 @@ curl -X POST http://127.0.0.1:8787/api/import-jobs/<job-id>/retry
 
 The retry route requires an authenticated session. It resets the job to `queued`, clears the stored failure fields, sends a new Queue message, and writes an `import_job.retry_queued` audit event.
 
-## `dev:all` Starts One Process Then Exits
+## `dev` Starts One Process Then Exits
 
-`vp run dev:all` starts both web and Worker dev servers. If one process exits with a non-zero code, the wrapper stops the other process.
+`vp run dev` starts both web and Worker dev servers. If one process exits with a non-zero code, the wrapper stops the other process.
 
 Run each side separately to isolate the failure:
 
 ```sh
-vp run dev
+vp run dev:web
 vp run dev:worker
 ```
 

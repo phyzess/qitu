@@ -31,7 +31,15 @@ runnable kit baseline
 
 ```sh
 vp run setup
+vp run dev
 vp run validate
+```
+
+`vp run dev` 会同时启动 React app 和 Worker API。本地 auth 提供开发用 demo reviewer：
+
+```text
+reviewer@example.com
+correct horse battery staple
 ```
 
 公司网络可能会在 `vp install` 从 `registry.npmjs.org` 拉取 package manager 时阻断。排查方式见 `docs/troubleshooting.md`。

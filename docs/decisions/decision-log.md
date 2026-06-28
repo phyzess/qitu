@@ -196,6 +196,59 @@ Reason:
 
 This keeps `apps/worker/src/index.ts` as HTTP/handler wiring while preserving business-neutral core packages. The seam gives locality for Worker persistence and queue behavior without pretending that a reusable storage adapter exists before a second real app proves it.
 
+### 2026-06-28: Full-Stack Local Dev Default
+
+Decision:
+
+`vp run dev` starts both the web app and Worker API. The previous web-only command remains available as `vp run dev:web`, and `vp run dev:all` remains an explicit alias for the same full-stack wrapper.
+
+Local development also exposes a local-only demo reviewer bootstrap:
+
+```text
+email: reviewer@example.com
+password: correct horse battery staple
+```
+
+The bootstrap route creates or resets that reviewer only when `APP_ENV=local`; invitation-only onboarding remains the non-local default.
+
+Reason:
+
+The React app proxies `/api` and `/health` to the Worker, so a web-only default produces a half-running app with proxy failures. A full-stack default gives cloned checkouts a runnable first impression while keeping local demo identity out of reusable packages and deployed environments.
+
+### 2026-06-28: Workbench UI Baseline
+
+Decision:
+
+Adopt the FOF-derived workbench UI baseline as qitu's business-neutral design system contract.
+
+Reusable UI packages must provide:
+
+1. A dark tonal workbench shell with rail navigation, topbar, main surface, contextual inspector, and event stream patterns.
+2. Scenario-based font tokens, compact type scale, semantic color, radius, spacing, and surface shadows in `packages/design-system`.
+3. Business-neutral UI primitives for surfaces, data states, metric strips, file/import/review actions, and timelines in `packages/ui`.
+4. A visx-only `packages/charts` layer with app pages importing chart components only, never `@visx/*`.
+
+Reason:
+
+The starter came from FOF planning, where the final accepted UI direction was a Vercel-inspired analytical workbench rather than a light generic admin shell. qitu should preserve that reusable design knowledge without importing FOF-specific vocabulary or financial business meaning.
+
+### 2026-06-28: Event Foundation Tables
+
+Decision:
+
+Add generic runtime event foundations to the starter baseline:
+
+1. `login_attempts` for hashed auth attempt diagnostics.
+2. `import_job_events` for job-local upload, queue, process, review, retry, advisory, and commit timelines.
+3. `security_events` for auth/RBAC signals.
+4. `alert_events` for operational follow-up on failed jobs and other reusable kit alerts.
+
+Keep these tables business-neutral. App-owned feature code may attach metadata through opaque JSON, but core packages and docs must not define business metrics, parser fields, or workflow-specific meanings.
+
+Reason:
+
+The FOF-derived startup kit needs reusable operational visibility, not only final audit rows. Separate event streams let the UI show source/import/review provenance while preserving `audit_events` as the compliance trail and keeping alerts/security signals queryable without turning qitu into a business app.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

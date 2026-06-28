@@ -6,7 +6,8 @@ import {
   type ImportFailureClass,
 } from "@qitu/import-pipeline";
 import type { ImportJobMessage } from "@qitu/jobs";
-import { prepareAuditInsert, writeAudit } from "./audit-store";
+import { prepareAuditInsert } from "./audit-store";
+import { prepareAlertEventInsert, prepareImportJobEventInsert } from "./event-store";
 import { getImportAdapter } from "./import-adapters";
 
 type ImportProcessingJobRow = {
@@ -64,6 +65,7 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
     if (!adapter) {
       await markImportJobFailed(env, {
         jobId: body.jobId,
+        sourceFileId: body.sourceFileId,
         reason: `Import adapter is not registered: ${job.adapter_id ?? "none"}.`,
         action: "import_job.adapter_missing",
         failureClass: "adapter_missing",
@@ -92,30 +94,46 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
       return;
     }
 
-    await writeAudit(
-      env,
-      createAuditEvent({
-        action: "import_job.processing_started",
-        actor: {
-          id: "queue",
-          kind: "system",
-        },
-        subject: {
-          id: body.jobId,
-          kind: "import_job",
-        },
+    await env.DB.batch([
+      prepareImportJobEventInsert(env, {
+        importJobId: body.jobId,
+        sourceFileId: body.sourceFileId,
+        eventType: "import_job.processing_started",
+        statusFrom: "queued",
+        statusTo: "processing",
+        message: "Import job processing started.",
+        createdAt: now,
         metadata: {
-          sourceFileId: body.sourceFileId,
           objectKey: body.objectKey,
           adapterId: adapter.id,
         },
       }),
-    );
+      prepareAuditInsert(
+        env,
+        createAuditEvent({
+          action: "import_job.processing_started",
+          actor: {
+            id: "queue",
+            kind: "system",
+          },
+          subject: {
+            id: body.jobId,
+            kind: "import_job",
+          },
+          metadata: {
+            sourceFileId: body.sourceFileId,
+            objectKey: body.objectKey,
+            adapterId: adapter.id,
+          },
+        }),
+      ),
+    ]);
 
     const sourceObject = await env.SOURCE_FILES.get(body.objectKey);
     if (!sourceObject) {
       await markImportJobFailed(env, {
         jobId: body.jobId,
+        sourceFileId: body.sourceFileId,
         reason: "Source object was not found in R2.",
         action: "import_job.source_missing",
         failureClass: "source_missing",
@@ -128,6 +146,7 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
     if (stagedRecords.length === 0) {
       await markImportJobFailed(env, {
         jobId: body.jobId,
+        sourceFileId: body.sourceFileId,
         reason: "Import adapter did not produce any staged records.",
         action: "import_job.no_records",
         failureClass: "validation",
@@ -245,6 +264,20 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
           WHERE id = ?
         `,
       ).bind(stagedAt, stagedAt, body.jobId),
+      prepareImportJobEventInsert(env, {
+        importJobId: body.jobId,
+        sourceFileId: body.sourceFileId,
+        eventType: "import_job.needs_review",
+        statusFrom: "processing",
+        statusTo: "needs_review",
+        message: "Import job is ready for human review.",
+        createdAt: stagedAt,
+        metadata: {
+          objectKey: body.objectKey,
+          adapterId: adapter.id,
+          stagedCount: stagedRows.length,
+        },
+      }),
       prepareAuditInsert(
         env,
         createAuditEvent({
@@ -269,6 +302,7 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
   } catch (error) {
     await markImportJobFailed(env, {
       jobId: body.jobId,
+      sourceFileId: body.sourceFileId,
       reason: error instanceof Error ? error.message : "Import job processing failed.",
       action: "import_job.failed",
       failureClass: "processing",
@@ -278,7 +312,13 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
 
 export async function markImportJobFailed(
   env: Env,
-  input: { jobId: string; reason: string; action: string; failureClass?: ImportFailureClass },
+  input: {
+    jobId: string;
+    sourceFileId?: string | null | undefined;
+    reason: string;
+    action: string;
+    failureClass?: ImportFailureClass | undefined;
+  },
 ): Promise<void> {
   const now = new Date().toISOString();
   const failureClass = input.failureClass ?? "infrastructure";
@@ -295,6 +335,34 @@ export async function markImportJobFailed(
         WHERE id = ?
       `,
     ).bind(input.reason, failureClass, now, now, input.jobId),
+    prepareImportJobEventInsert(env, {
+      importJobId: input.jobId,
+      sourceFileId: input.sourceFileId ?? null,
+      eventType: input.action,
+      statusTo: "failed",
+      message: input.reason,
+      createdAt: now,
+      metadata: {
+        failureClass,
+      },
+    }),
+    prepareAlertEventInsert(env, {
+      severity:
+        failureClass === "infrastructure" || failureClass === "queue_dispatch"
+          ? "critical"
+          : "warning",
+      alertType: "import_job.failed",
+      entityType: "import_job",
+      entityId: input.jobId,
+      title: "Import job failed",
+      message: input.reason,
+      createdAt: now,
+      metadata: {
+        action: input.action,
+        failureClass,
+        sourceFileId: input.sourceFileId ?? null,
+      },
+    }),
     prepareAuditInsert(
       env,
       createAuditEvent({

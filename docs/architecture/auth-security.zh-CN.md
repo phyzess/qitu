@@ -10,7 +10,7 @@ Date: 2026-06-27
 当前 scaffold：
 
 1. `@qitu/auth` 负责邮箱规范化、邀请 token hash、PBKDF2 密码 hash、session token hash。
-2. `apps/worker` 暴露 bootstrap invite、authenticated invite、accept、login、logout、me、password reset 等基线路由。
+2. `apps/worker` 暴露 bootstrap invite、local demo reviewer bootstrap、authenticated invite、accept、login、logout、me、password reset 等基线路由。
 3. migration 只保存 token/password hash，不保存明文 token 或密码。
 4. `@qitu/email` 渲染邀请与密码重置邮件；Worker 在非 local 环境使用 Cloudflare `send_email`。
 5. `@qitu/rbac` 提供 starter role/permission 表；写路由在修改数据前做权限检查并审计拒绝事件。
@@ -42,6 +42,17 @@ admin 创建邀请
 ```text
 1 day
 ```
+
+## 2.1 Local Demo Reviewer
+
+本地开发提供 local-only reviewer bootstrap，让全新 checkout 不需要手改数据库也有可用登录路径：
+
+```text
+email: reviewer@example.com
+password: correct horse battery staple
+```
+
+该 bootstrap route 只在 `APP_ENV=local` 时创建或重置这个 reviewer，并立即创建 session。部署环境必须继续使用 invitation-only onboarding。
 
 ## 3. Session 默认值
 

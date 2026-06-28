@@ -161,6 +161,57 @@ Baseline 不挂自动 DLQ consumer，也不 blind replay。
 
 自动 DLQ replay 可能重建 retry loop，并绕过人工分类。通用 kit 应先证明安全运维路径；自动 replay 只有在真实生产队列证明人工路径不足后再加入。
 
+### Full-Stack Local Dev Default
+
+Decision:
+
+`vp run dev` 同时启动 web app 和 Worker API。之前只启动 web 的命令保留为 `vp run dev:web`，`vp run dev:all` 继续作为完整本地栈 wrapper 的显式别名。
+
+本地开发同时暴露 local-only demo reviewer bootstrap：
+
+```text
+email: reviewer@example.com
+password: correct horse battery staple
+```
+
+该 bootstrap route 只在 `APP_ENV=local` 下创建或重置 reviewer；非本地环境仍默认 invitation-only onboarding。
+
+原因：
+
+React app 会把 `/api` 和 `/health` 代理到 Worker，所以 web-only default 会产生半启动应用和 proxy failure。full-stack default 给 cloned checkout 一个可运行的第一印象，同时把本地 demo identity 留在 app-owned/local-only 层，不进入 reusable packages 或部署环境。
+
+### Workbench UI Baseline
+
+Decision:
+
+采用从 FOF 最终 UI 方向抽象出来的 business-neutral workbench baseline：
+
+1. 暗色 tonal shell，包含 rail navigation、topbar、main work surface、context inspector、event stream。
+2. `packages/design-system` 提供字体、紧凑 type scale、semantic color、radius、spacing 与 surface shadow tokens。
+3. `packages/ui` 提供 surface、data state、metric strip、file/import/review action、timeline 等业务中立组件。
+4. `packages/charts` 作为 visx-only chart layer，app 页面只 import qitu chart components，不直接 import `@visx/*`。
+
+原因：
+
+FOF 最终接受的是偏 analytical workbench 的控制台方向，而不是浅色 generic admin shell。qitu 应保留这些可复用 UI 经验，但不能引入 FOF 的业务词汇或业务语义。
+
+### Event Foundation Tables
+
+Decision:
+
+Baseline 增加通用运行事件基础：
+
+1. `login_attempts`：记录 hash 后的登录尝试诊断信息。
+2. `import_job_events`：记录 upload、queue、process、review、retry、advisory、commit 的 job-local timeline。
+3. `security_events`：记录 auth/RBAC 安全信号。
+4. `alert_events`：记录 failed jobs 等通用运维跟进事项。
+
+这些表保持业务中立。app-owned feature 可以通过 metadata JSON 关联上下文，但 core packages 与 docs 不定义业务指标、parser fields 或业务 workflow 含义。
+
+原因：
+
+Startup kit 需要可复用的运行可见性，而不只是最终 audit rows。分离 event streams 能让 UI 展示 source/import/review provenance，同时让 `audit_events` 保持 compliance trail，安全与告警信号也可独立查询。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

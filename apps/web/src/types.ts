@@ -58,6 +58,20 @@ export type ImportJobReview = {
   };
 };
 
+export type ImportJobEvent = {
+  id: string;
+  importJobId: string;
+  sourceFileId: string | null;
+  eventType: string;
+  statusFrom: string | null;
+  statusTo: string | null;
+  actorUserId: string | null;
+  message: string | null;
+  metadata: unknown;
+  requestId: string | null;
+  createdAt: string;
+};
+
 export type StagedRecord = {
   id: string;
   importJobId: string;

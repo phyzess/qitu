@@ -1,6 +1,18 @@
 import { useMemo, type RefObject } from "react";
-import { TimeSeriesChart, type ChartDatum } from "@qitu/charts";
-import { AppShell, Button, StatusBadge, type StatusBadgeTone } from "@qitu/ui";
+import { BarChart, TimeSeriesChart, type CategoryDatum, type ChartDatum } from "@qitu/charts";
+import {
+  AppShell,
+  Button,
+  DataState,
+  MetricStrip,
+  SectionHeader,
+  StatusBadge,
+  Surface,
+  Timeline,
+  type MetricItem,
+  type StatusBadgeTone,
+  type TimelineItem,
+} from "@qitu/ui";
 import {
   Activity,
   ArrowRight,
@@ -16,11 +28,12 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { EmptyText, ErrorText, Panel, SectionTitle, nav } from "./app-ui";
+import { ErrorText, nav } from "./app-ui";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
   AuditEvent,
+  ImportJobEvent,
   ImportJobListItem,
   ReviewIssue,
   SourceFile,
@@ -41,6 +54,7 @@ export function ReviewConsole(props: {
   canRetry: boolean;
   counts: ReviewCounts;
   error: string | null;
+  importJobEvents: ImportJobEvent[];
   importJobs: ImportJobListItem[];
   isBusy: boolean;
   notice: string;
@@ -69,6 +83,49 @@ export function ReviewConsole(props: {
   const jobBySourceId = useMemo(() => {
     return new Map(props.importJobs.map((job) => [job.sourceFileId, job]));
   }, [props.importJobs]);
+  const metrics: MetricItem[] = useMemo(
+    () => [
+      { id: "pending", label: "Pending", value: props.counts.pending, tone: "warning" },
+      { id: "approved", label: "Approved", value: props.counts.approved, tone: "positive" },
+      { id: "rejected", label: "Rejected", value: props.counts.rejected, tone: "negative" },
+      { id: "committed", label: "Committed", value: props.counts.committed },
+    ],
+    [props.counts],
+  );
+  const reviewBars: CategoryDatum[] = useMemo(
+    () => [
+      { label: "Pending", value: props.counts.pending, tone: "warning" },
+      { label: "Approved", value: props.counts.approved, tone: "positive" },
+      { label: "Rejected", value: props.counts.rejected, tone: "negative" },
+      { label: "Committed", value: props.counts.committed, tone: "info" },
+    ],
+    [props.counts],
+  );
+  const auditTimeline: TimelineItem[] = useMemo(
+    () =>
+      props.auditEvents.map((event) => ({
+        id: event.id,
+        title: event.action,
+        description: `${event.subject.kind}:${event.subject.id}`,
+        time: formatTime(event.occurredAt),
+        tone: timelineTone(event.action),
+      })),
+    [props.auditEvents],
+  );
+  const importTimeline: TimelineItem[] = useMemo(
+    () =>
+      props.importJobEvents.map((event) => ({
+        id: event.id,
+        title: event.eventType,
+        description:
+          event.message ??
+          [event.statusFrom, event.statusTo].filter(Boolean).join(" -> ") ??
+          "Import job event",
+        time: formatTime(event.createdAt),
+        tone: timelineTone(event.eventType),
+      })),
+    [props.importJobEvents],
+  );
 
   return (
     <AppShell
@@ -83,37 +140,43 @@ export function ReviewConsole(props: {
         </>
       }
       brand="qitu"
+      commandLabel="Find source, job, or staged record"
+      eyebrow={props.notice}
       navigation={nav}
     >
-      <div className="grid gap-5 xl:grid-cols-[0.75fr_1.55fr_0.8fr]">
-        <section className="space-y-5">
-          <Panel>
+      <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(260px,0.7fr)_minmax(680px,1.7fr)_minmax(300px,0.85fr)]">
+        <section className="space-y-[var(--gutter)]">
+          <Surface className="p-[var(--s1)]">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <StatusBadge tone="active">{props.user.email}</StatusBadge>
-                <h1 className="mt-3 text-xl font-semibold tracking-normal">Review console</h1>
-                <div className="mt-2 text-xs text-[var(--color-text-muted)]">{props.notice}</div>
+                <h1 className="mt-3 truncate text-[length:var(--text-heading-20)] font-semibold leading-[var(--leading-heading-20)]">
+                  Review console
+                </h1>
+                <div className="mt-1 text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--dim)]">
+                  {props.notice}
+                </div>
               </div>
-              <LockKeyhole size={17} className="text-[var(--color-accent)]" />
+              <LockKeyhole size={17} className="shrink-0 text-[var(--green)]" />
             </div>
             {props.error ? <ErrorText>{props.error}</ErrorText> : null}
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <Kpi label="Pending" value={props.counts.pending} />
-              <Kpi label="Approved" value={props.counts.approved} />
-              <Kpi label="Rejected" value={props.counts.rejected} />
-              <Kpi label="Committed" value={props.counts.committed} />
+            <MetricStrip className="mt-[var(--s1)]" items={metrics} />
+            <div className="mt-[var(--s1)] grid gap-[var(--s0)]">
+              <TimeSeriesChart data={props.reviewTrend} height={132} label="Review status trend" />
+              <BarChart data={reviewBars} height={156} label="Review status distribution" />
             </div>
-            <div className="mt-4 rounded-lg bg-[var(--color-panel-subtle)] p-3">
-              <TimeSeriesChart data={props.reviewTrend} height={120} label="Review status trend" />
-            </div>
-          </Panel>
+          </Surface>
 
-          <Panel>
-            <SectionTitle icon={<FileSpreadsheet size={16} />} label="Source files" />
-            <div className="mt-4 space-y-3">
+          <Surface className="p-[var(--s1)]">
+            <SectionHeader
+              description="Authenticated source intake with content-hash idempotency."
+              icon={<FileSpreadsheet size={16} />}
+              title="Source files"
+            />
+            <div className="mt-[var(--s1)] space-y-3">
               <input
                 ref={props.uploadInputRef}
-                className="block w-full rounded-lg bg-[var(--color-panel-subtle)] px-3 py-2 text-sm"
+                className="block h-10 w-full rounded-[var(--radius-md)] bg-[var(--surface-2)] px-3 text-[length:var(--text-copy-13)] text-[var(--text)] shadow-[0_0_0_1px_var(--line)] file:mr-3 file:border-0 file:bg-transparent file:text-[var(--muted)] focus:outline-none focus:shadow-[0_0_0_2px_var(--green)]"
                 type="file"
               />
               <div className="flex flex-wrap gap-2">
@@ -135,62 +198,72 @@ export function ReviewConsole(props: {
                 </Button>
               </div>
             </div>
-            <div className="mt-4 space-y-2">
-              {props.sourceFiles.length === 0 ? (
-                <EmptyText>No source files yet.</EmptyText>
-              ) : (
-                props.sourceFiles.map((file) => (
-                  <SourceFileItem
-                    file={file}
-                    job={jobBySourceId.get(file.id) ?? null}
-                    key={file.id}
-                  />
-                ))
-              )}
+            <div className="mt-[var(--s1)]">
+              <DataState
+                description="Upload a sample or local file to create an import job."
+                state={props.sourceFiles.length === 0 ? "empty" : "ready"}
+                title="No source files"
+              >
+                <div className="space-y-2">
+                  {props.sourceFiles.map((file) => (
+                    <SourceFileItem
+                      file={file}
+                      job={jobBySourceId.get(file.id) ?? null}
+                      key={file.id}
+                    />
+                  ))}
+                </div>
+              </DataState>
             </div>
-          </Panel>
+          </Surface>
 
-          <Panel>
-            <div className="flex items-center justify-between gap-3">
-              <SectionTitle icon={<Activity size={16} />} label="Import jobs" />
-              {props.runtimeEnvironment === "local" ? (
-                <Button
-                  disabled={props.isBusy}
-                  size="sm"
-                  variant="ghost"
-                  onClick={props.onProcessLocalQueue}
-                >
-                  <RefreshCw size={14} /> Process local queue
-                </Button>
-              ) : null}
+          <Surface className="p-[var(--s1)]">
+            <SectionHeader
+              action={
+                props.runtimeEnvironment === "local" ? (
+                  <Button
+                    disabled={props.isBusy}
+                    size="sm"
+                    variant="ghost"
+                    onClick={props.onProcessLocalQueue}
+                  >
+                    <RefreshCw size={14} /> Process local queue
+                  </Button>
+                ) : null
+              }
+              icon={<Activity size={16} />}
+              title="Import jobs"
+            />
+            <div className="mt-[var(--s1)]">
+              <DataState
+                description="Queued imports will appear here after a source file is accepted."
+                state={props.importJobs.length === 0 ? "empty" : "ready"}
+                title="No import jobs"
+              >
+                <div className="space-y-2">
+                  {props.importJobs.map((job) => (
+                    <JobStep
+                      active={job.id === props.selectedJobId}
+                      job={job}
+                      key={job.id}
+                      onSelect={() => props.onSelectJob(job.id)}
+                    />
+                  ))}
+                </div>
+              </DataState>
             </div>
-            <div className="mt-4 space-y-3">
-              {props.importJobs.length === 0 ? (
-                <EmptyText>No import jobs yet.</EmptyText>
-              ) : (
-                props.importJobs.map((job) => (
-                  <JobStep
-                    active={job.id === props.selectedJobId}
-                    job={job}
-                    key={job.id}
-                    onSelect={() => props.onSelectJob(job.id)}
-                  />
-                ))
-              )}
-            </div>
-          </Panel>
+          </Surface>
         </section>
 
-        <section className="qitu-card min-h-[640px] overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-            <div>
-              <div className="text-sm font-medium">Staged records</div>
-              <div className="mt-1 text-xs text-[var(--color-text-muted)]">
-                {props.selectedJob
-                  ? props.selectedJob.sourceFile.filename
-                  : "No import job selected"}
-              </div>
-            </div>
+        <Surface className="min-h-[640px] overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--s1)] py-[var(--s0)]">
+            <SectionHeader
+              description={
+                props.selectedJob ? props.selectedJob.sourceFile.filename : "No import job selected"
+              }
+              icon={<ListChecks size={16} />}
+              title="Staged records"
+            />
             <div className="flex flex-wrap gap-2">
               {props.canRetry ? (
                 <Button
@@ -212,10 +285,10 @@ export function ReviewConsole(props: {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] border-separate border-spacing-0 px-3 pb-4 text-left">
+          <div className="overflow-x-auto px-3 pb-4">
+            <table className="w-full min-w-[680px] border-separate border-spacing-y-2 text-left">
               <thead>
-                <tr className="text-xs text-[var(--color-text-muted)]">
+                <tr className="text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
                   <th className="px-3 py-2 font-medium">Record</th>
                   <th className="px-3 py-2 font-medium">Payload</th>
                   <th className="px-3 py-2 font-medium">Issue</th>
@@ -226,8 +299,12 @@ export function ReviewConsole(props: {
               <tbody>
                 {props.reviewRecords.length === 0 ? (
                   <tr>
-                    <td className="px-3 py-8 text-sm text-[var(--color-text-muted)]" colSpan={5}>
-                      No staged records are available yet.
+                    <td colSpan={5}>
+                      <DataState
+                        description="Select or process an import job to review staged records."
+                        state="empty"
+                        title="No staged records"
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -244,70 +321,71 @@ export function ReviewConsole(props: {
               </tbody>
             </table>
           </div>
-        </section>
+        </Surface>
 
-        <aside className="space-y-5">
-          <Panel>
-            <SectionTitle icon={<ShieldCheck size={16} />} label="Guardrails" />
-            <div className="mt-4 space-y-3">
+        <aside className="space-y-[var(--gutter)]">
+          <Surface as="aside" className="p-[var(--s1)]">
+            <SectionHeader icon={<ShieldCheck size={16} />} title="Guardrails" />
+            <div className="mt-[var(--s1)] space-y-2">
               <Guardrail label="Reviewer identity required" state="active" />
               <Guardrail label="Rejected rows cannot commit" state="active" />
               <Guardrail label="AI output stays advisory" state="active" />
               <Guardrail label="Audit event per decision" state="active" />
             </div>
-          </Panel>
+          </Surface>
 
-          <Panel>
-            <div className="flex items-center justify-between gap-3">
-              <SectionTitle icon={<Sparkles size={16} />} label="AI advisory" />
-              <Button
-                disabled={!props.selectedJobId || props.isBusy}
-                size="sm"
-                variant="ghost"
-                onClick={props.onGenerateAdvisory}
+          <Surface as="aside" className="p-[var(--s1)]">
+            <SectionHeader
+              action={
+                <Button
+                  disabled={!props.selectedJobId || props.isBusy}
+                  size="sm"
+                  variant="ghost"
+                  onClick={props.onGenerateAdvisory}
+                >
+                  <Sparkles size={14} /> Generate
+                </Button>
+              }
+              icon={<Sparkles size={16} />}
+              title="AI advisory"
+            />
+            <div className="mt-[var(--s1)]">
+              <DataState
+                description="Generate an advisory for the selected import job."
+                state={props.aiAdvisories.length === 0 ? "empty" : "ready"}
+                title="No advisory yet"
               >
-                <Sparkles size={14} /> Generate
-              </Button>
+                <div className="space-y-3">
+                  {props.aiAdvisories.map((advisory) => (
+                    <AiAdvisoryItem
+                      advisory={advisory}
+                      disabled={props.isBusy}
+                      key={advisory.id}
+                      onConfirm={() => props.onConfirmAdvisory(advisory.id)}
+                      onDismiss={() => props.onDismissAdvisory(advisory.id)}
+                    />
+                  ))}
+                </div>
+              </DataState>
             </div>
-            <div className="mt-4 space-y-3">
-              {props.aiAdvisories.length === 0 ? (
-                <EmptyText>No advisory yet.</EmptyText>
-              ) : (
-                props.aiAdvisories.map((advisory) => (
-                  <AiAdvisoryItem
-                    advisory={advisory}
-                    disabled={props.isBusy}
-                    key={advisory.id}
-                    onConfirm={() => props.onConfirmAdvisory(advisory.id)}
-                    onDismiss={() => props.onDismissAdvisory(advisory.id)}
-                  />
-                ))
-              )}
-            </div>
-          </Panel>
+          </Surface>
 
-          <Panel>
-            <SectionTitle icon={<ListChecks size={16} />} label="Audit timeline" />
-            <div className="mt-4 space-y-3">
-              {props.auditEvents.length === 0 ? (
-                <EmptyText>No audit events yet.</EmptyText>
-              ) : (
-                props.auditEvents.map((event) => <AuditItem event={event} key={event.id} />)
-              )}
-            </div>
-          </Panel>
+          <Surface as="aside" className="p-[var(--s1)]">
+            <SectionHeader icon={<Activity size={16} />} title="Event stream" />
+            <Timeline
+              className="mt-[var(--s1)]"
+              emptyLabel="Select or process an import job to populate the event stream."
+              items={importTimeline}
+            />
+          </Surface>
+
+          <Surface as="aside" className="p-[var(--s1)]">
+            <SectionHeader icon={<ListChecks size={16} />} title="Audit timeline" />
+            <Timeline className="mt-[var(--s1)]" items={auditTimeline} />
+          </Surface>
         </aside>
       </div>
     </AppShell>
-  );
-}
-
-function Kpi(props: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg bg-[var(--color-panel-subtle)] p-3">
-      <div className="text-xs text-[var(--color-text-muted)]">{props.label}</div>
-      <div className="qitu-number mt-2 text-2xl font-semibold">{props.value}</div>
-    </div>
   );
 }
 
@@ -315,11 +393,13 @@ function SourceFileItem(props: { file: SourceFile; job: ImportJobListItem | null
   const status = props.job?.status ?? "stored";
 
   return (
-    <div className="rounded-lg bg-[var(--color-panel-subtle)] p-3">
+    <div className="qitu-surface-subtle p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium">{props.file.filename}</div>
-          <div className="qitu-number mt-1 text-xs text-[var(--color-text-muted)]">
+          <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+            {props.file.filename}
+          </div>
+          <div className="qitu-number mt-1 text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
             {formatBytes(props.file.size)}
           </div>
         </div>
@@ -333,23 +413,27 @@ function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () 
   return (
     <button
       className={[
-        "flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors",
-        props.active ? "bg-white shadow-sm" : "hover:bg-[var(--color-panel-subtle)]",
+        "flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-left transition-[background,box-shadow,color] duration-300 ease-[var(--ease)]",
+        props.active
+          ? "bg-[var(--surface-3)] shadow-[0_0_0_1px_var(--line-strong)]"
+          : "hover:bg-[var(--surface-2)]",
       ].join(" ")}
       onClick={props.onSelect}
       type="button"
     >
-      <div className="flex size-7 items-center justify-center rounded-full bg-[var(--color-panel-subtle)] text-[var(--color-accent)]">
+      <div className="grid size-7 shrink-0 place-items-center rounded-full bg-[rgb(255_255_255_/_0.055)] text-[var(--green)]">
         {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{props.job.sourceFile.filename}</div>
-        <div className="qitu-number text-xs text-[var(--color-text-muted)]">
+        <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+          {props.job.sourceFile.filename}
+        </div>
+        <div className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
           {formatTime(props.job.updatedAt)}
         </div>
       </div>
       <StatusBadge tone={statusTone(props.job.status)}>{props.job.status}</StatusBadge>
-      <ArrowRight size={14} className="text-[var(--color-text-muted)]" />
+      <ArrowRight size={14} className="shrink-0 text-[var(--dim)]" />
     </button>
   );
 }
@@ -364,34 +448,52 @@ function ReviewRow(props: {
 
   return (
     <tr>
-      <td className="rounded-l-lg bg-white px-3 py-3 align-top shadow-[0_1px_0_rgba(22,22,21,0.05)]">
-        <div className="text-sm font-medium">{props.record.sourceRowKey}</div>
-        <div className="mt-1 max-w-[220px] truncate text-xs text-[var(--color-text-muted)]">
+      <td className="rounded-l-[var(--radius-md)] bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+        <div className="text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+          {props.record.sourceRowKey}
+        </div>
+        <div className="mt-1 max-w-[180px] truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
           {props.record.stagedRecordKey}
         </div>
       </td>
-      <td className="bg-white px-3 py-3 align-top shadow-[0_1px_0_rgba(22,22,21,0.05)]">
-        <div className="qitu-number max-w-[220px] truncate text-xs">
+      <td className="bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+        <div className="qitu-number max-w-[160px] truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)]">
           {payloadSummary(props.record.payload)}
         </div>
       </td>
-      <td className="max-w-[240px] bg-white px-3 py-3 align-top shadow-[0_1px_0_rgba(22,22,21,0.05)]">
-        <div className="text-xs leading-5 text-[var(--color-text-muted)]">
+      <td className="max-w-[190px] bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
+        <div className="text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--muted)]">
           {props.issue?.message ?? "No issue"}
         </div>
       </td>
-      <td className="bg-white px-3 py-3 align-top shadow-[0_1px_0_rgba(22,22,21,0.05)]">
+      <td className="bg-[var(--surface-2)] px-3 py-3 align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
         <StatusBadge tone={statusTone(props.record.reviewStatus)}>
           {props.record.reviewStatus}
         </StatusBadge>
       </td>
-      <td className="rounded-r-lg bg-white px-3 py-3 text-right align-top shadow-[0_1px_0_rgba(22,22,21,0.05)]">
+      <td className="rounded-r-[var(--radius-md)] bg-[var(--surface-2)] px-3 py-3 text-right align-top shadow-[inset_0_1px_0_rgb(255_255_255_/_0.04)]">
         <div className="flex justify-end gap-2">
-          <Button disabled={disabled} size="sm" variant="ghost" onClick={props.onReject}>
-            <X size={14} /> Reject
+          <Button
+            aria-label="Reject record"
+            className="size-8 px-0"
+            disabled={disabled}
+            size="sm"
+            title="Reject record"
+            variant="ghost"
+            onClick={props.onReject}
+          >
+            <X size={14} />
           </Button>
-          <Button disabled={disabled} size="sm" variant="secondary" onClick={props.onApprove}>
-            <Check size={14} /> Approve
+          <Button
+            aria-label="Approve record"
+            className="size-8 px-0"
+            disabled={disabled}
+            size="sm"
+            title="Approve record"
+            variant="secondary"
+            onClick={props.onApprove}
+          >
+            <Check size={14} />
           </Button>
         </div>
       </td>
@@ -401,8 +503,10 @@ function ReviewRow(props: {
 
 function Guardrail(props: { label: string; state: "active" }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg bg-[var(--color-panel-subtle)] px-3 py-2">
-      <div className="text-sm">{props.label}</div>
+    <div className="qitu-surface-subtle flex items-center justify-between gap-3 px-3 py-2">
+      <div className="text-[length:var(--text-label-13)] leading-[var(--leading-label-13)]">
+        {props.label}
+      </div>
       <StatusBadge tone={props.state}>{props.state}</StatusBadge>
     </div>
   );
@@ -417,15 +521,17 @@ function AiAdvisoryItem(props: {
   const canDecide = props.advisory.status === "suggested";
 
   return (
-    <div className="rounded-lg bg-[var(--color-panel-subtle)] p-3">
+    <div className="qitu-surface-subtle p-3">
       <div className="flex items-center justify-between gap-3">
         <StatusBadge tone={statusTone(props.advisory.status)}>{props.advisory.status}</StatusBadge>
-        <span className="qitu-number text-xs text-[var(--color-text-muted)]">
+        <span className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
           {formatTime(props.advisory.createdAt)}
         </span>
       </div>
-      <div className="mt-3 text-sm leading-5">{props.advisory.summary}</div>
-      <div className="qitu-number mt-2 text-xs text-[var(--color-text-muted)]">
+      <div className="mt-3 text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)]">
+        {props.advisory.summary}
+      </div>
+      <div className="qitu-number mt-2 text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
         {props.advisory.provider}/{props.advisory.model}
       </div>
       {canDecide ? (
@@ -438,25 +544,6 @@ function AiAdvisoryItem(props: {
           </Button>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function AuditItem(props: { event: AuditEvent }) {
-  return (
-    <div className="rounded-lg bg-[var(--color-panel-subtle)] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={statusTone(props.event.action)}>{props.event.action}</StatusBadge>
-        <span className="qitu-number text-xs text-[var(--color-text-muted)]">
-          {formatTime(props.event.occurredAt)}
-        </span>
-      </div>
-      <div className="mt-3 text-sm font-medium">
-        {props.event.subject.kind}:{props.event.subject.id}
-      </div>
-      <div className="mt-1 text-xs text-[var(--color-text-muted)]">
-        {props.event.actor.kind}:{props.event.actor.id}
-      </div>
     </div>
   );
 }
@@ -499,6 +586,14 @@ function formatTime(value: string): string {
     minute: "2-digit",
     second: "2-digit",
   });
+}
+
+function timelineTone(action: string): TimelineItem["tone"] {
+  if (action.includes("failed") || action.includes("denied")) return "error";
+  if (action.includes("queued") || action.includes("requested")) return "warning";
+  if (action.includes("succeeded") || action.includes("committed")) return "success";
+  if (action.includes("advisory")) return "info";
+  return "neutral";
 }
 
 function statusTone(status: string): StatusBadgeTone {

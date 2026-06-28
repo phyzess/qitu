@@ -84,13 +84,42 @@ vp run db:migrate:production
 
 ## 6. 本地开发
 
-同时启动 Web 和 Worker：
+启动完整本地栈：
+
+```sh
+vp run dev
+```
+
+该命令会同时启动 `http://localhost:5173` 上的 Web app 和 `http://localhost:8787` 上的 Worker API。默认本地开发应使用它，因为 Web app 会把 `/api` 和 `/health` 代理到 Worker。
+
+如果你明确已经单独运行或 mock Worker，可以只启动 Web app：
+
+```sh
+vp run dev:web
+```
+
+只启动 Worker：
+
+```sh
+vp run dev:worker
+```
+
+显式的组合别名也仍然可用：
 
 ```sh
 vp run dev:all
 ```
 
-`dev:all` 是一个很小的 Node wrapper，同时启动 web 和 Worker dev servers，并给输出加进程前缀。
+`dev` 和 `dev:all` 使用同一个很小的 Node wrapper，同时启动 web 和 Worker dev servers，并给输出加进程前缀。
+
+本地 auth 提供可重复使用的 demo reviewer：
+
+```text
+email: reviewer@example.com
+password: correct horse battery staple
+```
+
+在全新的本地 D1 数据库上，先点击 `Use local demo reviewer` 一次来创建或重置这个 local-only 账号并登录。之后同一组凭据可通过 `Login` tab 登录。该 bootstrap route 在 `APP_ENV=local` 之外会禁用。
 
 ## 7. 验证
 

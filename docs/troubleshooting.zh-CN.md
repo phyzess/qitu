@@ -102,7 +102,7 @@ queued -> processing -> failed
 
 若一直 queued：
 
-1. 确认 Queue consumer 通过 `vp run dev:worker` 运行。
+1. 确认 Queue consumer 通过 `vp run dev` 或 `vp run dev:worker` 运行。
 2. 确认 `IMPORT_JOBS` 在 `apps/worker/wrangler.jsonc` 中绑定。
 3. 查询 local jobs：
 
@@ -128,14 +128,14 @@ curl -X POST http://127.0.0.1:8787/api/import-jobs/<job-id>/retry
 
 retry route 需要 authenticated session。它会重置 job 为 `queued`、清除失败字段、发送新 Queue message，并写 `import_job.retry_queued` audit event。
 
-## 8. `dev:all` 启动一个进程后退出
+## 8. `dev` 启动一个进程后退出
 
-`vp run dev:all` 同时启动 web 和 Worker dev server。若一边非零退出，wrapper 会停止另一边。
+`vp run dev` 同时启动 web 和 Worker dev server。若一边非零退出，wrapper 会停止另一边。
 
 分开运行定位：
 
 ```sh
-vp run dev
+vp run dev:web
 vp run dev:worker
 ```
 

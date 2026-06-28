@@ -214,3 +214,89 @@ export const auditEvents = sqliteTable("audit_events", {
   metadataJson: text("metadata_json"),
   occurredAt: text("occurred_at").notNull(),
 });
+
+export const loginAttempts = sqliteTable(
+  "login_attempts",
+  {
+    id: text("id").primaryKey(),
+    emailHash: text("email_hash").notNull(),
+    userId: text("user_id"),
+    outcome: text("outcome").notNull(),
+    failureReason: text("failure_reason"),
+    ipHash: text("ip_hash"),
+    userAgentHash: text("user_agent_hash"),
+    requestId: text("request_id"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("login_attempts_email_created_idx").on(table.emailHash, table.createdAt),
+    index("login_attempts_user_created_idx").on(table.userId, table.createdAt),
+  ],
+);
+
+export const importJobEvents = sqliteTable(
+  "import_job_events",
+  {
+    id: text("id").primaryKey(),
+    importJobId: text("import_job_id").notNull(),
+    sourceFileId: text("source_file_id"),
+    eventType: text("event_type").notNull(),
+    statusFrom: text("status_from"),
+    statusTo: text("status_to"),
+    actorUserId: text("actor_user_id"),
+    message: text("message"),
+    metadataJson: text("metadata_json"),
+    requestId: text("request_id"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("import_job_events_job_created_idx").on(table.importJobId, table.createdAt),
+    index("import_job_events_type_created_idx").on(table.eventType, table.createdAt),
+  ],
+);
+
+export const securityEvents = sqliteTable(
+  "security_events",
+  {
+    id: text("id").primaryKey(),
+    eventType: text("event_type").notNull(),
+    severity: text("severity").notNull(),
+    actorUserId: text("actor_user_id"),
+    targetUserId: text("target_user_id"),
+    action: text("action").notNull(),
+    outcome: text("outcome").notNull(),
+    requestId: text("request_id"),
+    sessionId: text("session_id"),
+    ipHash: text("ip_hash"),
+    userAgentHash: text("user_agent_hash"),
+    metadataJson: text("metadata_json"),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    index("security_events_type_created_idx").on(table.eventType, table.createdAt),
+    index("security_events_actor_created_idx").on(table.actorUserId, table.createdAt),
+  ],
+);
+
+export const alertEvents = sqliteTable(
+  "alert_events",
+  {
+    id: text("id").primaryKey(),
+    severity: text("severity").notNull(),
+    alertType: text("alert_type").notNull(),
+    entityType: text("entity_type"),
+    entityId: text("entity_id"),
+    title: text("title").notNull(),
+    message: text("message"),
+    status: text("status").notNull(),
+    metadataJson: text("metadata_json"),
+    createdAt: text("created_at").notNull(),
+    acknowledgedByUserId: text("acknowledged_by_user_id"),
+    acknowledgedAt: text("acknowledged_at"),
+    resolvedAt: text("resolved_at"),
+  },
+  (table) => [
+    index("alert_events_status_created_idx").on(table.status, table.createdAt),
+    index("alert_events_entity_created_idx").on(table.entityType, table.entityId, table.createdAt),
+  ],
+);

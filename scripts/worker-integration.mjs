@@ -97,6 +97,39 @@ async function main() {
     ).first();
     assert(rbacAudit?.subject_id === "source_file:upload", "rbac denial is audited");
 
+    const demoClient = createClient(worker, env);
+    const demoReviewer = await demoClient.json("/api/bootstrap/local-reviewer", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "local-demo@example.com",
+        displayName: "Local Demo",
+        password: "correct horse battery staple",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    assert(demoReviewer.created === true, "local demo reviewer bootstrap creates a user");
+    assert(demoReviewer.user.role === "reviewer", "local demo reviewer uses reviewer role");
+
+    await demoClient.json("/api/auth/logout", {
+      method: "POST",
+    });
+
+    const demoLogin = await demoClient.json("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "local-demo@example.com",
+        password: "correct horse battery staple",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    assert(demoLogin.user.email === "local-demo@example.com", "local demo credentials log in");
+
     const bootstrap = await client.json("/api/bootstrap/invitations", {
       method: "POST",
       body: JSON.stringify({

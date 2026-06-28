@@ -2,6 +2,7 @@ import type {
   AiAdvisoryArtifact,
   ApiUser,
   AuditEvent,
+  ImportJobEvent,
   ImportJobListItem,
   ImportJobReview,
   ReviewIssue,
@@ -23,6 +24,10 @@ export type LoginResponse = {
     id: string;
     expiresAt: string;
   };
+};
+
+export type LocalReviewerBootstrapResponse = LoginResponse & {
+  created: boolean;
 };
 
 export type HealthResponse = {
@@ -58,6 +63,10 @@ export type SourceFilesResponse = {
 
 export type ImportJobsResponse = {
   importJobs: ImportJobListItem[];
+};
+
+export type ImportJobEventsResponse = {
+  events: ImportJobEvent[];
 };
 
 export type ReviewResponse = {
@@ -142,6 +151,20 @@ export async function createLocalInvitation(input: {
   });
 }
 
+export async function bootstrapLocalReviewer(input: {
+  email: string;
+  displayName?: string;
+  password: string;
+}): Promise<LocalReviewerBootstrapResponse> {
+  return apiJson<LocalReviewerBootstrapResponse>("/api/bootstrap/local-reviewer", {
+    method: "POST",
+    body: JSON.stringify(input),
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+}
+
 export async function acceptInvitation(input: {
   token: string;
   displayName?: string;
@@ -217,6 +240,17 @@ export async function uploadSourceFile(input: { file: File; workspaceId?: string
 
 export async function getImportJobReview(jobId: string): Promise<ReviewResponse> {
   return apiJson<ReviewResponse>(`/api/import-jobs/${jobId}/review`);
+}
+
+export async function listImportJobEvents(
+  jobId: string,
+  input: {
+    limit?: number;
+  } = {},
+): Promise<ImportJobEventsResponse> {
+  const search = new URLSearchParams();
+  if (input.limit) search.set("limit", String(input.limit));
+  return apiJson<ImportJobEventsResponse>(withSearch(`/api/import-jobs/${jobId}/events`, search));
 }
 
 export async function listAiAdvisories(jobId: string): Promise<AiAdvisoriesResponse> {

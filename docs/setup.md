@@ -105,25 +105,44 @@ vp run db:migrate:production
 
 ## 6. Development
 
-Start the web app:
+Start the full local stack:
 
 ```sh
 vp run dev
 ```
 
-Start the Worker:
+This starts both the web app on `http://localhost:5173` and the Worker API on
+`http://localhost:8787`. Use this as the default development command because the
+web app proxies `/api` and `/health` to the Worker.
+
+Start only the web app when you are intentionally running or mocking the Worker separately:
+
+```sh
+vp run dev:web
+```
+
+Start only the Worker:
 
 ```sh
 vp run dev:worker
 ```
 
-Start both processes with one command:
+The explicit combined alias is also available:
 
 ```sh
 vp run dev:all
 ```
 
-`dev:all` is a small Node wrapper that runs the web and Worker dev servers concurrently and prefixes output by process.
+`dev` and `dev:all` use the same small Node wrapper that runs the web and Worker dev servers concurrently and prefixes output by process.
+
+Local auth starts with a reusable demo reviewer:
+
+```text
+email: reviewer@example.com
+password: correct horse battery staple
+```
+
+On a fresh local D1 database, click `Use local demo reviewer` once to create or reset that local-only account and sign in. After that, the same credentials work through the `Login` tab. The bootstrap route is disabled outside `APP_ENV=local`.
 
 ## 7. Validation
 

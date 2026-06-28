@@ -9,6 +9,7 @@ import type { Hono } from "hono";
 import * as v from "valibot";
 import { prepareAuditInsert } from "./audit-store";
 import { readCurrentUser, requirePermission } from "./auth-routes";
+import { prepareImportJobEventInsert } from "./event-store";
 import { authError, parseRequestJson, type AppContext } from "./http-utils";
 import { getImportAdapter } from "./import-adapters";
 
@@ -306,6 +307,19 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
           WHERE id = ?
         `,
       ).bind(now, now, jobId),
+      prepareImportJobEventInsert(context.env, {
+        importJobId: jobId,
+        sourceFileId: job.source_file_id,
+        eventType: "import_job.committed",
+        statusTo: "committed",
+        actorUserId: current.user.id,
+        message: "Approved staged records committed.",
+        createdAt: now,
+        metadata: {
+          committedCount: committedRecords.length,
+          adapterId: adapter.id,
+        },
+      }),
       prepareAuditInsert(
         context.env,
         createAuditEvent({
@@ -361,6 +375,10 @@ async function recordReviewDecisionResponse(
 
   const jobId = context.req.param("jobId");
   const recordId = context.req.param("recordId");
+  if (!jobId || !recordId) {
+    return authError(context, "staged_record_not_found", "Staged record was not found.", 404);
+  }
+
   const record = await context.env.DB.prepare(
     `
       SELECT
@@ -440,6 +458,22 @@ async function recordReviewDecisionResponse(
         WHERE id = ?
       `,
     ).bind(jobStatus, now, jobId),
+    prepareImportJobEventInsert(context.env, {
+      importJobId: jobId,
+      sourceFileId: record.source_file_id,
+      eventType: `import_review.record_${targetStatus}`,
+      statusFrom: record.review_status,
+      statusTo: jobStatus,
+      actorUserId: current.user.id,
+      message: `Staged record ${targetStatus}.`,
+      createdAt: now,
+      metadata: {
+        stagedRecordKey: record.staged_record_key,
+        decisionId,
+        recordDecisionId,
+        targetReviewStatus: targetStatus,
+      },
+    }),
     prepareAuditInsert(
       context.env,
       createAuditEvent({

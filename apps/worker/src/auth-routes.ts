@@ -3,7 +3,9 @@ import {
   AcceptInvitationInputSchema,
   ConfirmPasswordResetInputSchema,
   CreateInvitationInputSchema,
+  EmailSchema,
   LoginInputSchema,
+  PasswordSchema,
   RequestPasswordResetInputSchema,
   createInvitation,
   createPasswordResetToken,
@@ -19,12 +21,24 @@ import { renderInvitationEmail, renderPasswordResetEmail } from "@qitu/email";
 import { can, isRoleName, normalizeRole, type Permission } from "@qitu/rbac";
 import type { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import * as v from "valibot";
 import { prepareAuditInsert, writeAudit } from "./audit-store";
 import { deliverEmail } from "./email-delivery";
+import {
+  hashEventValue,
+  prepareLoginAttemptInsert,
+  prepareSecurityEventInsert,
+  requestFingerprint,
+} from "./event-store";
 import { authError, parseRequestJson, type AppContext } from "./http-utils";
 import { appName, buildAppUrl, isLocalAppEnv, runtimeConfig } from "./runtime";
 
 const sessionCookieName = "qitu_session";
+const LocalReviewerBootstrapInputSchema = v.object({
+  email: EmailSchema,
+  displayName: v.optional(v.string()),
+  password: PasswordSchema,
+});
 
 type UserRow = {
   id: string;
@@ -88,6 +102,132 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
       createdBy: "system",
       returnToken: true,
     });
+  });
+
+  app.post("/api/bootstrap/local-reviewer", async (context) => {
+    if (!isLocalRuntime(context)) {
+      return authError(
+        context,
+        "bootstrap_disabled",
+        "Local reviewer bootstrap is local-only.",
+        403,
+      );
+    }
+
+    const input = await parseRequestJson(context, LocalReviewerBootstrapInputSchema);
+    if (!input.ok) return input.response;
+
+    const email = normalizeEmail(input.value.email);
+    const now = new Date().toISOString();
+    const displayName = input.value.displayName || "Reviewer";
+    const fingerprint = await requestFingerprint(context);
+    const emailHash = (await hashEventValue(email)) ?? email;
+    const existingUser = await context.env.DB.prepare(
+      `
+        SELECT id, email, role, display_name, created_at
+        FROM users
+        WHERE email = ?
+        LIMIT 1
+      `,
+    )
+      .bind(email)
+      .first<UserRow>();
+    const passwordHash = await hashPassword(input.value.password);
+    const user: User = existingUser
+      ? {
+          id: existingUser.id,
+          email: existingUser.email,
+          role: "reviewer",
+          displayName,
+          createdAt: existingUser.created_at,
+        }
+      : {
+          id: crypto.randomUUID(),
+          email,
+          role: "reviewer",
+          displayName,
+          createdAt: now,
+        };
+    const { session, token } = await createSession({
+      userId: user.id,
+    });
+
+    await context.env.DB.batch([
+      existingUser
+        ? context.env.DB.prepare("UPDATE users SET role = ?, display_name = ? WHERE id = ?").bind(
+            user.role,
+            user.displayName ?? null,
+            user.id,
+          )
+        : context.env.DB.prepare(
+            "INSERT INTO users (id, email, role, display_name, created_at) VALUES (?, ?, ?, ?, ?)",
+          ).bind(user.id, user.email, user.role, user.displayName ?? null, user.createdAt),
+      context.env.DB.prepare(
+        `
+          INSERT INTO password_credentials (user_id, password_hash, updated_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(user_id) DO UPDATE SET
+            password_hash = excluded.password_hash,
+            updated_at = excluded.updated_at
+        `,
+      ).bind(user.id, passwordHash, now),
+      context.env.DB.prepare(
+        "UPDATE sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
+      ).bind(now, user.id),
+      prepareSessionInsert(context.env, session),
+      prepareLoginAttemptInsert(context.env, {
+        ...fingerprint,
+        emailHash,
+        userId: user.id,
+        outcome: "succeeded",
+        createdAt: now,
+      }),
+      prepareSecurityEventInsert(context.env, {
+        ...fingerprint,
+        eventType: "auth.local_reviewer_bootstrapped",
+        severity: "info",
+        actorUserId: user.id,
+        targetUserId: user.id,
+        action: "auth.local_reviewer_bootstrap",
+        outcome: "succeeded",
+        sessionId: session.id,
+        createdAt: now,
+        metadata: {
+          created: !existingUser,
+          role: user.role,
+        },
+      }),
+      prepareAuditInsert(
+        context.env,
+        createAuditEvent({
+          action: "auth.local_reviewer_bootstrapped",
+          actor: {
+            id: "system",
+            kind: "system",
+          },
+          subject: {
+            id: user.id,
+            kind: "user",
+          },
+          metadata: {
+            created: !existingUser,
+            email: user.email,
+            role: user.role,
+          },
+        }),
+      ),
+    ]);
+
+    writeSessionCookie(context, token, session.expiresAt);
+
+    return context.json(
+      {
+        user,
+        session: publicSession(session),
+        created: !existingUser,
+      },
+      existingUser ? 200 : 201,
+    );
   });
 
   app.post("/api/invitations", async (context) => {
@@ -238,22 +378,48 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     const passwordMatches = row
       ? await verifyPassword(input.value.password, row.password_hash)
       : false;
+    const fingerprint = await requestFingerprint(context);
+    const emailHash = (await hashEventValue(email)) ?? email;
 
     if (!row || !passwordMatches) {
-      await writeAudit(
-        context.env,
-        createAuditEvent({
-          action: "auth.login_failed",
-          actor: {
-            id: "anonymous",
-            kind: "system",
-          },
-          subject: {
-            id: email,
-            kind: "email",
+      const now = new Date().toISOString();
+      await context.env.DB.batch([
+        prepareLoginAttemptInsert(context.env, {
+          ...fingerprint,
+          emailHash,
+          userId: row?.id ?? null,
+          outcome: "failed",
+          failureReason: "invalid_credentials",
+          createdAt: now,
+        }),
+        prepareSecurityEventInsert(context.env, {
+          ...fingerprint,
+          eventType: "auth.login_failed",
+          severity: "warning",
+          actorUserId: row?.id ?? null,
+          targetUserId: row?.id ?? null,
+          action: "auth.login",
+          outcome: "failed",
+          createdAt: now,
+          metadata: {
+            reason: "invalid_credentials",
           },
         }),
-      );
+        prepareAuditInsert(
+          context.env,
+          createAuditEvent({
+            action: "auth.login_failed",
+            actor: {
+              id: "anonymous",
+              kind: "system",
+            },
+            subject: {
+              id: email,
+              kind: "email",
+            },
+          }),
+        ),
+      ]);
 
       return authError(context, "invalid_credentials", "Invalid email or password.", 401);
     }
@@ -265,6 +431,24 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
 
     await context.env.DB.batch([
       prepareSessionInsert(context.env, session),
+      prepareLoginAttemptInsert(context.env, {
+        ...fingerprint,
+        emailHash,
+        userId: user.id,
+        outcome: "succeeded",
+        createdAt: session.createdAt,
+      }),
+      prepareSecurityEventInsert(context.env, {
+        ...fingerprint,
+        eventType: "auth.login_succeeded",
+        severity: "info",
+        actorUserId: user.id,
+        targetUserId: user.id,
+        action: "auth.login",
+        outcome: "succeeded",
+        sessionId: session.id,
+        createdAt: session.createdAt,
+      }),
       prepareAuditInsert(
         context.env,
         createAuditEvent({
@@ -628,25 +812,43 @@ export async function requirePermission(
     return null;
   }
 
-  await writeAudit(
-    context.env,
-    createAuditEvent({
-      action: "rbac.denied",
-      actor: {
-        id: current.user.id,
-        kind: "user",
-      },
-      subject: {
-        id: permission,
-        kind: "permission",
-      },
+  const fingerprint = await requestFingerprint(context);
+  await context.env.DB.batch([
+    prepareAuditInsert(
+      context.env,
+      createAuditEvent({
+        action: "rbac.denied",
+        actor: {
+          id: current.user.id,
+          kind: "user",
+        },
+        subject: {
+          id: permission,
+          kind: "permission",
+        },
+        metadata: {
+          method: context.req.method,
+          path: context.req.path,
+          role,
+        },
+      }),
+    ),
+    prepareSecurityEventInsert(context.env, {
+      ...fingerprint,
+      eventType: "rbac.denied",
+      severity: "warning",
+      actorUserId: current.user.id,
+      targetUserId: current.user.id,
+      action: permission,
+      outcome: "denied",
+      sessionId: current.sessionId,
       metadata: {
         method: context.req.method,
         path: context.req.path,
         role,
       },
     }),
-  );
+  ]);
 
   return authError(context, "forbidden", "This user does not have permission.", 403);
 }

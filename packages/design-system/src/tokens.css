@@ -1,29 +1,103 @@
 :root {
-  --font-ui: "MiSans", "Inter", "Noto Sans SC", system-ui, sans-serif;
-  --font-number: "MiSans", "Fira Code", "SF Mono", ui-monospace, monospace;
-  --font-mono: "Fira Code", "SF Mono", ui-monospace, monospace;
+  color-scheme: dark;
 
-  --color-bg: #f7f7f5;
-  --color-panel: #ffffff;
-  --color-panel-subtle: #f0f0ee;
-  --color-text: #161615;
-  --color-text-muted: #666661;
-  --color-line: #e2e1dc;
-  --color-accent: #0f766e;
-  --color-accent-strong: #0b4f4a;
-  --color-danger: #b42318;
+  --phi: 1.618;
+  --base: 14px;
+  --s-3: calc(var(--base) * 0.236);
+  --s-2: calc(var(--base) * 0.382);
+  --s-1: calc(var(--base) * 0.618);
+  --s0: var(--base);
+  --s1: calc(var(--base) * 1.618);
+  --s2: calc(var(--base) * 2.618);
+  --s3: calc(var(--base) * 4.236);
+  --s4: calc(var(--base) * 6.854);
+  --rail: var(--s3);
+  --bar: var(--s3);
+  --gutter: clamp(16px, 1.15vw, 22px);
 
-  --shadow-soft: 0 10px 30px rgb(22 22 21 / 0.08);
-  --shadow-panel: 0 1px 2px rgb(22 22 21 / 0.08), 0 12px 32px rgb(22 22 21 / 0.06);
+  --radius-sm: calc(var(--s-1) * 0.72);
+  --radius-md: calc(var(--s0) * 0.72);
+  --radius-lg: calc(var(--s1) * 0.76);
 
-  color-scheme: light;
-  font-family: var(--font-ui);
+  --bg: #050607;
+  --bg-elevated: #08090a;
+  --surface: #0b0c0e;
+  --surface-2: #111317;
+  --surface-3: #171a1f;
+  --line: rgb(255 255 255 / 0.065);
+  --line-strong: rgb(255 255 255 / 0.125);
+  --shadow-low: 0 18px 44px rgb(2 3 4 / 0.32);
+  --shadow-mid: 0 30px 86px rgb(2 3 4 / 0.46);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.052);
+
+  --text: #f7f7f8;
+  --muted: #a2a5ac;
+  --dim: #6f727b;
+  --green: #19c987;
+  --red: #f06161;
+  --amber: #e7b75f;
+  --blue: #8cb7ff;
+
+  --font-ui:
+    "MiSans", "MiSans VF", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei";
+  --font-sans:
+    var(--font-ui), "Geist", "Geist Sans", "Aptos", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-doc: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", serif;
+  --font-reading: "LXGW WenKai Screen R", "LXGW WenKai", "Kaiti SC", var(--font-ui), cursive;
+  --font-number:
+    "MiSans", "MiSans VF", "Fira Code", "FiraCode Nerd Font", var(--font-ui), ui-sans-serif,
+    system-ui, sans-serif;
+  --font-mono:
+    "Fira Code", "FiraCode Nerd Font Mono", "FiraCode Nerd Font", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
+
+  --text-heading-32: 32px;
+  --text-heading-24: 24px;
+  --text-heading-20: 20px;
+  --text-heading-16: 16px;
+  --text-label-14: 14px;
+  --text-label-13: 13px;
+  --text-label-12: 12px;
+  --text-copy-14: 14px;
+  --text-copy-13: 13px;
+  --text-button-14: 14px;
+  --text-button-12: 12px;
+
+  --leading-heading-32: 40px;
+  --leading-heading-24: 32px;
+  --leading-heading-20: 28px;
+  --leading-heading-16: 24px;
+  --leading-label-14: 20px;
+  --leading-label-13: 20px;
+  --leading-label-12: 16px;
+  --leading-copy-14: 22px;
+  --leading-copy-13: 20px;
+  --leading-button: 20px;
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Compatibility aliases for the original starter components. */
+  --color-bg: var(--bg);
+  --color-panel: var(--surface);
+  --color-panel-subtle: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--green);
+  --color-accent-strong: #12a874;
+  --color-danger: var(--red);
+  --shadow-soft: var(--shadow-low);
+  --shadow-panel: 0 0 0 1px var(--line), var(--shadow-inset), var(--shadow-mid);
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-ui);
+  background: linear-gradient(180deg, #07080a 0%, var(--bg) 52%, #08090b 100%), var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--base);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricprecision;
 }
 
 button,

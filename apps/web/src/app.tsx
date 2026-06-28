@@ -5,10 +5,10 @@ import { Activity, LockKeyhole, ShieldCheck } from "lucide-react";
 import {
   acceptInvitation,
   approveStagedRecord,
+  bootstrapLocalReviewer,
   commitImportJob,
   confirmAiAdvisory,
   confirmPasswordReset,
-  createLocalInvitation,
   dismissAiAdvisory,
   drainLocalImportJobs,
   generateAiAdvisory,
@@ -16,6 +16,7 @@ import {
   health,
   listAiAdvisories,
   listAuditEvents,
+  listImportJobEvents,
   listImportJobs,
   listSourceFiles,
   login,
@@ -42,6 +43,7 @@ import type {
   AiAdvisoryArtifact,
   ApiUser,
   AuditEvent,
+  ImportJobEvent,
   ImportJobListItem,
   ReviewIssue,
   SourceFile,
@@ -68,6 +70,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJobListItem[]>([]);
+  const [importJobEvents, setImportJobEvents] = useState<ImportJobEvent[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [reviewRecords, setReviewRecords] = useState<StagedRecord[]>([]);
@@ -169,23 +172,27 @@ export function App() {
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
+      setImportJobEvents([]);
     }
   }
 
   async function loadReview(jobId: string) {
     try {
-      const [review, advisoryResponse] = await Promise.all([
+      const [review, advisoryResponse, eventResponse] = await Promise.all([
         getImportJobReview(jobId),
         listAiAdvisories(jobId),
+        listImportJobEvents(jobId, { limit: 30 }),
       ]);
       setReviewRecords(review.records);
       setReviewIssues(review.issues);
       setAiAdvisories(advisoryResponse.advisories);
+      setImportJobEvents(eventResponse.events);
       setNotice(`Review loaded for ${review.job.sourceFile.filename}`);
     } catch (caught) {
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
+      setImportJobEvents([]);
       setNotice("Import job is waiting for review records");
       if (!String(caught).includes("404")) {
         setError(errorMessage(caught));
@@ -208,17 +215,13 @@ export function App() {
   async function handleLocalSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await runAction(async () => {
-      const invitation = await createLocalInvitation({
+      const response = await bootstrapLocalReviewer({
         email: authForm.email,
-        role: "reviewer",
-      });
-      const accepted = await acceptInvitation({
-        token: invitation.inviteToken,
         password: authForm.password,
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
-      setUser(accepted.user);
-      setNotice("Local reviewer created");
+      setUser(response.user);
+      setNotice(response.created ? "Local demo reviewer created" : "Local demo reviewer reset");
       await loadWorkspace();
     });
   }
@@ -269,6 +272,7 @@ export function App() {
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
+      setImportJobEvents([]);
       setSelectedJobId(null);
       setAuthMode("login");
       setNotice("Password reset complete. Sign in with the new password.");
@@ -310,6 +314,7 @@ export function App() {
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
+      setImportJobEvents([]);
       setSelectedJobId(null);
       setNotice("Signed out");
     });
@@ -513,7 +518,7 @@ export function App() {
           <Panel>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <StatusBadge tone="warning">local access</StatusBadge>
+                <StatusBadge tone="warning">local demo</StatusBadge>
                 <h1 className="mt-3 text-xl font-semibold tracking-normal">Reviewer access</h1>
               </div>
               <LockKeyhole size={18} className="text-[var(--color-accent)]" />
@@ -587,7 +592,7 @@ export function App() {
               <Button disabled={isBusy} type="submit">
                 <ShieldCheck size={15} />
                 {authMode === "setup"
-                  ? "Create local reviewer"
+                  ? "Use local demo reviewer"
                   : authMode === "reset"
                     ? authForm.resetToken
                       ? "Reset password"
@@ -619,6 +624,7 @@ export function App() {
       canRetry={canRetry}
       counts={counts}
       error={error}
+      importJobEvents={importJobEvents}
       importJobs={importJobs}
       isBusy={isBusy}
       notice={notice}

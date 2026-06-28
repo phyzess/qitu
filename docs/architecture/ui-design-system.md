@@ -1,11 +1,13 @@
 # UI and Design System
 
-Status: draft  
-Date: 2026-06-26
+Status: accepted baseline  
+Date: 2026-06-28
 
 ## 1. Purpose
 
 `qitu` should ship with a serious internal-app visual baseline, not a generic admin template.
+
+The design entry point is `DESIGN.md`. This architecture document explains package boundaries and reusable implementation requirements.
 
 The UI should feel:
 
@@ -22,7 +24,7 @@ The UI should feel:
 React
 shadcn/ui Base UI
 Tailwind
-Extend UI for file/import/review surfaces
+Extend UI inspiration for file/import/review surfaces
 visx-only chart primitives
 ```
 
@@ -37,13 +39,15 @@ packages/charts
 `packages/ui` owns:
 
 1. App shell.
-2. Navigation.
-3. Layout.
-4. Forms.
-5. Tables.
-6. Modals.
-7. Review surfaces.
-8. Timeline components.
+2. Rail navigation.
+3. Topbar and command/search affordance.
+4. Layout and surfaces.
+5. Forms.
+6. Tables.
+7. Modals.
+8. Review surfaces.
+9. Timeline components.
+10. Data-state components.
 
 `packages/design-system` owns:
 
@@ -63,7 +67,26 @@ packages/charts
 4. Scatter/compare chart.
 5. Tooltip, legend, crosshair.
 
-## 4. Design Rules
+## 4. Workbench Model
+
+The default qitu application surface is:
+
+```text
+rail | topbar
+     | main work surface + contextual inspector
+     | event/import stream when needed
+```
+
+Reusable pages should start from this workbench model. A concrete app may reorder regions for its domain, but should not rebuild the app shell from scratch.
+
+Responsive rules:
+
+1. Below `1180px`, inspector/context panels can move below the primary surface.
+2. Below `780px`, stack content in workflow order.
+3. Avoid horizontal page scroll. Tables may scroll in bounded containers.
+4. Use `min-width: 0`, truncation, wrapping, and fixed shell dimensions deliberately.
+
+## 5. Design Rules
 
 1. Do not create a landing page for internal tools.
 2. Start with the actual working interface.
@@ -75,8 +98,10 @@ packages/charts
 8. Do not scale type with viewport width.
 9. Use tabular numbers for metrics.
 10. Keep chart APIs internal; app pages should not import chart engine packages directly.
+11. Use semantic color only for state, risk, status, and charts.
+12. Loading, empty, error, and partial states are part of the component contract.
 
-## 5. Font Direction
+## 6. Font Direction
 
 Default font tokens:
 
@@ -96,7 +121,29 @@ Recommended defaults:
 4. Numbers: UI font + Fira Code fallback.
 5. Mono: Fira Code.
 
-## 6. Review Surface Pattern
+## 7. Chart Contract
+
+`packages/charts` is a maintained visx-only layer. App-owned pages must use qitu chart components and must not import `@visx/*` directly.
+
+Baseline exported chart components:
+
+1. `TimeSeriesChart`
+2. `DrawdownChart`
+3. `PerformancePanelChart`
+4. `BarChart`
+5. `DonutChart`
+6. `ComparisonScatterChart`
+
+Each chart must support:
+
+1. Empty state.
+2. Loading state.
+3. Error state.
+4. Partial-data state.
+5. Dark token-driven colors.
+6. Tabular number formatting.
+
+## 8. Review Surface Pattern
 
 Every review page should include:
 
@@ -116,3 +163,18 @@ Viewer projection:
 3. No raw file.
 4. No review detail.
 5. No sensitive parsed rows.
+
+## 9. Starter Component Coverage
+
+The starter shell should include reusable components for:
+
+1. Workbench shell.
+2. Status and risk badges.
+3. File upload/drop zone.
+4. Import job list/table.
+5. Review action bar.
+6. Staged data table.
+7. Metric strip.
+8. Context inspector.
+9. Timeline/event stream.
+10. Data state wrapper.

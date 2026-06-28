@@ -31,10 +31,18 @@ See `docs/capability-matrix.md` for what is designed, scaffolded, runnable, test
 
 ```sh
 vp run setup
+vp run dev
 vp run validate
 ```
 
 Corporate networks may block `vp install` while it bootstraps the package manager from `registry.npmjs.org`. See `docs/troubleshooting.md` for the registry workaround.
+
+`vp run dev` starts both the React app and Worker API. Local auth includes a demo reviewer for development:
+
+```text
+reviewer@example.com
+correct horse battery staple
+```
 
 ## Core Idea
 
