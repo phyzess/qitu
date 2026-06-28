@@ -22,7 +22,7 @@
     "cf:typegen": "vp run --filter @qitu/worker cf:typegen",
     "typecheck": "vp run -r typecheck",
     "check": "vp check",
-    "smoke": "node scripts/smoke.mjs && node scripts/worker-integration.mjs",
+    "smoke": "node scripts/smoke.mjs && node scripts/package-interface-tests.mjs && node scripts/worker-integration.mjs",
     "smoke:browser": "node scripts/browser-smoke.mjs",
     "test": "vp run smoke",
     "test:browser": "vp run smoke:browser",

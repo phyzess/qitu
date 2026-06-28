@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 
@@ -11,6 +11,28 @@ function exists(path) {
 
 function text(path) {
   return readFileSync(join(root, path), "utf8");
+}
+
+function sourceTextUnder(path) {
+  const base = join(root, path);
+  const sourceFiles = [];
+
+  function collect(directory) {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        collect(entryPath);
+        continue;
+      }
+
+      if (/\.(mjs|ts|tsx)$/.test(entry.name)) {
+        sourceFiles.push(readFileSync(entryPath, "utf8"));
+      }
+    }
+  }
+
+  collect(base);
+  return sourceFiles.join("\n");
 }
 
 function assert(condition, message) {
@@ -33,12 +55,18 @@ const exampleJsonRecords = text("examples/json-records/src/index.ts");
 const authPackage = text("packages/auth/src/index.ts");
 const emailPackage = text("packages/email/src/index.ts");
 const rbacPackage = text("packages/rbac/src/index.ts");
-const workerSource = text("apps/worker/src/index.ts");
-const webSource = text("apps/web/src/app.tsx");
+const workerSources = sourceTextUnder("apps/worker/src");
+const workerAiAdvisoryStore = text("apps/worker/src/ai-advisory-store.ts");
+const workerEmailDelivery = text("apps/worker/src/email-delivery.ts");
+const workerImportAdapters = text("apps/worker/src/import-adapters.ts");
+const workerImportJobRunner = text("apps/worker/src/import-job-runner.ts");
+const webSources = sourceTextUnder("apps/web/src");
+const webAuthRoute = text("apps/web/src/auth-route.ts");
 const webApi = text("apps/web/src/api.ts");
 const webTypes = text("apps/web/src/types.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
 const workerIntegration = text("scripts/worker-integration.mjs");
+const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
@@ -136,6 +164,10 @@ assert(
   "smoke script must run Worker integration.",
 );
 assert(
+  packageJson.scripts.smoke.includes("package-interface-tests.mjs"),
+  "smoke script must run package interface tests.",
+);
+assert(
   packageJson.scripts["deploy:preview:dry-run"].includes("vp run -r build") &&
     packageJson.scripts["deploy:production:dry-run"].includes("vp run -r build"),
   "remote dry-run scripts must build web assets before Worker deploy dry-run.",
@@ -203,6 +235,10 @@ for (const path of chineseDocs) {
 assert(exists("scripts/doctor.mjs"), "scripts/doctor.mjs must exist.");
 assert(exists("scripts/setup-local.mjs"), "scripts/setup-local.mjs must exist.");
 assert(exists("scripts/worker-integration.mjs"), "scripts/worker-integration.mjs must exist.");
+assert(
+  exists("scripts/package-interface-tests.mjs"),
+  "scripts/package-interface-tests.mjs must exist.",
+);
 assert(exists("scripts/browser-smoke.mjs"), "scripts/browser-smoke.mjs must exist.");
 assert(exists("scripts/ops-failed-jobs.mjs"), "scripts/ops-failed-jobs.mjs must exist.");
 assert(exists("apps/worker/vitest.config.ts"), "worker Vitest runtime config must exist.");
@@ -410,107 +446,107 @@ assert(
   "AI advisory migration must include advisory artifacts and query indexes.",
 );
 assert(
-  workerSource.includes("readCurrentUser(context)") &&
-    workerSource.includes("INSERT INTO source_files") &&
-    workerSource.includes("INSERT INTO import_jobs"),
+  workerSources.includes("readCurrentUser(context)") &&
+    workerSources.includes("INSERT INTO source_files") &&
+    workerSources.includes("INSERT INTO import_jobs"),
   "source file intake must require a current user and write source_files/import_jobs.",
 );
 assert(
-  workerSource.includes('action: "source_file.uploaded"') &&
-    workerSource.includes('action: "import_job.queued"'),
+  workerSources.includes('action: "source_file.uploaded"') &&
+    workerSources.includes('action: "import_job.queued"'),
   "source file intake must write upload and import job audit events.",
 );
 assert(
-  workerSource.includes("/api/bootstrap/invitations") &&
-    workerSource.includes("bootstrap_disabled") &&
-    workerSource.includes("returnToken: isLocalRuntime(context)"),
+  workerSources.includes("/api/bootstrap/invitations") &&
+    workerSources.includes("bootstrap_disabled") &&
+    workerSources.includes("returnToken: isLocalRuntime(context)"),
   "invitation creation must separate local bootstrap from authenticated invitation creation.",
 );
 assert(
-  workerSource.includes("requirePermission(context") &&
-    workerSource.includes('action: "rbac.denied"') &&
-    workerSource.includes('"invitation:create"') &&
-    workerSource.includes('"source_file:upload"') &&
-    workerSource.includes('"review:decide"') &&
-    workerSource.includes('"import_job:commit"') &&
-    workerSource.includes('"ai_advisory:write"'),
+  workerSources.includes("requirePermission(context") &&
+    workerSources.includes('action: "rbac.denied"') &&
+    workerSources.includes('"invitation:create"') &&
+    workerSources.includes('"source_file:upload"') &&
+    workerSources.includes('"review:decide"') &&
+    workerSources.includes('"import_job:commit"') &&
+    workerSources.includes('"ai_advisory:write"'),
   "worker write routes must enforce RBAC permissions and audit denials.",
 );
 assert(
-  workerSource.includes("/api/auth/password-reset/request") &&
-    workerSource.includes("/api/auth/password-reset/confirm") &&
-    workerSource.includes("auth.password_reset_requested") &&
-    workerSource.includes("auth.password_reset_succeeded") &&
-    workerSource.includes("UPDATE sessions SET revoked_at"),
+  workerSources.includes("/api/auth/password-reset/request") &&
+    workerSources.includes("/api/auth/password-reset/confirm") &&
+    workerSources.includes("auth.password_reset_requested") &&
+    workerSources.includes("auth.password_reset_succeeded") &&
+    workerSources.includes("UPDATE sessions SET revoked_at"),
   "worker must expose self-service password reset and revoke sessions after reset.",
 );
 assert(
-  workerSource.includes("deliverEmail") &&
-    workerSource.includes("email_messages") &&
-    workerSource.includes("env.EMAIL.send") &&
-    workerSource.includes("renderInvitationEmail") &&
-    workerSource.includes("renderPasswordResetEmail"),
+  workerSources.includes("deliverEmail") &&
+    workerEmailDelivery.includes("email_messages") &&
+    workerEmailDelivery.includes("env.EMAIL.send") &&
+    workerSources.includes("renderInvitationEmail") &&
+    workerSources.includes("renderPasswordResetEmail"),
   "worker must deliver invitation and password reset emails through the email package.",
 );
 assert(
-  workerSource.includes("hashSourceContent(content)") &&
-    workerSource.includes("findDuplicateSourceFile") &&
-    workerSource.includes("import_job.dispatch_failed"),
+  workerSources.includes("hashSourceContent(content)") &&
+    workerSources.includes("findDuplicateSourceFile") &&
+    workerSources.includes("import_job.dispatch_failed"),
   "source file intake must include content hash idempotency and queue dispatch failure handling.",
 );
 assert(
-  workerSource.includes("status = 'processing'") &&
-    workerSource.includes("status = 'needs_review'") &&
-    workerSource.includes("markImportJobFailed"),
+  workerImportJobRunner.includes("status = 'processing'") &&
+    workerImportJobRunner.includes("status = 'needs_review'") &&
+    workerImportJobRunner.includes("markImportJobFailed"),
   "queue consumer must advance import job state and record failures.",
 );
 assert(
-  workerSource.includes("INSERT OR IGNORE INTO example_staged_records") &&
-    workerSource.includes("INSERT OR IGNORE INTO import_review_issues") &&
-    workerSource.includes("attempt_count = COALESCE") &&
-    workerSource.includes("registeredImportAdapters") &&
-    workerSource.includes("starterImportReviewAdapter") &&
-    workerSource.includes("starterJsonRecordsAdapter") &&
-    workerSource.includes("selectImportAdapter") &&
-    workerSource.includes("adapter.parseAndStage") &&
-    workerSource.includes("adapter.commitApproved"),
+  workerImportJobRunner.includes("INSERT OR IGNORE INTO example_staged_records") &&
+    workerImportJobRunner.includes("INSERT OR IGNORE INTO import_review_issues") &&
+    workerImportJobRunner.includes("attempt_count = COALESCE") &&
+    workerImportAdapters.includes("registeredImportAdapters") &&
+    workerImportAdapters.includes("starterImportReviewAdapter") &&
+    workerImportAdapters.includes("starterJsonRecordsAdapter") &&
+    workerSources.includes("selectImportAdapter") &&
+    workerImportJobRunner.includes("adapter.parseAndStage") &&
+    workerSources.includes("adapter.commitApproved"),
   "queue consumer must use multiple registered adapters, stage review records idempotently, and count attempts.",
 );
 assert(
-  !workerSource.includes("@qitu/example-import-review") &&
-    !workerSource.includes("@qitu/example-json-records"),
+  !workerSources.includes("@qitu/example-import-review") &&
+    !workerSources.includes("@qitu/example-json-records"),
   "worker source must not import optional example packages.",
 );
 assert(
-  workerSource.includes("/api/import-jobs/:jobId/review") &&
-    workerSource.includes("/api/import-jobs/:jobId/advisories") &&
-    workerSource.includes("/api/import-jobs/:jobId/advisories/:advisoryId/confirm") &&
-    workerSource.includes("/api/import-jobs/:jobId/advisories/:advisoryId/dismiss") &&
-    workerSource.includes("/api/import-jobs/:jobId/staged-records/:recordId/approve") &&
-    workerSource.includes("/api/import-jobs/:jobId/staged-records/:recordId/reject") &&
-    workerSource.includes("/api/import-jobs/:jobId/commit") &&
-    workerSource.includes("/api/import-jobs/:jobId/retry"),
+  workerSources.includes("/api/import-jobs/:jobId/review") &&
+    workerSources.includes("/api/import-jobs/:jobId/advisories") &&
+    workerSources.includes("/api/import-jobs/:jobId/advisories/:advisoryId/confirm") &&
+    workerSources.includes("/api/import-jobs/:jobId/advisories/:advisoryId/dismiss") &&
+    workerSources.includes("/api/import-jobs/:jobId/staged-records/:recordId/approve") &&
+    workerSources.includes("/api/import-jobs/:jobId/staged-records/:recordId/reject") &&
+    workerSources.includes("/api/import-jobs/:jobId/commit") &&
+    workerSources.includes("/api/import-jobs/:jobId/retry"),
   "worker must expose review, AI advisory, approve, reject, commit, and retry routes.",
 );
 assert(
-  workerSource.includes('app.get("/api/source-files"') &&
-    workerSource.includes('app.get("/api/import-jobs"') &&
-    workerSource.includes('app.get("/api/audit-events"'),
+  workerSources.includes('app.get("/api/source-files"') &&
+    workerSources.includes('app.get("/api/import-jobs"') &&
+    workerSources.includes('app.get("/api/audit-events"'),
   "worker must expose source file, import job, and audit list routes.",
 );
 assert(
-  workerSource.includes("INSERT INTO import_review_decisions") &&
-    workerSource.includes("INSERT INTO import_review_record_decisions") &&
-    workerSource.includes("INSERT INTO example_committed_records"),
+  workerSources.includes("INSERT INTO import_review_decisions") &&
+    workerSources.includes("INSERT INTO import_review_record_decisions") &&
+    workerSources.includes("INSERT INTO example_committed_records"),
   "review and commit routes must write core decisions and example commit records.",
 );
 assert(
-  workerSource.includes("generateLocalImportReviewAdvisory") &&
-    workerSource.includes("INSERT INTO ai_advisory_artifacts") &&
-    workerSource.includes('action: "ai_advisory.generated"') &&
-    workerSource.includes("`ai_advisory.${targetStatus}`") &&
-    workerSource.includes("humanConfirmationRequired") &&
-    !workerSource.includes("ai_advisory_artifacts WHERE status = 'confirmed'"),
+  workerSources.includes("generateLocalImportReviewAdvisory") &&
+    workerAiAdvisoryStore.includes("INSERT INTO ai_advisory_artifacts") &&
+    workerSources.includes('action: "ai_advisory.generated"') &&
+    workerSources.includes("`ai_advisory.${targetStatus}`") &&
+    workerSources.includes("humanConfirmationRequired") &&
+    !workerSources.includes("ai_advisory_artifacts WHERE status = 'confirmed'"),
   "AI advisory routes must persist suggestions, audit human decisions, and stay advisory-only.",
 );
 assert(
@@ -546,30 +582,30 @@ assert(
 );
 assert(webTypes.includes("role: string"), "web API user type must include role.");
 assert(
-  webSource.includes("Staged records") &&
-    webSource.includes("Audit timeline") &&
-    webSource.includes("AI advisory") &&
-    webSource.includes("Commit approved") &&
-    webSource.includes("TimeSeriesChart") &&
-    webSource.includes("Source files") &&
-    webSource.includes("Process local queue") &&
-    webSource.includes("Accept invitation") &&
-    webSource.includes("Reset password") &&
-    webSource.includes("readAuthRoute") &&
-    webSource.includes('kind === "invite"') &&
-    webSource.includes('kind === "reset-password"') &&
-    webSource.includes("requestPasswordReset") &&
-    webSource.includes("confirmPasswordReset") &&
-    webSource.includes("uploadSourceFile") &&
-    webSource.includes("approveStagedRecord") &&
-    webSource.includes("rejectStagedRecord") &&
-    webSource.includes("generateAiAdvisory") &&
-    webSource.includes("confirmAiAdvisory") &&
-    webSource.includes("dismissAiAdvisory") &&
-    webSource.includes("commitImportJob") &&
-    webSource.includes("retryImportJob") &&
-    webSource.includes("Retry job") &&
-    webSource.includes("listAuditEvents"),
+  webSources.includes("Staged records") &&
+    webSources.includes("Audit timeline") &&
+    webSources.includes("AI advisory") &&
+    webSources.includes("Commit approved") &&
+    webSources.includes("TimeSeriesChart") &&
+    webSources.includes("Source files") &&
+    webSources.includes("Process local queue") &&
+    webSources.includes("Accept invitation") &&
+    webSources.includes("Reset password") &&
+    webSources.includes("readAuthRoute") &&
+    webAuthRoute.includes('kind === "invite"') &&
+    webAuthRoute.includes('kind === "reset-password"') &&
+    webSources.includes("requestPasswordReset") &&
+    webSources.includes("confirmPasswordReset") &&
+    webSources.includes("uploadSourceFile") &&
+    webSources.includes("approveStagedRecord") &&
+    webSources.includes("rejectStagedRecord") &&
+    webSources.includes("generateAiAdvisory") &&
+    webSources.includes("confirmAiAdvisory") &&
+    webSources.includes("dismissAiAdvisory") &&
+    webSources.includes("commitImportJob") &&
+    webSources.includes("retryImportJob") &&
+    webSources.includes("Retry job") &&
+    webSources.includes("listAuditEvents"),
   "web app must render and call the API-backed auth reset, review console, source files, AI advisory, decisions, commit, retry, and audit timeline.",
 );
 assert(
@@ -604,6 +640,13 @@ assert(
   "Worker integration must provide local D1, Email, R2, and Queue fakes.",
 );
 assert(
+  packageInterfaceTests.includes("createManualReviewIssue") &&
+    packageInterfaceTests.includes("stagedRecordKeyForSourceRow") &&
+    packageInterfaceTests.includes("passwordResetTokens") &&
+    packageInterfaceTests.includes("emailMessages"),
+  "package interface tests must exercise import-pipeline helpers and db schema exports.",
+);
+assert(
   browserSmoke.includes('spawn(vp, ["run", "dev:all"]') &&
     browserSmoke.includes("chromium.launch") &&
     browserSmoke.includes("/api/bootstrap/invitations") &&
@@ -619,9 +662,9 @@ assert(
   "Browser smoke must start dev:all and exercise emailed invite/reset links, upload, local queue drain, commit, reject, and audit in a real browser.",
 );
 assert(
-  workerSource.includes("/api/dev/import-jobs/drain") &&
-    workerSource.includes("processImportJob(context.env") &&
-    workerSource.includes("processImportJob(env, body)"),
+  workerSources.includes("/api/dev/import-jobs/drain") &&
+    workerSources.includes("processImportJob(context.env") &&
+    workerSources.includes("processImportJob(env, body)"),
   "Worker must expose a local-only import job drain route that reuses Queue handler logic.",
 );
 assert(

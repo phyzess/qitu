@@ -12,11 +12,35 @@ export const ImportJobStatusSchema = v.picklist([
 
 export type ImportJobStatus = v.InferOutput<typeof ImportJobStatusSchema>;
 
+export const ImportFailureClassSchema = v.picklist([
+  "adapter_missing",
+  "commit_conflict",
+  "duplicate_source",
+  "duplicate_target",
+  "infrastructure",
+  "parse",
+  "processing",
+  "queue_dispatch",
+  "source_missing",
+  "unsupported_source",
+  "validation",
+]);
+
 export const ReviewIssueSeveritySchema = v.picklist(["info", "warning", "error"]);
 export const ReviewRecordDecisionActionSchema = v.picklist(["approve", "reject"]);
+export const ReviewDecisionActionSchema = v.picklist(["approve", "reject", "void"]);
+export const StagedRecordStatusSchema = v.picklist([
+  "pending",
+  "approved",
+  "rejected",
+  "committed",
+]);
 
+export type ImportFailureClass = v.InferOutput<typeof ImportFailureClassSchema>;
 export type ReviewIssueSeverity = v.InferOutput<typeof ReviewIssueSeveritySchema>;
 export type ReviewRecordDecisionAction = v.InferOutput<typeof ReviewRecordDecisionActionSchema>;
+export type ReviewDecisionAction = v.InferOutput<typeof ReviewDecisionActionSchema>;
+export type StagedRecordStatus = v.InferOutput<typeof StagedRecordStatusSchema>;
 
 export type ImportJob = {
   id: string;
@@ -31,7 +55,7 @@ export type StagedRecord<TPayload> = {
   id: string;
   importJobId: string;
   stagedRecordKey: string;
-  status: "pending" | "approved" | "rejected" | "committed";
+  status: StagedRecordStatus;
   payload: TPayload;
   issues: ReviewIssue[];
 };
@@ -60,3 +84,72 @@ export type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
     context: CommitApprovedContext;
   }): Promise<TCommitted[]>;
 };
+
+export type ReviewDecision = {
+  importJobId: string;
+  reviewerId: string;
+  action: ReviewDecisionAction;
+  note?: string;
+  rowDecisions?: Array<{
+    stagedRecordId: string;
+    action: ReviewRecordDecisionAction;
+    note?: string;
+  }>;
+};
+
+export type ReviewStatusSummary = Record<StagedRecordStatus, number>;
+
+export function createManualReviewIssue(): ReviewIssue {
+  return {
+    code: "manual_review_required",
+    message: "Record was staged and requires human review before commit.",
+    severity: "info",
+  };
+}
+
+export function stagedRecordKeyForSourceRow(input: {
+  sourceFileId: string;
+  rowIndex: number;
+}): string {
+  assertPositiveRowIndex(input.rowIndex);
+  return `source-file:${input.sourceFileId}:row:${input.rowIndex}`;
+}
+
+export function sourceRowKeyForIndex(rowIndex: number): string {
+  assertPositiveRowIndex(rowIndex);
+  return `row:${rowIndex}`;
+}
+
+export function stagedStatusForReviewAction(
+  action: ReviewRecordDecisionAction,
+): Extract<StagedRecordStatus, "approved" | "rejected"> {
+  return action === "approve" ? "approved" : "rejected";
+}
+
+export function jobStatusAfterRecordDecision(action: ReviewRecordDecisionAction): ImportJobStatus {
+  return action === "approve" ? "approved" : "needs_review";
+}
+
+export function summarizeReviewStatuses(statuses: Iterable<string>): ReviewStatusSummary {
+  const summary: ReviewStatusSummary = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    committed: 0,
+  };
+
+  for (const status of statuses) {
+    const result = v.safeParse(StagedRecordStatusSchema, status);
+    if (result.success) {
+      summary[result.output] += 1;
+    }
+  }
+
+  return summary;
+}
+
+function assertPositiveRowIndex(rowIndex: number): void {
+  if (!Number.isInteger(rowIndex) || rowIndex < 1) {
+    throw new Error("Row index must be a positive integer.");
+  }
+}

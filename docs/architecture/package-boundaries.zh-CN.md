@@ -51,6 +51,8 @@ apps/web/src/features/*
 
 `qitu` 不强制顶层 `domains/*`。不同 app 可能更适合 feature、workflow、bounded context、vertical slice 或 route-based layout。
 
+`apps/worker/src/*` 可以包含 app-local Worker modules，例如 auth route composition、import adapter registry、import job runner、import review routes、audit/email D1 adapters、HTTP route helpers 和 runtime config helpers。这些 Module 可以知道 D1/R2/Queue/Email bindings 与 starter tables，但不能把业务含义搬进 `packages/*`。
+
 ## Examples
 
 `examples/*` 是非生产示例，用来证明边界：

@@ -16,6 +16,8 @@ templates/* -> copyable starting points
 
 `qitu` does not require a top-level `domains/*` folder. Concrete apps may organize business code by feature, workflow, bounded context, or vertical slice.
 
+`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include auth route composition, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+
 ## 2. Proposed Packages
 
 ### 2.1 `packages/auth`
@@ -89,6 +91,7 @@ Owns:
 5. Review issue lifecycle.
 6. Approve/reject/void flow.
 7. Import feature adapter contract.
+8. Generic review status helpers and staging key conventions.
 
 Does not own:
 

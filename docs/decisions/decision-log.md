@@ -176,6 +176,26 @@ Reason:
 
 Automatic DLQ replay can recreate retry loops and bypass human classification. The reusable kit should prove a safe operational path first; automatic replay belongs in a production app only after real queue operations show the manual path is insufficient.
 
+### 2026-06-28: App-Local Worker Runner Modules
+
+Decision:
+
+Keep Cloudflare binding adapters and starter feature registration in app-owned Worker modules:
+
+1. `apps/worker/src/auth-routes.ts` composes auth, session, invitation, password-reset, RBAC denial, audit, and email delivery routes around reusable auth/email/RBAC package rules.
+2. `apps/worker/src/import-adapters.ts` registers app-owned starter import adapters.
+3. `apps/worker/src/import-job-runner.ts` binds generic import lifecycle rules to D1, R2, Queue, audit, and app-owned staging tables.
+4. `apps/worker/src/import-review-routes.ts` owns starter review/decision/commit route persistence for app-owned staging and committed tables.
+5. `apps/worker/src/audit-store.ts` and `apps/worker/src/email-delivery.ts` adapt audit and email package concepts to D1 and Cloudflare Email.
+6. `apps/worker/src/http-utils.ts` owns shared route parsing and error response helpers.
+7. `packages/import-pipeline` owns generic review status helpers, staging key conventions, and adapter contracts.
+
+Do not move Cloudflare binding details or starter table writes into reusable core packages.
+
+Reason:
+
+This keeps `apps/worker/src/index.ts` as HTTP/handler wiring while preserving business-neutral core packages. The seam gives locality for Worker persistence and queue behavior without pretending that a reusable storage adapter exists before a second real app proves it.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

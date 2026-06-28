@@ -106,6 +106,11 @@ templates/
 
 `apps/*` are deployable entrypoints.
 
+`apps/worker/src/*` keeps deployable Worker wiring app-owned: HTTP routes, auth route
+composition, Cloudflare binding adapters, the import job runner, import review routes, and
+starter feature registration live there. Reusable state rules and contracts still belong in
+`packages/*`.
+
 `packages/*` are reusable infrastructure and UI packages.
 
 `examples/*` are non-production examples that prove boundaries.

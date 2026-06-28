@@ -4,6 +4,26 @@
 
 ## 已接受
 
+### App-Local Worker Runner Modules
+
+Decision:
+
+Cloudflare binding adapters 和 starter feature registration 留在 app-owned Worker modules：
+
+1. `apps/worker/src/auth-routes.ts` 围绕 reusable auth/email/RBAC package rules 组合 auth、session、invitation、password-reset、RBAC denial、audit 和 email delivery routes。
+2. `apps/worker/src/import-adapters.ts` 注册 app-owned starter import adapters。
+3. `apps/worker/src/import-job-runner.ts` 把 generic import lifecycle rules 接到 D1、R2、Queue、audit 和 app-owned staging tables。
+4. `apps/worker/src/import-review-routes.ts` 拥有 starter review/decision/commit route persistence，用于 app-owned staging 和 committed tables。
+5. `apps/worker/src/audit-store.ts` 与 `apps/worker/src/email-delivery.ts` 把 audit/email package concepts 适配到 D1 与 Cloudflare Email。
+6. `apps/worker/src/http-utils.ts` 拥有 shared route parsing 和 error response helpers。
+7. `packages/import-pipeline` 拥有 generic review status helpers、staging key conventions 和 adapter contracts。
+
+不要把 Cloudflare binding details 或 starter table writes 移进 reusable core packages。
+
+原因：
+
+这样 `apps/worker/src/index.ts` 保持 HTTP/handler wiring，core packages 继续 business-neutral。这个 seam 把 Worker persistence 和 queue behavior 的修改集中到 app-owned modules，同时避免在第二个真实 app 证明需求之前伪造 reusable storage adapter。
+
 ### Canonical Name
 
 Decision:
