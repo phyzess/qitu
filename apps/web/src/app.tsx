@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ChartDatum } from "@qitu/charts";
-import { AnimatedIcon, AppShell, Button, StatusBadge, type AppShellNavItem } from "@qitu/ui";
+import {
+  AnimatedIcon,
+  AppShell,
+  Button,
+  QituMark,
+  StatusBadge,
+  type AppShellNavItem,
+} from "@qitu/ui";
 import { ChevronDown } from "lucide-react";
 import {
   acceptInvitation,
@@ -44,13 +51,11 @@ import {
 } from "./app-routes";
 import { readAuthRoute } from "./auth-route";
 import {
-  AuthLinkLayout,
   type AppNavigationModel,
   buildNavigation,
   ErrorText,
   Field,
   Panel,
-  RuntimeRow,
   SectionTitle,
   tabClass,
   type WorkspaceRouteEntry,
@@ -119,7 +124,7 @@ export function App() {
   const { formatBytes, formatStatus, roleLabel, t } = useI18n();
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [authForm, setAuthForm] = useState(defaultAuthForm);
-  const [authMode, setAuthMode] = useState<"login" | "setup" | "reset">("setup");
+  const [authMode, setAuthMode] = useState<"login" | "setup" | "reset">("login");
   const [setupRole, setSetupRole] = useState<"admin" | "reviewer">("reviewer");
   const [authRoute, setAuthRoute] = useState(readAuthRoute);
   const [route, setRoute] = useState<AppRoute>(readAppRoute);
@@ -766,35 +771,36 @@ export function App() {
 
   if (isLoadingSession) {
     return (
-      <AppShell
-        actions={<GuestActions />}
-        brand="qitu"
-        commandLabel={t("command.loadingWorkspace")}
-        navigation={navigationModel.primaryNavigation}
-        subNavigation={navigationModel.subNavigation}
+      <AuthPageFrame
+        eyebrow={t("auth.secureAccess")}
+        notice={noticeText}
       >
-        <Panel>
-          <div className="text-sm text-[var(--qitu-muted)]">{t("loading.session")}</div>
-        </Panel>
-      </AppShell>
+        <div className="qitu-auth-card">
+          <StatusBadge tone="info">{t("loading.session")}</StatusBadge>
+          <h1 className="qitu-auth-card-title">{t("auth.loadingTitle")}</h1>
+          <p className="qitu-auth-card-copy">{t("auth.loadingDescription")}</p>
+          <div className="qitu-auth-skeleton-stack" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      </AuthPageFrame>
     );
   }
 
   if (authRoute.kind === "invite") {
     return (
-      <AppShell
-        actions={<GuestActions />}
-        brand="qitu"
-        commandLabel={t("auth.acceptInvitation")}
-        navigation={navigationModel.primaryNavigation}
-        subNavigation={navigationModel.subNavigation}
+      <AuthPageFrame
+        eyebrow={t("auth.invitationBadge")}
+        notice={noticeText}
       >
-        <AuthLinkLayout
-          badge={t("auth.invitationBadge")}
-          description={t("auth.acceptInvitationDescription")}
-          notice={noticeText}
-          title={t("auth.acceptInvitation")}
-        >
+        <div className="qitu-auth-card">
+          <AuthCardHeader
+            badge={t("auth.invitationBadge")}
+            description={t("auth.acceptInvitationDescription")}
+            title={t("auth.acceptInvitation")}
+          />
           <form className="mt-5 space-y-4" onSubmit={handleInviteAccept}>
             <Field
               label={t("field.displayName")}
@@ -812,26 +818,23 @@ export function App() {
               <AnimatedIcon name="audit" size={15} /> {t("auth.acceptInvitation")}
             </Button>
           </form>
-        </AuthLinkLayout>
-      </AppShell>
+        </div>
+      </AuthPageFrame>
     );
   }
 
   if (authRoute.kind === "reset") {
     return (
-      <AppShell
-        actions={<GuestActions />}
-        brand="qitu"
-        commandLabel={t("action.resetPassword")}
-        navigation={navigationModel.primaryNavigation}
-        subNavigation={navigationModel.subNavigation}
+      <AuthPageFrame
+        eyebrow={t("auth.passwordResetBadge")}
+        notice={noticeText}
       >
-        <AuthLinkLayout
-          badge={t("auth.passwordResetBadge")}
-          description={t("auth.resetDescription")}
-          notice={noticeText}
-          title={t("action.resetPassword")}
-        >
+        <div className="qitu-auth-card">
+          <AuthCardHeader
+            badge={t("auth.passwordResetBadge")}
+            description={t("auth.resetDescription")}
+            title={t("action.resetPassword")}
+          />
           <form className="mt-5 space-y-4" onSubmit={handleRoutePasswordReset}>
             <Field
               label={t("auth.newPassword")}
@@ -844,58 +847,57 @@ export function App() {
               <AnimatedIcon name="audit" size={15} /> {t("action.resetPassword")}
             </Button>
           </form>
-        </AuthLinkLayout>
-      </AppShell>
+        </div>
+      </AuthPageFrame>
     );
   }
 
   if (!user) {
     return (
-      <AppShell
-        actions={<GuestActions />}
-        brand="qitu"
-        commandLabel={t("command.searchSignedOut")}
-        navigation={navigationModel.primaryNavigation}
-        subNavigation={navigationModel.subNavigation}
+      <AuthPageFrame
+        eyebrow={t("auth.secureAccess")}
+        notice={noticeText}
       >
-        <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-[1fr_0.8fr]">
-          <Panel>
-            <div className="flex items-start justify-between gap-4">
-              <div>
+        <div className="qitu-auth-card">
+          <AuthCardHeader
+            badge={t("auth.protectedWorkspace")}
+            description={t("auth.loginDescription")}
+            title={t("auth.loginTitle")}
+          />
+
+          <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
+            <button
+              className={tabClass(authMode === "login")}
+              onClick={() => setAuthMode("login")}
+              type="button"
+            >
+              {t("auth.loginTab")}
+            </button>
+            <button
+              className={tabClass(authMode === "reset")}
+              onClick={() => setAuthMode("reset")}
+              type="button"
+            >
+              {t("auth.resetTab")}
+            </button>
+            <button
+              className={tabClass(authMode === "setup")}
+              onClick={() => setAuthMode("setup")}
+              type="button"
+            >
+              {t("auth.setupTab")}
+            </button>
+          </div>
+
+          {authMode === "setup" ? (
+            <div className="mt-4">
+              <div className="mb-3 flex items-center gap-2">
                 <StatusBadge tone="warning">{t("auth.localDemo")}</StatusBadge>
-                <h1 className="mt-3 text-xl font-semibold tracking-normal">
-                  {t("auth.reviewerAccess")}
-                </h1>
+                <span className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+                  {t("auth.localDemoDescription")}
+                </span>
               </div>
-              <AnimatedIcon className="text-[var(--qitu-green)]" name="key" size={18} />
-            </div>
-
-            <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
-              <button
-                className={tabClass(authMode === "setup")}
-                onClick={() => setAuthMode("setup")}
-                type="button"
-              >
-                {t("auth.setupTab")}
-              </button>
-              <button
-                className={tabClass(authMode === "login")}
-                onClick={() => setAuthMode("login")}
-                type="button"
-              >
-                {t("auth.loginTab")}
-              </button>
-              <button
-                className={tabClass(authMode === "reset")}
-                onClick={() => setAuthMode("reset")}
-                type="button"
-              >
-                {t("auth.resetTab")}
-              </button>
-            </div>
-
-            {authMode === "setup" ? (
-              <div className="qitu-segment-track mt-3 grid grid-cols-2 gap-2">
+              <div className="qitu-segment-track grid grid-cols-2 gap-2">
                 <button
                   className={tabClass(setupRole === "reviewer")}
                   onClick={() => selectSetupRole("reviewer")}
@@ -911,80 +913,65 @@ export function App() {
                   {t("auth.admin")}
                 </button>
               </div>
-            ) : null}
-
-            <form
-              className="mt-5 space-y-4"
-              onSubmit={
-                authMode === "setup"
-                  ? handleLocalSetup
-                  : authMode === "reset"
-                    ? handlePasswordReset
-                    : handleLogin
-              }
-            >
-              <Field
-                label={t("field.email")}
-                onChange={(value) => setAuthForm((current) => ({ ...current, email: value }))}
-                type="email"
-                value={authForm.email}
-              />
-              {authMode === "setup" ? (
-                <Field
-                  label={t("field.displayName")}
-                  onChange={(value) =>
-                    setAuthForm((current) => ({ ...current, displayName: value }))
-                  }
-                  value={authForm.displayName}
-                />
-              ) : null}
-              {authMode === "reset" ? (
-                <Field
-                  label={t("auth.resetToken")}
-                  onChange={(value) =>
-                    setAuthForm((current) => ({ ...current, resetToken: value }))
-                  }
-                  value={authForm.resetToken}
-                />
-              ) : null}
-              <Field
-                label={authMode === "reset" ? t("auth.newPassword") : t("auth.password")}
-                onChange={(value) => setAuthForm((current) => ({ ...current, password: value }))}
-                type="password"
-                value={authForm.password}
-              />
-              {error ? <ErrorText>{error}</ErrorText> : null}
-              <Button disabled={isBusy} type="submit">
-                <AnimatedIcon name="audit" size={15} />
-                {authMode === "setup"
-                  ? setupRole === "admin"
-                    ? t("action.useLocalDemoAdmin")
-                    : t("action.useLocalDemoReviewer")
-                  : authMode === "reset"
-                    ? authForm.resetToken
-                      ? t("action.resetPassword")
-                      : t("action.sendResetEmail")
-                    : t("action.login")}
-              </Button>
-            </form>
-          </Panel>
-
-          <Panel>
-            <SectionTitle
-              icon={<AnimatedIcon name="activity" size={16} />}
-              label={t("auth.protectedWorkspace")}
-            />
-            <div className="mt-4 space-y-3">
-              <RuntimeRow label={t("auth.routes")} value={t("auth.routesValue")} />
-              <RuntimeRow label={t("auth.reviewer")} value="reviewer@example.com" />
-              <RuntimeRow label={t("auth.admin")} value="admin@example.com" />
-              <RuntimeRow label={t("auth.password")} value={defaultAuthForm.password} />
-              <RuntimeRow label={t("common.environment")} value={runtimeEnvironment} />
-              <RuntimeRow label={t("common.session")} value={noticeText} />
             </div>
-          </Panel>
+          ) : null}
+
+          <form
+            className="mt-5 space-y-4"
+            onSubmit={
+              authMode === "setup"
+                ? handleLocalSetup
+                : authMode === "reset"
+                  ? handlePasswordReset
+                  : handleLogin
+            }
+          >
+            <Field
+              label={t("field.email")}
+              onChange={(value) => setAuthForm((current) => ({ ...current, email: value }))}
+              type="email"
+              value={authForm.email}
+            />
+            {authMode === "setup" ? (
+              <Field
+                label={t("field.displayName")}
+                onChange={(value) =>
+                  setAuthForm((current) => ({ ...current, displayName: value }))
+                }
+                value={authForm.displayName}
+              />
+            ) : null}
+            {authMode === "reset" ? (
+              <Field
+                label={t("auth.resetToken")}
+                onChange={(value) =>
+                  setAuthForm((current) => ({ ...current, resetToken: value }))
+                }
+                value={authForm.resetToken}
+              />
+            ) : null}
+            <Field
+              label={authMode === "reset" ? t("auth.newPassword") : t("auth.password")}
+              onChange={(value) => setAuthForm((current) => ({ ...current, password: value }))}
+              type="password"
+              value={authForm.password}
+            />
+            {error ? <ErrorText>{error}</ErrorText> : null}
+            <Button className="w-full" disabled={isBusy} size="lg" type="submit">
+              <AnimatedIcon name={authMode === "login" ? "login" : "audit"} size={15} />
+              {authMode === "setup"
+                ? setupRole === "admin"
+                  ? t("action.useLocalDemoAdmin")
+                  : t("action.useLocalDemoReviewer")
+                : authMode === "reset"
+                  ? authForm.resetToken
+                    ? t("action.resetPassword")
+                    : t("action.sendResetEmail")
+                  : t("action.login")}
+            </Button>
+          </form>
         </div>
-      </AppShell>
+      </AuthPageFrame>
     );
   }
 
@@ -1137,6 +1124,76 @@ function WorkspaceShell(props: {
     >
       {props.children}
     </AppShell>
+  );
+}
+
+function AuthPageFrame(props: {
+  children: ReactNode;
+  eyebrow: string;
+  notice: string;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <main className="qitu-auth-page">
+      <header className="qitu-auth-header">
+        <div className="qitu-auth-brand">
+          <span aria-hidden="true" className="qitu-auth-mark">
+            <QituMark />
+          </span>
+          <span className="qitu-auth-wordmark">qitu</span>
+        </div>
+        <div className="qitu-auth-actions">
+          <LanguageSelector className="qitu-topbar-control" compact />
+          <ThemeToggleButton className="qitu-topbar-control" compact />
+        </div>
+      </header>
+
+      <section className="qitu-auth-shell" aria-label={t("auth.pageLabel")}>
+        <div className="qitu-auth-intro">
+          <StatusBadge tone="active">{props.eyebrow}</StatusBadge>
+          <h1>{t("auth.heroTitle")}</h1>
+          <p>{t("auth.heroDescription")}</p>
+          <div className="qitu-auth-proof-list" aria-label={t("auth.guardrails")}>
+            <AuthProof icon="key" title={t("auth.proofSession")} />
+            <AuthProof icon="reviews" title={t("auth.proofReview")} />
+            <AuthProof icon="audit" title={t("auth.proofAudit")} />
+          </div>
+          <div className="qitu-auth-status-line">
+            <span aria-hidden="true" />
+            <strong>{t("common.session")}</strong>
+            <em>{props.notice}</em>
+          </div>
+        </div>
+
+        <div className="qitu-auth-content">
+          {props.children}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function AuthProof(props: { icon: "audit" | "key" | "reviews"; title: string }) {
+  return (
+    <div className="qitu-auth-proof">
+      <AnimatedIcon name={props.icon} size={15} />
+      <span>{props.title}</span>
+    </div>
+  );
+}
+
+function AuthCardHeader(props: {
+  badge: string;
+  description: string;
+  title: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <StatusBadge tone="info">{props.badge}</StatusBadge>
+      <h2 className="qitu-auth-card-title">{props.title}</h2>
+      <p className="qitu-auth-card-copy">{props.description}</p>
+    </div>
   );
 }
 

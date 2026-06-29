@@ -104,7 +104,7 @@ async function runBrowserSmoke() {
     await expect(page.getByRole("heading", { name: "Reset password" })).toBeVisible();
     await page.getByLabel("New password", { exact: true }).fill(resetPassword);
     await page.getByRole("button", { name: "Reset password" }).click();
-    await expect(page.getByRole("heading", { name: "Reviewer access" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Sign in to qitu" })).toBeVisible();
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(resetPassword);
     await page.locator("form").getByRole("button", { name: "Login" }).click();

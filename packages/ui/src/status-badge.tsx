@@ -30,7 +30,7 @@ export function StatusBadge({ children, className, tone = "neutral" }: StatusBad
   return (
     <span
       className={cn(
-        "inline-flex min-h-[22px] items-center rounded-[var(--qitu-radius-md)] px-[var(--qitu-space-o3)] py-[var(--qitu-space-o0)] text-[10px] font-medium leading-4",
+        "inline-flex min-h-[22px] shrink-0 items-center whitespace-nowrap rounded-[var(--qitu-radius-md)] px-[var(--qitu-space-o3)] py-[var(--qitu-space-o0)] text-[10px] font-medium leading-4",
         toneClass[tone],
         className,
       )}
