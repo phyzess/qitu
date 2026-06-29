@@ -27,15 +27,15 @@ export type ScatterDatum = {
 
 export const chartTheme = {
   colors: {
-    neutral: "var(--text)",
-    positive: "var(--green)",
-    negative: "var(--red)",
-    warning: "var(--amber)",
-    info: "var(--blue)",
+    neutral: "var(--qitu-text)",
+    positive: "var(--qitu-green)",
+    negative: "var(--qitu-red)",
+    warning: "var(--qitu-amber)",
+    info: "var(--qitu-blue)",
   },
-  grid: "var(--line)",
-  text: "var(--dim)",
-  surface: "var(--surface-2)",
+  grid: "var(--qitu-line)",
+  text: "var(--qitu-dim)",
+  surface: "var(--qitu-surface-2)",
 } as const;
 
 export type ChartFrameProps = {
@@ -57,7 +57,7 @@ export function ChartFrame({
 }: ChartFrameProps) {
   const style = {
     minHeight: height,
-    padding: "var(--s0)",
+    padding: "var(--qitu-space-s0)",
   } satisfies CSSProperties;
 
   if (state !== "ready") {
@@ -84,7 +84,7 @@ export function ChartStateView(props: {
     <div
       style={{
         alignItems: "center",
-        color: "var(--muted)",
+        color: "var(--qitu-muted)",
         display: "grid",
         minHeight: 160,
         placeItems: "center",
@@ -94,19 +94,19 @@ export function ChartStateView(props: {
       <div>
         <div
           style={{
-            color: props.state === "error" ? "var(--red)" : "var(--text)",
-            fontSize: "var(--text-label-14)",
+            color: props.state === "error" ? "var(--qitu-red)" : "var(--qitu-text)",
+            fontSize: "var(--qitu-text-label-14)",
             fontWeight: 600,
-            lineHeight: "var(--leading-label-14)",
+            lineHeight: "var(--qitu-leading-label-14)",
           }}
         >
           {props.title ?? chartStateTitle(props.state)}
         </div>
         <div
           style={{
-            fontSize: "var(--text-copy-13)",
-            lineHeight: "var(--leading-copy-13)",
-            marginTop: "var(--s-3)",
+            fontSize: "var(--qitu-text-copy-13)",
+            lineHeight: "var(--qitu-leading-copy-13)",
+            marginTop: "var(--qitu-space-s-3)",
           }}
         >
           {props.description ?? chartStateDescription(props.state)}
@@ -221,7 +221,7 @@ export function TimeSeriesChart({
             fill={point.tone ? toneColor(point.tone) : color}
             key={`${point.xValue}:${point.y}`}
             r="2.75"
-            stroke="var(--surface-2)"
+            stroke="var(--qitu-surface-2)"
             strokeWidth="2"
           />
         ))}
@@ -274,7 +274,7 @@ export function PerformancePanelChart({
   }
 
   return (
-    <div style={{ display: "grid", gap: "var(--s0)" }}>
+    <div style={{ display: "grid", gap: "var(--qitu-space-s0)" }}>
       <TimeSeriesChart
         data={series}
         height={Math.round(height * 0.62)}
@@ -406,7 +406,7 @@ export function DonutChart({
           cy={centerY}
           fill="none"
           r={radius}
-          stroke="var(--line)"
+          stroke="var(--qitu-line)"
           strokeWidth={strokeWidth}
         />
         {data.map((datum, index) => {
@@ -427,7 +427,7 @@ export function DonutChart({
         })}
         <text
           className="qitu-number"
-          fill="var(--text)"
+          fill="var(--qitu-text)"
           fontSize="18"
           fontWeight="600"
           textAnchor="middle"
@@ -507,7 +507,7 @@ export function ComparisonScatterChart({
             fill={toneColor(datum.tone ?? chartToneForIndex(index))}
             key={`${datum.label ?? index}:${datum.x}:${datum.y}`}
             r="4"
-            stroke="var(--surface-2)"
+            stroke="var(--qitu-surface-2)"
             strokeWidth="2"
           />
         ))}
@@ -540,7 +540,7 @@ function ChartGrid(props: {
       <rect
         fill="none"
         height={props.height}
-        stroke="var(--line-strong)"
+        stroke="var(--qitu-line-strong)"
         strokeWidth="1"
         width={props.width}
         x={props.left}

@@ -1,8 +1,7 @@
 # qitu Design System
 
 Status: baseline for implementation  
-Date: 2026-06-28  
-Source lineage: FOF final design baseline, generalized for business-neutral internal tools
+Date: 2026-06-28
 
 ## Purpose
 
@@ -30,15 +29,16 @@ Avoid:
 The primary shell is:
 
 ```text
-rail | topbar
-     | main work surface + contextual inspector
-     | event/import stream when the workflow needs it
+topbar: brand | primary route icons | search/actions/user
+subnav: active route group tabs
+main: work surface + contextual inspector
+event/import stream when the workflow needs it
 ```
 
 Rules:
 
-1. Use a narrow icon rail for primary navigation.
-2. Use a top command/search bar for product-level navigation and global actions.
+1. Use topbar primary route icons for global navigation.
+2. Use a top command/search bar for product-level search and global actions.
 3. Main content should prioritize the working object: chart, review table, import queue, or audit trail.
 4. Contextual panels explain selected data, source files, data quality, guardrails, and next actions.
 5. Event streams capture import, validation, review, AI advisory, and audit events.
@@ -66,7 +66,7 @@ Runtime UI uses sans-serif fonts only. Document/report exports may use serif tok
 
 `packages/ui` owns business-neutral workbench primitives:
 
-1. `AppShell`, `RailNav`, and `Topbar` shape.
+1. `AppShell`, `Topbar`, and route-tab shape.
 2. `Surface` and `SectionHeader`.
 3. `DataState` for loading, empty, error, partial, and ready states.
 4. `MetricStrip` and tabular value patterns.

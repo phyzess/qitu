@@ -218,7 +218,7 @@ function routeAvailable(route: WorkspaceAppRoute, canManageUsers: boolean): bool
 }
 
 export function Panel(props: { children: ReactNode }) {
-  return <Surface className="p-[var(--s1)]">{props.children}</Surface>;
+  return <Surface className="p-[var(--qitu-space-s1)]">{props.children}</Surface>;
 }
 
 export function SectionTitle(props: { icon: ReactNode; label: string }) {
@@ -233,19 +233,19 @@ export function AuthLinkLayout(props: {
   title: string;
 }) {
   return (
-    <div className="mx-auto grid max-w-5xl gap-[var(--gutter)] md:grid-cols-[1fr_0.8fr]">
+    <div className="mx-auto grid max-w-5xl gap-[var(--qitu-layout-gutter)] md:grid-cols-[1fr_0.8fr]">
       <Panel>
         <div className="flex items-start justify-between gap-4">
           <div>
             <StatusBadge tone="warning">{props.badge}</StatusBadge>
-            <h1 className="mt-3 text-[length:var(--text-heading-20)] font-semibold leading-[var(--leading-heading-20)]">
+            <h1 className="mt-3 text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
               {props.title}
             </h1>
-            <div className="mt-2 max-w-[36rem] text-[length:var(--text-copy-14)] leading-[var(--leading-copy-14)] text-[var(--muted)]">
+            <div className="mt-2 max-w-[36rem] text-[length:var(--qitu-text-copy-14)] leading-[var(--qitu-leading-copy-14)] text-[var(--qitu-muted)]">
               {props.description}
             </div>
           </div>
-          <LockKeyhole size={18} className="text-[var(--chroma-lime-ink)]" />
+          <LockKeyhole size={18} className="text-[var(--qitu-chroma-lime-ink)]" />
         </div>
         {props.children}
       </Panel>
@@ -315,13 +315,17 @@ export function SelectField(props: {
 
 export function ErrorText(props: { children: ReactNode }) {
   return (
-    <div className="mt-4 text-[length:var(--text-copy-13)] text-[var(--red)]">{props.children}</div>
+    <div className="mt-4 text-[length:var(--qitu-text-copy-13)] text-[var(--qitu-red)]">
+      {props.children}
+    </div>
   );
 }
 
 export function EmptyText(props: { children: ReactNode }) {
   return (
-    <div className="text-[length:var(--text-copy-13)] text-[var(--muted)]">{props.children}</div>
+    <div className="text-[length:var(--qitu-text-copy-13)] text-[var(--qitu-muted)]">
+      {props.children}
+    </div>
   );
 }
 

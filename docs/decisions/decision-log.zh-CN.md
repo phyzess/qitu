@@ -185,7 +185,7 @@ React app 会把 `/api` 和 `/health` 代理到 Worker，所以 web-only default
 
 Decision:
 
-采用从 FOF 最终 UI 方向抽象出来的 business-neutral workbench baseline：
+采用 qitu business-neutral workbench baseline：
 
 1. 暗色 tonal shell，包含 topbar 一级导航、二级 route tabs、main work surface、context inspector、event stream。
 2. `packages/design-system` 提供字体、紧凑 type scale、semantic color、radius、spacing 与 surface shadow tokens。
@@ -194,7 +194,7 @@ Decision:
 
 原因：
 
-FOF 最终接受的是偏 analytical workbench 的控制台方向，而不是浅色 generic admin shell。qitu 应保留这些可复用 UI 经验，但不能引入 FOF 的业务词汇或业务语义。
+qitu 需要偏 analytical workbench 的控制台方向，而不是浅色 generic admin shell。它应保留可复用 UI 经验，但不能引入业务专属词汇或业务语义。
 
 ### Event Foundation Tables
 
@@ -242,13 +242,13 @@ React starter shell 必须表达有登录态应用的路由结构，而不是只
 
 原因：
 
-面向登录态内部应用的 startup kit，需要在业务功能加入之前就有可信的登录后 shell。这样既保留 FOF 抽象出的 workbench UI baseline，也把用户管理留在 auth/RBAC infrastructure 中，而不是把业务 workflow 塞进 core packages。
+面向登录态内部应用的 startup kit，需要在业务功能加入之前就有可信的登录后 shell。这样既保留 qitu workbench UI baseline，也把用户管理留在 auth/RBAC infrastructure 中，而不是把业务 workflow 塞进 core packages。
 
-### Oodon Shell Interaction Extraction
+### Qitu Shell Interaction Contract
 
 Decision:
 
-以成熟的 oodon shell 作为交互结构参考，但不把它的 router、query、state 或 animation stack 迁移进 qitu。
+定义 qitu 自己的 shell 交互结构，但不把 app-owned router、query、state 或 animation stack 迁移进 reusable packages。
 
 提炼规则：
 
@@ -259,22 +259,22 @@ Decision:
 5. 通过 design tokens 支持 light、dark、system theme preference。
 6. route memory 只存在 session 内，且只存 route id。
 7. 桌面端 route navigation 不使用 side rail。
-8. 桌面端一级 route control 采用 oodon 式纯 icon button + 相邻 live label，二级 route tab 使用 text-only，紧凑搜索和 theme 使用纯 icon，宽屏搜索使用 icon + text + shortcut，人员 trigger 使用 avatar/initial + chevron。
+8. 桌面端一级 route control 采用 qitu 纯 icon button + 相邻 live label，二级 route tab 使用 text-only，紧凑搜索和 theme 使用纯 icon，宽屏搜索使用 icon + text + shortcut，人员 trigger 使用 avatar/initial + chevron。
 
 原因：
 
-qitu 需要继承源产品里更成熟的 app-shell 行为，但不能继承产品词汇，也不应在 starter 尚未证明需要前引入更重的框架依赖。
+qitu 需要成熟的 app-shell 行为，但不能继承产品词汇，也不应在 starter 尚未证明需要前引入更重的框架依赖。
 
-### Oodon Visual Style Extraction
+### Qitu Visual Style Contract
 
 Decision:
 
-以 oodon 作为 qitu 非业务视觉层参考，同时保留 qitu 自己的语义 token 名称和 reusable package 边界。
+通过 qitu 自己的语义 token 名称和 reusable package 边界定义非业务视觉层。
 
 提炼规则：
 
 1. 背景、surface、线条与文字使用 OKLCH 紫灰中性色。
-2. 页面层优先使用 `--surface`、`--surface-glass`、`--surface-elevated`，不再散落 RGB 色值。
+2. 页面层优先使用 `--qitu-surface`、`--qitu-surface-glass`、`--qitu-surface-elevated`，不再散落 RGB 色值。
 3. 控件保持 28/32/36px 紧凑尺度，并共享 radius、focus、motion tokens。
 4. 状态色采用柔和 chroma lime/lilac/pink，而不是页面内一次性的高饱和 green/blue/amber。
 5. shadow 主要用于 overlay 与 active affordance；普通 panel 依靠 tone、细线和克制 inset highlight 表达层级。
@@ -282,7 +282,7 @@ Decision:
 
 原因：
 
-qitu 应继承 oodon 更成熟的视觉质感，但不能复制业务语义，也不能让样式决策继续散落在 app 页面。保持 qitu token 名称稳定，可以让后续 app-owned feature 复用同一套视觉系统，而不依赖 oodon 内部实现。
+qitu 应把视觉质感集中到共享系统中，但不能复制业务语义，也不能让样式决策继续散落在 app 页面。保持 qitu token 名称稳定，可以让后续 app-owned feature 复用同一套视觉系统，而不依赖无关实现细节。
 
 ### Shared Control Refinement Contract
 
@@ -300,26 +300,26 @@ Decision:
 
 原因：
 
-第一版 qitu shell 在对齐、比例、阴影和 form row 上暴露了视觉漂移：同一套 oodon pattern 被页面内 ad hoc 重写后很难保持精修感。把 control contract 收进 `packages/ui`，可以保持 starter 可复用，也避免每个 app 页面重复近似同一套 primitive。
+第一版 qitu shell 在对齐、比例、阴影和 form row 上暴露了视觉漂移：同一套共享 shell pattern 被页面内 ad hoc 重写后很难保持精修感。把 control contract 收进 `packages/ui`，可以保持 starter 可复用，也避免每个 app 页面重复近似同一套 primitive。
 
-### Oodon Design System Parity
+### Qitu Design System Canonicalization
 
 Decision:
 
-将 oodon 的 design system 视为 qitu 非业务 UI 层的源系统，而不是继续局部参考、局部重写。
+将 qitu design system 视为非业务 UI 层的 canonical source，而不是继续在页面内局部参考、局部重写。
 
 规则：
 
-1. 在 `packages/design-system` 镜像 oodon 的 semantic color tree，并把 qitu 旧变量名保留为兼容别名。
+1. 在 `packages/design-system` 使用 qitu semantic color tree；不保留 non-qitu variable aliases。
 2. 桌面端 topbar primary navigation 保持纯 icon route buttons，并保留 divider 与相邻 live label。
-3. Topbar 一级和二级 tabs 使用 oodon 的 chroma active indicator token。
+3. Topbar 一级和二级 tabs 使用 `--qitu-chroma-active`。
 4. Topbar 不画底部分割线；内容区分依靠 spacing 和 surface tone。
 5. 普通 panel 使用 card/surface tone 表达层级；除 overlay 或 active affordance 外，不再加页面级 panel border 或 shadow。
-6. 所有迁移的 design-system 规则保持业务中立；不导入 oodon 的产品词汇、router、data fetching 或 animation stack。
+6. 所有 design-system 规则保持业务中立；不把产品词汇、router、data fetching 或 animation stack 导入 reusable packages。
 
 原因：
 
-之前“参考 oodon”的实现仍然允许 qitu 自己在色值、线条、阴影和 tab alignment 上发生漂移。作为 startup kit，qitu 应在视觉系统层完整保留已验证的源设计系统，只翻译命名、路由和产品语义。
+之前的实现仍然允许 qitu 在色值、线条、阴影和 tab alignment 上发生漂移。作为 startup kit，qitu 应通过 canonical tokens、shared utilities 与 business-neutral component contracts 保留同一套稳定视觉系统。
 
 ### Surface Hierarchy Contract
 
@@ -329,16 +329,16 @@ Decision:
 
 规则：
 
-1. 普通页面 panel 使用 `.qitu-surface`，对应 `--surface-panel`、`--surface-panel-border` 与轻微 inset highlight。
-2. 内嵌 row、metric、guardrail、timeline、empty/data state 使用 `.qitu-surface-subtle`，对应 `--surface-row` 与 `--surface-row-border`。
-3. Hover 与 selected state 使用 `--surface-row-hover`、`--surface-row-active` 与 `--shadow-active-ring`；页面代码不再临时发明 active row shadow。
+1. 普通页面 panel 使用 `.qitu-surface`，对应 `--qitu-surface-panel`、`--qitu-surface-panel-border` 与轻微 inset highlight。
+2. 内嵌 row、metric、guardrail、timeline、empty/data state 使用 `.qitu-surface-subtle`，对应 `--qitu-surface-row` 与 `--qitu-surface-row-border`。
+3. Hover 与 selected state 使用 `--qitu-surface-row-hover`、`--qitu-surface-row-active` 与 `--qitu-shadow-active-ring`；页面代码不再临时发明 active row shadow。
 4. Form、只读 row、table cell、icon chip、badge、segment tab、skeleton 和 button 消费共享 row/control tokens，而不是直接选择 `surface-glass` 或 `surface-elevated`。
-5. Search dialog、popover、user panel 额外使用 `.qitu-overlay-surface`，对应 `--popover` 与 `--shadow-overlay`；普通 panel 不使用 overlay shadow。
-6. Shell 与 overlay 层级使用 `--z-shell`、`--z-shell-front`、`--z-overlay-backdrop` 与 `--z-overlay`，不使用页面内局部 z-index 数字。
+5. Search dialog、popover、user panel 额外使用 `.qitu-overlay-surface`，对应 `--qitu-color-popover` 与 `--qitu-shadow-overlay`；普通 panel 不使用 overlay shadow。
+6. Shell 与 overlay 层级使用 `--qitu-z-shell`、`--qitu-z-shell-front`、`--qitu-z-overlay-backdrop` 与 `--qitu-z-overlay`，不使用页面内局部 z-index 数字。
 
 原因：
 
-第一轮 oodon parity 修正了 topbar 结构，但 card、row、field、shadow 和 overlay 仍然存在视觉漂移。Startup kit 需要可扫描、可复用、可执行的 UI 语义，而不是逐页近似同一套视觉效果。
+第一轮 visual parity 修正了 topbar 结构，但 card、row、field、shadow 和 overlay 仍然存在视觉漂移。Startup kit 需要可扫描、可复用、可执行的 UI 语义，而不是逐页近似同一套视觉效果。
 
 ### Tonal-First Surface Flattening
 
@@ -356,7 +356,27 @@ Decision:
 
 原因：
 
-第一轮 light/dark parity 之后仍然有过多可见描边，尤其在 light mode 中，panel、row 与 page background 都过于接近白色。业务中立 startup kit 应默认继承 oodon 式扁平层级模型，让后续 app-owned 页面自然复用同一套安静的层级，而不是逐页调 border。
+第一轮 light/dark parity 之后仍然有过多可见描边，尤其在 light mode 中，panel、row 与 page background 都过于接近白色。业务中立 startup kit 应默认使用 qitu 扁平层级模型，让后续 app-owned 页面自然复用同一套安静的层级，而不是逐页调 border。
+
+### Qitu Token Namespace Contract
+
+Decision:
+
+将 `--qitu-*` 作为 qitu design system 的 canonical CSS custom property 命名空间。
+
+规则：
+
+1. Reusable packages 与 app 页面必须消费 canonical `--qitu-*` tokens。
+2. 不定义、不消费 non-qitu custom properties。
+3. 新 token 必须进入三层之一：primitive、semantic 或 component。
+4. Primitive tokens 定义 raw scale、color、radius、layout、z-index、chroma 与 motion values。
+5. Semantic tokens 定义 background、surface、text、state、focus、shadow、type 与 motion intent。
+6. Component tokens 定义 topbar、control、input、overlay、table、chart 与 app-shell affordance。
+7. 对外 reusable docs 与 package contracts 必须使用 qitu-owned names，不使用 non-qitu names。
+
+原因：
+
+Startup kit 需要一套可增长的 token system，避免继续泄漏页面级色值、non-qitu names 或含义不清的 alias。qitu-owned namespace 可以让未来扩展更明确，并让 clone 出来的应用默认保持最新 contract。
 
 ## Pending
 

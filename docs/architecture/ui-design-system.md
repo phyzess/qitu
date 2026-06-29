@@ -59,6 +59,16 @@ packages/charts
 6. Radius.
 7. Theme variables.
 
+Canonical token names use the `--qitu-*` namespace. The design-system package
+must not define non-qitu custom properties; reusable qitu packages and app pages
+should consume canonical `--qitu-*` tokens directly.
+
+Token families are layered as three groups:
+
+1. Primitive tokens: scale, space, radius, layout, z-index, chroma, and raw color.
+2. Semantic tokens: background, surfaces, text, state, focus, shadow, type, and motion.
+3. Component tokens: topbar, control, input, overlay, table, chart, and app shell affordances.
+
 `packages/charts` owns:
 
 1. Time series.
@@ -103,7 +113,7 @@ Shell interaction rules:
 5. Authenticated account controls open a user panel with profile, RBAC role, user management entry when permitted, theme switching, and logout.
 6. Theme switching is token-driven and supports light, dark, and system preferences without changing reusable package semantics.
 7. Desktop route navigation must not use a side rail or sidebar. A drawer may exist only as a compact/mobile disclosure pattern.
-8. Desktop primary navigation follows the oodon system shape: icon-only main route buttons, a compact active underline, then a divider and adjacent active/hover live label.
+8. Desktop primary navigation follows the qitu route-control shape: icon-only main route buttons, a compact active underline, then a divider and adjacent active/hover live label.
 9. Under constrained width, primary navigation remains pure icon and may hide the adjacent live label.
 10. Secondary route tabs are text-only with an active underline.
 11. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
@@ -112,38 +122,38 @@ Shell interaction rules:
 Visual extraction rules:
 
 1. qitu keeps its own business-neutral token names and component contracts.
-2. oodon is the reference for the non-business visual layer: OKLCH purple-gray neutrals, compact controls, soft chroma status colors, thin lines, and restrained shadows.
-3. Primary surfaces use the shared hierarchy tokens: `--surface-panel`, `--surface-row`, `--surface-row-hover`, `--surface-row-active`, `--surface-field`, and `--popover`; app pages should not hard-code RGB overlays or one-off surface colors.
-4. Controls follow the 28/32/36px scale with `--radius-control` and shared focus rings.
+2. The qitu visual layer uses OKLCH purple-gray neutrals, compact controls, soft chroma status colors, thin lines, and restrained shadows.
+3. Primary surfaces use the shared hierarchy tokens: `--qitu-surface-panel`, `--qitu-surface-row`, `--qitu-surface-row-hover`, `--qitu-surface-row-active`, `--qitu-surface-field`, and `--qitu-color-popover`; app pages should not hard-code RGB overlays or one-off surface colors.
+4. Controls follow the 28/32/36px scale with `--qitu-radius-control` and shared focus rings.
 5. Shadows are reserved for overlays or active affordances. Most cards use tonal surface fill; visible lines are reserved for controls, overlays, focus, and table separators.
 6. Icon chips, avatar/initial triggers, form fields, list actions, table cells, and overlay backdrops should use shared `packages/ui` utilities instead of page-local Tailwind recipes.
 
 Surface hierarchy rules:
 
-1. App background uses a uniform `--bg` family through `--app-bg-gradient`; topbar uses the same tonal family and does not add a divider or shadow.
-2. Ordinary page panels use `.qitu-surface`: `--surface-panel` and transparent structural borders by default.
-3. Nested metrics, list rows, guardrails, timeline items, and data states use `.qitu-surface-subtle`: `--surface-row` and transparent structural borders by default.
-4. Hover moves nested rows to `--surface-row-hover`; selected or active rows move to `--surface-row-active` plus `--shadow-active-ring`.
-5. Form controls use `--input-bg`, `--input-border`, and `--shadow-focus-ring`; read-only fields use row fill without visible borders unless they are focused or active.
+1. App background uses a uniform `--qitu-bg` family through `--qitu-app-bg-gradient`; topbar uses the same tonal family and does not add a divider or shadow.
+2. Ordinary page panels use `.qitu-surface`: `--qitu-surface-panel` and transparent structural borders by default.
+3. Nested metrics, list rows, guardrails, timeline items, and data states use `.qitu-surface-subtle`: `--qitu-surface-row` and transparent structural borders by default.
+4. Hover moves nested rows to `--qitu-surface-row-hover`; selected or active rows move to `--qitu-surface-row-active` plus `--qitu-shadow-active-ring`.
+5. Form controls use `--qitu-input-bg`, `--qitu-input-border`, and `--qitu-shadow-focus-ring`; read-only fields use row fill without visible borders unless they are focused or active.
 6. Review table cells use the same row surface as list rows. Table structure may use spacing and radius, not separate local shadows.
-7. Search dialogs, popovers, and user panels add `.qitu-overlay-surface`, using `--popover` and `--shadow-overlay`; ordinary page panels must not use overlay shadows.
-8. Layering uses `--z-shell`, `--z-shell-front`, `--z-overlay-backdrop`, and `--z-overlay` rather than page-local z-index numbers.
+7. Search dialogs, popovers, and user panels add `.qitu-overlay-surface`, using `--qitu-color-popover` and `--qitu-shadow-overlay`; ordinary page panels must not use overlay shadows.
+8. Layering uses `--qitu-z-shell`, `--qitu-z-shell-front`, `--qitu-z-overlay-backdrop`, and `--qitu-z-overlay` rather than page-local z-index numbers.
 
 Control refinement rules:
 
 1. Topbar actions share a 36px control track. Search is icon-only when compact and becomes icon + truncated label + 20px keyboard shortcut at wide widths.
-2. Keyboard shortcut chips use a shared kbd style: 20px tall, mono 10px text, tabular numbers, `--radius-control`, and tonal surface background.
+2. Keyboard shortcut chips use a shared kbd style: 20px tall, mono 10px text, tabular numbers, `--qitu-radius-control`, and tonal surface background.
 3. Pure icon buttons are used for repeated tools such as refresh and theme. Text + icon is reserved for commands whose meaning is not obvious from the icon alone.
 4. The authenticated user trigger is a 36px identity control with a 32px avatar or initial and a chevron. User actions stay inside the panel.
-5. Form inputs and selects use the 32px control height, `--radius-control`, `--input-bg`, `--input-border`, compact control typography, and the shared focus ring.
+5. Form inputs and selects use the 32px control height, `--qitu-radius-control`, `--qitu-input-bg`, `--qitu-input-border`, compact control typography, and the shared focus ring.
 6. Read-only account/runtime rows use a shared label/value field grid, not ad hoc flex rows. Values must truncate, align consistently, and use tabular number styling when appropriate.
 
-Oodon parity rules:
+Qitu token and visual-system rules:
 
-1. qitu design tokens mirror oodon's semantic color tree first, then expose qitu compatibility aliases such as `--bg`, `--text`, `--line`, and `--surface`.
-2. Topbar primary navigation uses oodon's icon-button route controls plus a divider and live label. Do not put route text inside the primary buttons.
-3. Ordinary panels use oodon-style tone separation through `--surface-panel`, `--surface-row`, and `--surface-row-active`; avoid page-local borders or shadows unless elevation communicates an overlay or active state.
-4. Active topbar indicators use the same chroma token as oodon. Do not introduce page-local underline colors.
+1. Canonical tokens use the `--qitu-*` namespace; non-qitu custom properties must not be defined or consumed.
+2. Topbar primary navigation uses qitu icon-button route controls plus a divider and live label. Do not put route text inside the primary buttons.
+3. Ordinary panels use qitu tone separation through `--qitu-surface-panel`, `--qitu-surface-row`, and `--qitu-surface-row-active`; avoid page-local borders or shadows unless elevation communicates an overlay or active state.
+4. Active topbar indicators use `--qitu-chroma-active`; do not introduce page-local underline colors.
 5. Topbar does not draw a bottom separator line; content separation comes from spacing and surface tone.
 
 Responsive rules:
@@ -173,11 +183,11 @@ Responsive rules:
 Default font tokens:
 
 ```text
---font-ui
---font-doc
---font-reading
---font-number
---font-mono
+--qitu-font-ui
+--qitu-font-doc
+--qitu-font-reading
+--qitu-font-number
+--qitu-font-mono
 ```
 
 Recommended defaults:

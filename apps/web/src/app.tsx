@@ -726,7 +726,7 @@ export function App() {
         subNavigation={navigationModel.subNavigation}
       >
         <Panel>
-          <div className="text-sm text-[var(--color-text-muted)]">Loading session...</div>
+          <div className="text-sm text-[var(--qitu-muted)]">Loading session...</div>
         </Panel>
       </AppShell>
     );
@@ -817,7 +817,7 @@ export function App() {
                 <StatusBadge tone="warning">local demo</StatusBadge>
                 <h1 className="mt-3 text-xl font-semibold tracking-normal">Reviewer access</h1>
               </div>
-              <LockKeyhole size={18} className="text-[var(--color-accent)]" />
+              <LockKeyhole size={18} className="text-[var(--qitu-green)]" />
             </div>
 
             <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
@@ -1112,10 +1112,10 @@ function ShellActions(props: {
         variant="ghost"
         onClick={props.onOpenUserPanel}
       >
-        <span className="qitu-avatar-mark size-8 text-[length:var(--text-label-12)] font-semibold">
+        <span className="qitu-avatar-mark size-8 text-[length:var(--qitu-text-label-12)] font-semibold">
           {initial}
         </span>
-        <ChevronDown size={14} className="text-[var(--dim)]" />
+        <ChevronDown size={14} className="text-[var(--qitu-dim)]" />
       </Button>
     </>
   );

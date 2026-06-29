@@ -11,13 +11,13 @@ export type StatusBadgeTone =
   | "info";
 
 const toneClass: Record<StatusBadgeTone, string> = {
-  neutral: "bg-[var(--surface-row-active)] text-[var(--muted)]",
-  active: "bg-[var(--chroma-lime-soft)] text-[var(--chroma-lime-ink)]",
-  success: "bg-[var(--chroma-lime-soft)] text-[var(--chroma-lime-ink)]",
-  warning: "bg-[var(--chroma-pink-soft)] text-[var(--chroma-pink-ink)]",
-  danger: "bg-[var(--danger-soft)] text-[var(--red)]",
-  review: "bg-[var(--chroma-lilac-soft)] text-[var(--chroma-lilac-ink)]",
-  info: "bg-[var(--chroma-lilac-soft)] text-[var(--chroma-lilac-ink)]",
+  neutral: "bg-[var(--qitu-surface-row-active)] text-[var(--qitu-muted)]",
+  active: "bg-[var(--qitu-chroma-lime-soft)] text-[var(--qitu-chroma-lime-ink)]",
+  success: "bg-[var(--qitu-chroma-lime-soft)] text-[var(--qitu-chroma-lime-ink)]",
+  warning: "bg-[var(--qitu-chroma-pink-soft)] text-[var(--qitu-chroma-pink-ink)]",
+  danger: "bg-[var(--qitu-danger-soft)] text-[var(--qitu-red)]",
+  review: "bg-[var(--qitu-chroma-lilac-soft)] text-[var(--qitu-chroma-lilac-ink)]",
+  info: "bg-[var(--qitu-chroma-lilac-soft)] text-[var(--qitu-chroma-lilac-ink)]",
 };
 
 export type StatusBadgeProps = {
@@ -30,7 +30,7 @@ export function StatusBadge({ children, className, tone = "neutral" }: StatusBad
   return (
     <span
       className={cn(
-        "inline-flex min-h-[22px] items-center rounded-[var(--radius-md)] px-[var(--o3)] py-[var(--o0)] text-[10px] font-medium leading-4",
+        "inline-flex min-h-[22px] items-center rounded-[var(--qitu-radius-md)] px-[var(--qitu-space-o3)] py-[var(--qitu-space-o0)] text-[10px] font-medium leading-4",
         toneClass[tone],
         className,
       )}

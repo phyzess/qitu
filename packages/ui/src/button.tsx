@@ -3,19 +3,21 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "./utils";
 
 const buttonStyles = cva(
-  "qitu-button-press inline-flex cursor-pointer items-center justify-center gap-[var(--o2)] whitespace-nowrap rounded-[var(--radius-control)] text-[length:var(--text-button-12)] font-medium leading-[var(--leading-button)] transition-[background-color,color,opacity,transform,box-shadow] duration-[var(--motion-fast)] ease-[var(--ease-standard)] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 [&>svg]:-translate-y-px [&>svg]:shrink-0",
+  "qitu-button-press inline-flex cursor-pointer items-center justify-center gap-[var(--qitu-space-o2)] whitespace-nowrap rounded-[var(--qitu-radius-control)] text-[length:var(--qitu-text-button-12)] font-medium leading-[var(--qitu-leading-button)] transition-[background-color,color,opacity,transform,box-shadow] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qitu-color-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qitu-bg)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 [&>svg]:-translate-y-px [&>svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90",
-        secondary: "bg-[var(--surface-row-active)] text-[var(--text)] hover:bg-[var(--accent)]",
+        primary:
+          "bg-[var(--qitu-color-primary)] text-[var(--qitu-color-primary-foreground)] hover:opacity-90",
+        secondary:
+          "bg-[var(--qitu-surface-row-active)] text-[var(--qitu-text)] hover:bg-[var(--qitu-color-accent)]",
         ghost:
-          "bg-transparent text-[var(--muted)] hover:bg-[var(--control-hover-bg)] hover:text-[var(--text)]",
+          "bg-transparent text-[var(--qitu-muted)] hover:bg-[var(--qitu-control-hover-bg)] hover:text-[var(--qitu-text)]",
       },
       size: {
-        sm: "h-7 px-[var(--o3)]",
-        md: "h-8 px-[var(--o3)]",
-        lg: "h-9 px-[var(--o4)]",
+        sm: "h-7 px-[var(--qitu-space-o3)]",
+        md: "h-8 px-[var(--qitu-space-o3)]",
+        lg: "h-9 px-[var(--qitu-space-o4)]",
       },
     },
     defaultVariants: {

@@ -13,5 +13,5 @@ body {
 }
 
 ::selection {
-  background: var(--chroma-lime-soft);
+  background: var(--qitu-chroma-lime-soft);
 }

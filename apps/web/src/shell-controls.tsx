@@ -95,11 +95,11 @@ export function WorkspaceSearchDialog(props: {
         role="dialog"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-3 bg-[var(--surface-row)] px-[var(--s1)] py-[var(--s0)]">
-          <Search aria-hidden="true" className="shrink-0 text-[var(--dim)]" size={16} />
+        <div className="flex items-center gap-3 bg-[var(--qitu-surface-row)] px-[var(--qitu-space-s1)] py-[var(--qitu-space-s0)]">
+          <Search aria-hidden="true" className="shrink-0 text-[var(--qitu-dim)]" size={16} />
           <input
             ref={inputRef}
-            className="h-10 min-w-0 flex-1 bg-transparent text-[length:var(--text-copy-14)] text-[var(--text)] outline-none placeholder:text-[var(--dim)]"
+            className="h-10 min-w-0 flex-1 bg-transparent text-[length:var(--qitu-text-copy-14)] text-[var(--qitu-text)] outline-none placeholder:text-[var(--qitu-dim)]"
             placeholder="Search routes, source files, jobs, users, or audit events"
             value={props.query}
             onChange={(event) => props.onQueryChange(event.target.value)}
@@ -117,7 +117,7 @@ export function WorkspaceSearchDialog(props: {
         </div>
         <div className="max-h-[min(520px,62vh)] overflow-y-auto p-2">
           {filteredEntries.length === 0 ? (
-            <div className="grid min-h-28 place-items-center px-4 py-6 text-center text-[length:var(--text-copy-13)] text-[var(--muted)]">
+            <div className="grid min-h-28 place-items-center px-4 py-6 text-center text-[length:var(--qitu-text-copy-13)] text-[var(--qitu-muted)]">
               No matching workspace item
             </div>
           ) : (
@@ -138,14 +138,14 @@ export function WorkspaceSearchDialog(props: {
                     <Search size={14} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+                    <span className="block truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
                       {entry.label}
                     </span>
-                    <span className="block truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+                    <span className="block truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
                       {entry.group} / {entry.description}
                     </span>
                   </span>
-                  <ArrowRight className="shrink-0 text-[var(--dim)]" size={14} />
+                  <ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />
                 </button>
               ))}
             </div>
@@ -181,18 +181,18 @@ export function UserPanel(props: {
       <section
         aria-label="User panel"
         aria-modal="true"
-        className="qitu-surface qitu-overlay-surface fixed right-[var(--gutter)] top-[calc(var(--bar)+var(--s2))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
+        className="qitu-surface qitu-overlay-surface fixed right-[var(--qitu-layout-gutter)] top-[calc(var(--qitu-size-bar)+var(--qitu-space-s2))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
         role="dialog"
       >
-        <div className="flex items-start gap-3 bg-[var(--surface-row)] p-[var(--s1)]">
-          <div className="qitu-avatar-mark size-10 shrink-0 text-[length:var(--text-label-14)] font-semibold">
+        <div className="flex items-start gap-3 bg-[var(--qitu-surface-row)] p-[var(--qitu-space-s1)]">
+          <div className="qitu-avatar-mark size-10 shrink-0 text-[length:var(--qitu-text-label-14)] font-semibold">
             {initial}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[length:var(--text-label-14)] font-semibold leading-[var(--leading-label-14)]">
+            <div className="truncate text-[length:var(--qitu-text-label-14)] font-semibold leading-[var(--qitu-leading-label-14)]">
               {displayName}
             </div>
-            <div className="truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+            <div className="truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
               {props.user.email}
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -234,11 +234,11 @@ export function UserPanel(props: {
             />
           ) : null}
           <div className="px-2 py-1">
-            <div className="truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+            <div className="truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
               {props.notice}
             </div>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-row)] px-2 py-2">
+          <div className="mt-1 flex items-center justify-between gap-2 rounded-[var(--qitu-radius-md)] bg-[var(--qitu-surface-row)] px-2 py-2">
             <ThemeToggleButton />
             <Button size="sm" variant="ghost" onClick={props.onLogout}>
               <LogOut size={15} /> Logout
@@ -260,14 +260,14 @@ function PanelAction(props: {
     <button className="qitu-panel-action w-full text-left" type="button" onClick={props.onClick}>
       <span className="qitu-icon-chip size-8">{props.icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+        <span className="block truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.label}
         </span>
-        <span className="block truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <span className="block truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {props.description}
         </span>
       </span>
-      <ArrowRight className="shrink-0 text-[var(--dim)]" size={14} />
+      <ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />
     </button>
   );
 }

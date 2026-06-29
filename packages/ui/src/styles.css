@@ -2,18 +2,18 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 100dvh;
-  background: var(--app-bg-gradient), var(--bg);
-  color: var(--text);
+  background: var(--qitu-app-bg-gradient), var(--qitu-bg);
+  color: var(--qitu-text);
 }
 
 .qitu-topbar {
   position: sticky;
   top: 0;
-  z-index: var(--z-shell);
+  z-index: var(--qitu-z-shell);
   display: flex;
   flex-direction: column;
-  padding: var(--o4) var(--o5) var(--o4) 0;
-  background: var(--topbar-bg);
+  padding: var(--qitu-space-o4) var(--qitu-space-o5) var(--qitu-space-o4) 0;
+  background: var(--qitu-topbar-bg);
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(1.18);
 }
@@ -23,7 +23,7 @@
   display: flex;
   min-width: 0;
   align-items: flex-start;
-  gap: var(--o4);
+  gap: var(--qitu-space-o4);
   min-height: 68px;
 }
 
@@ -34,11 +34,11 @@
   flex: 0 0 76px;
   min-width: 0;
   align-items: center;
-  gap: var(--o4);
-  padding-inline: var(--o4) 0;
+  gap: var(--qitu-space-o4);
+  padding-inline: var(--qitu-space-o4) 0;
   transition:
-    width var(--motion-panel) var(--ease-enter),
-    flex-basis var(--motion-panel) var(--ease-enter);
+    width var(--qitu-motion-panel) var(--qitu-ease-enter),
+    flex-basis var(--qitu-motion-panel) var(--qitu-ease-enter);
 }
 
 .qitu-brand-mark {
@@ -46,8 +46,8 @@
   width: 44px;
   height: 44px;
   flex: none;
-  border-radius: var(--radius-control);
-  background: var(--control-bg);
+  border-radius: var(--qitu-radius-control);
+  background: var(--qitu-control-bg);
   box-shadow: none;
 }
 
@@ -55,7 +55,7 @@
   position: absolute;
   inset: 34%;
   border-radius: inherit;
-  background: var(--text);
+  background: var(--qitu-text);
   content: "";
 }
 
@@ -69,10 +69,10 @@
   display: block;
   max-width: 68px;
   overflow: hidden;
-  color: var(--text);
-  font-size: var(--text-button-12);
+  color: var(--qitu-text);
+  font-size: var(--qitu-text-button-12);
   font-weight: 500;
-  line-height: var(--leading-button);
+  line-height: var(--qitu-leading-button);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -81,9 +81,9 @@
   display: none !important;
   min-width: 0;
   overflow: hidden;
-  color: var(--dim);
-  font-size: var(--text-label-12);
-  line-height: var(--leading-label-12);
+  color: var(--qitu-dim);
+  font-size: var(--qitu-text-label-12);
+  line-height: var(--qitu-leading-label-12);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -91,13 +91,13 @@
 .qitu-navigation-stack {
   position: absolute;
   top: 0;
-  left: calc(50% + var(--o5) / 2);
+  left: calc(50% + var(--qitu-space-o5) / 2);
   display: flex;
   min-width: 0;
   flex: 0 1 auto;
   flex-direction: column;
   align-items: center;
-  gap: var(--o1);
+  gap: var(--qitu-space-o1);
   justify-content: flex-start;
   transform: translateX(-50%);
 }
@@ -119,8 +119,8 @@
   min-width: max-content;
   height: 40px;
   align-items: center;
-  gap: var(--o2);
-  padding-inline: var(--o1);
+  gap: var(--qitu-space-o2);
+  padding-inline: var(--qitu-space-o1);
 }
 
 .qitu-primary-button {
@@ -131,31 +131,31 @@
   height: 32px;
   place-items: center;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--qitu-radius-md);
   padding: 0;
-  color: var(--muted);
+  color: var(--qitu-muted);
   background: transparent;
-  font-size: var(--text-label-13);
-  line-height: var(--leading-label-13);
+  font-size: var(--qitu-text-label-13);
+  line-height: var(--qitu-leading-label-13);
   text-decoration: none;
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-page) var(--ease-route);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard),
+    color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    transform var(--qitu-motion-page) var(--qitu-ease-route);
 }
 
 .qitu-primary-button:hover,
 .qitu-primary-button:focus-visible,
 .qitu-primary-button[data-active="true"] {
-  color: var(--text);
+  color: var(--qitu-text);
   background: transparent;
   outline: none;
 }
 
 .qitu-primary-button:hover,
 .qitu-primary-button:focus-visible {
-  background: var(--control-hover-bg);
+  background: var(--qitu-control-hover-bg);
 }
 
 .qitu-primary-button::after {
@@ -165,13 +165,13 @@
   left: calc(50% - 4px);
   height: 1px;
   border-radius: 999px;
-  background: var(--chroma-pink-ink);
+  background: var(--qitu-chroma-pink-ink);
   opacity: 0;
   content: "";
   transform: scaleX(0.42);
   transition:
-    opacity var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard);
+    opacity var(--qitu-motion-fast) var(--qitu-ease-standard),
+    transform var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-primary-button[data-active="true"]::after {
@@ -197,28 +197,28 @@
 }
 
 .qitu-primary-fallback {
-  font-size: var(--text-label-12);
+  font-size: var(--qitu-text-label-12);
   font-weight: 650;
 }
 
 .qitu-primary-divider {
   width: 1px;
   height: 16px;
-  margin-left: var(--o1);
-  background: color-mix(in oklch, var(--line) 60%, transparent);
+  margin-left: var(--qitu-space-o1);
+  background: color-mix(in oklch, var(--qitu-line) 60%, transparent);
 }
 
 .qitu-primary-live-label {
   width: 5.5rem;
   min-width: 5.5rem;
   overflow: hidden;
-  color: color-mix(in oklch, var(--text) 82%, transparent);
-  font-size: var(--text-label-12);
+  color: color-mix(in oklch, var(--qitu-text) 82%, transparent);
+  font-size: var(--qitu-text-label-12);
   line-height: 1;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color var(--motion-fast) var(--ease-standard);
+  transition: color var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-topbar-actions {
@@ -226,10 +226,10 @@
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--o3);
+  gap: var(--qitu-space-o3);
   margin-left: auto;
   position: relative;
-  z-index: var(--z-shell-front);
+  z-index: var(--qitu-z-shell-front);
 }
 
 .qitu-command {
@@ -239,18 +239,18 @@
   place-items: center;
   align-items: center;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--qitu-radius-md);
   padding: 0;
-  color: var(--dim);
-  background: var(--bg);
+  color: var(--qitu-dim);
+  background: var(--qitu-bg);
   box-shadow: none;
-  font-size: var(--text-button-12);
-  line-height: var(--leading-button);
+  font-size: var(--qitu-text-button-12);
+  line-height: var(--qitu-leading-button);
   text-align: left;
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-command-label,
@@ -264,8 +264,8 @@ button.qitu-command {
 
 .qitu-command:hover,
 .qitu-command:focus-visible {
-  color: var(--text);
-  background: var(--control-hover-bg);
+  color: var(--qitu-text);
+  background: var(--qitu-control-hover-bg);
   outline: none;
   box-shadow: none;
 }
@@ -275,9 +275,9 @@ button.qitu-command {
   min-width: 0;
   max-width: 100%;
   justify-content: center;
-  gap: var(--o4);
+  gap: var(--qitu-space-o4);
   overflow-x: auto;
-  padding-bottom: var(--o0);
+  padding-bottom: var(--qitu-space-o0);
   scrollbar-width: none;
 }
 
@@ -288,33 +288,33 @@ button.qitu-command {
   height: 24px;
   border: 0;
   border-radius: 0;
-  padding: 0 0 var(--o1);
-  color: color-mix(in oklch, var(--muted) 72%, transparent);
+  padding: 0 0 var(--qitu-space-o1);
+  color: color-mix(in oklch, var(--qitu-muted) 72%, transparent);
   background: transparent;
-  font-size: var(--text-label-12);
-  line-height: var(--leading-label-12);
+  font-size: var(--qitu-text-label-12);
+  line-height: var(--qitu-leading-label-12);
   text-decoration: none;
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-subnav-button:hover,
 .qitu-subnav-button:focus-visible,
 .qitu-subnav-button[data-active="true"] {
-  color: color-mix(in oklch, var(--text) 88%, transparent);
+  color: color-mix(in oklch, var(--qitu-text) 88%, transparent);
   background: transparent;
   outline: none;
 }
 
 .qitu-subnav-button[data-active="true"] {
-  box-shadow: inset 0 -1px 0 var(--chroma-pink-ink);
+  box-shadow: inset 0 -1px 0 var(--qitu-chroma-pink-ink);
 }
 
 .qitu-main {
   min-width: 0;
-  padding: var(--gutter);
+  padding: var(--qitu-layout-gutter);
 }
 
 @media (min-width: 1536px) {
@@ -329,15 +329,15 @@ button.qitu-command {
 
   .qitu-command {
     grid-template-columns: 1.18em minmax(0, 1fr) auto;
-    gap: var(--o4);
+    gap: var(--qitu-space-o4);
     align-items: center;
     justify-items: start;
     width: clamp(360px, 24vw, 480px);
     min-width: 320px;
     max-width: min(480px, 32vw);
-    border-radius: var(--radius-search);
-    padding-inline: var(--o4);
-    background: var(--bg);
+    border-radius: var(--qitu-radius-search);
+    padding-inline: var(--qitu-space-o4);
+    background: var(--qitu-bg);
     box-shadow: none;
   }
 
@@ -349,7 +349,7 @@ button.qitu-command {
   .qitu-command-label {
     min-width: 0;
     overflow: hidden;
-    color: color-mix(in oklch, var(--muted) 86%, transparent);
+    color: color-mix(in oklch, var(--qitu-muted) 86%, transparent);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -358,42 +358,42 @@ button.qitu-command {
 .qitu-topbar-control {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-md);
+  border-radius: var(--qitu-radius-md);
   padding-inline: 0;
-  background: var(--bg);
-  color: var(--muted);
+  background: var(--qitu-bg);
+  color: var(--qitu-muted);
   box-shadow: none;
 }
 
 .qitu-topbar-control:hover,
 .qitu-topbar-control:focus-visible {
-  background: var(--control-hover-bg);
-  color: var(--text);
+  background: var(--qitu-control-hover-bg);
+  color: var(--qitu-text);
 }
 
 .qitu-account-trigger {
   width: auto;
   min-width: 74px;
   height: 36px;
-  gap: var(--o3);
-  padding-inline: var(--o4);
-  background: var(--bg);
-  color: var(--text);
-  border-radius: var(--radius-lg);
+  gap: var(--qitu-space-o3);
+  padding-inline: var(--qitu-space-o4);
+  background: var(--qitu-bg);
+  color: var(--qitu-text);
+  border-radius: var(--qitu-radius-lg);
   box-shadow: none;
 }
 
 .qitu-account-trigger:hover,
 .qitu-account-trigger:focus-visible {
-  background: var(--control-hover-bg);
+  background: var(--qitu-control-hover-bg);
 }
 
 .qitu-avatar-mark {
   display: grid;
   place-items: center;
-  border-radius: var(--radius-md);
-  background: var(--primary);
-  color: var(--primary-foreground);
+  border-radius: var(--qitu-radius-md);
+  background: var(--qitu-color-primary);
+  color: var(--qitu-color-primary-foreground);
   box-shadow: none;
 }
 
@@ -401,27 +401,27 @@ button.qitu-command {
   display: grid;
   place-items: center;
   flex: none;
-  border-radius: var(--radius-md);
-  background: var(--surface-row-active);
-  color: var(--chroma-lime-ink);
-  box-shadow: var(--shadow-inset);
+  border-radius: var(--qitu-radius-md);
+  background: var(--qitu-surface-row-active);
+  color: var(--qitu-chroma-lime-ink);
+  box-shadow: var(--qitu-shadow-inset);
 }
 
 .qitu-overlay-backdrop {
-  z-index: var(--z-overlay-backdrop);
-  background: var(--overlay-backdrop);
+  z-index: var(--qitu-z-overlay-backdrop);
+  background: var(--qitu-overlay-backdrop);
   backdrop-filter: blur(8px) saturate(1.05);
 }
 
 .qitu-dismiss-layer {
-  z-index: var(--z-overlay-backdrop);
+  z-index: var(--qitu-z-overlay-backdrop);
 }
 
 .qitu-surface.qitu-overlay-surface {
-  z-index: var(--z-overlay);
-  border: 1px solid color-mix(in oklch, var(--line) 58%, transparent);
-  background: var(--popover);
-  box-shadow: var(--shadow-overlay);
+  z-index: var(--qitu-z-overlay);
+  border: 1px solid color-mix(in oklch, var(--qitu-line) 58%, transparent);
+  background: var(--qitu-color-popover);
+  box-shadow: var(--qitu-shadow-overlay);
 }
 
 .qitu-field-control {
@@ -429,37 +429,37 @@ button.qitu-command {
   width: 100%;
   height: 2rem;
   min-height: 2rem;
-  border: 1px solid color-mix(in oklch, var(--input-border) 72%, transparent);
-  border-radius: var(--radius-control);
-  padding-inline: var(--o3);
-  color: var(--text);
-  background: var(--input-bg);
-  font-size: var(--text-button-12);
-  line-height: var(--leading-button);
+  border: 1px solid color-mix(in oklch, var(--qitu-input-border) 72%, transparent);
+  border-radius: var(--qitu-radius-control);
+  padding-inline: var(--qitu-space-o3);
+  color: var(--qitu-text);
+  background: var(--qitu-input-bg);
+  font-size: var(--qitu-text-button-12);
+  line-height: var(--qitu-leading-button);
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    border-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-field-control::placeholder {
-  color: color-mix(in oklch, var(--muted) 58%, transparent);
+  color: color-mix(in oklch, var(--qitu-muted) 58%, transparent);
 }
 
 .qitu-field-control:focus {
-  border-color: color-mix(in oklch, var(--ring) 50%, var(--line));
-  background: var(--surface);
-  box-shadow: var(--shadow-focus-ring);
+  border-color: color-mix(in oklch, var(--qitu-color-ring) 50%, var(--qitu-line));
+  background: var(--qitu-surface);
+  box-shadow: var(--qitu-shadow-focus-ring);
   outline: none;
 }
 
 .qitu-field-control::file-selector-button {
   height: calc(2rem - 2px);
-  margin: 0 var(--o3) 0 calc(var(--o3) * -1);
+  margin: 0 var(--qitu-space-o3) 0 calc(var(--qitu-space-o3) * -1);
   border: 0;
-  border-right: 1px solid color-mix(in oklch, var(--line) 52%, transparent);
-  padding-inline: var(--o3);
-  color: var(--muted);
+  border-right: 1px solid color-mix(in oklch, var(--qitu-line) 52%, transparent);
+  padding-inline: var(--qitu-space-o3);
+  color: var(--qitu-muted);
   background: transparent;
   font: inherit;
 }
@@ -467,37 +467,37 @@ button.qitu-command {
 .qitu-segment-tab {
   height: 2rem;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  color: var(--muted);
+  border-radius: var(--qitu-radius-sm);
+  color: var(--qitu-muted);
   background: transparent;
-  font-size: var(--text-label-13);
-  line-height: var(--leading-label-13);
+  font-size: var(--qitu-text-label-13);
+  line-height: var(--qitu-leading-label-13);
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    border-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard),
+    color var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-segment-track {
   border: 1px solid transparent;
-  border-radius: var(--radius-lg);
-  background: var(--surface-row);
-  padding: var(--o1);
+  border-radius: var(--qitu-radius-lg);
+  background: var(--qitu-surface-row);
+  padding: var(--qitu-space-o1);
 }
 
 .qitu-segment-tab:hover,
 .qitu-segment-tab:focus-visible {
-  color: var(--text);
-  background: var(--control-hover-bg);
+  color: var(--qitu-text);
+  background: var(--qitu-control-hover-bg);
   outline: none;
 }
 
 .qitu-segment-tab-active {
   border-color: transparent;
-  color: var(--text);
-  background: var(--surface-row-active);
-  box-shadow: var(--shadow-active-ring);
+  color: var(--qitu-text);
+  background: var(--qitu-surface-row-active);
+  box-shadow: var(--qitu-shadow-active-ring);
 }
 
 .qitu-form-field {
@@ -507,11 +507,11 @@ button.qitu-command {
 
 .qitu-form-label {
   display: block;
-  margin-bottom: var(--o2);
-  color: var(--text);
-  font-size: var(--text-button-12);
+  margin-bottom: var(--qitu-space-o2);
+  color: var(--qitu-text);
+  font-size: var(--qitu-text-button-12);
   font-weight: 500;
-  line-height: var(--leading-button);
+  line-height: var(--qitu-leading-button);
 }
 
 .qitu-command-kbd,
@@ -520,11 +520,11 @@ button.qitu-command {
   min-width: 20px;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-control);
-  padding: 0 var(--o2);
-  background: var(--surface-row-active);
-  color: var(--muted);
-  font-family: var(--font-mono);
+  border-radius: var(--qitu-radius-control);
+  padding: 0 var(--qitu-space-o2);
+  background: var(--qitu-surface-row-active);
+  color: var(--qitu-muted);
+  font-family: var(--qitu-font-mono);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -541,20 +541,20 @@ button.qitu-command {
   min-width: 0;
   grid-template-columns: minmax(6.5rem, 0.42fr) minmax(0, 1fr);
   align-items: center;
-  gap: var(--o3);
+  gap: var(--qitu-space-o3);
   border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  padding: var(--o2) var(--o4);
-  background: var(--surface-row);
+  border-radius: var(--qitu-radius-control);
+  padding: var(--qitu-space-o2) var(--qitu-space-o4);
+  background: var(--qitu-surface-row);
   box-shadow: none;
 }
 
 .qitu-readonly-label {
   min-width: 0;
   overflow: hidden;
-  color: var(--muted);
-  font-size: var(--text-button-12);
-  line-height: var(--leading-button);
+  color: var(--qitu-muted);
+  font-size: var(--qitu-text-button-12);
+  line-height: var(--qitu-leading-button);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -564,11 +564,11 @@ button.qitu-command {
   min-width: 0;
   justify-self: stretch;
   overflow: hidden;
-  color: var(--text);
-  font-family: var(--font-number);
-  font-size: var(--text-button-12);
+  color: var(--qitu-text);
+  font-family: var(--qitu-font-number);
+  font-size: var(--qitu-text-button-12);
   font-variant-numeric: tabular-nums;
-  line-height: var(--leading-button);
+  line-height: var(--qitu-leading-button);
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -577,63 +577,63 @@ button.qitu-command {
 .qitu-panel-action {
   display: flex;
   align-items: center;
-  gap: var(--o3);
+  gap: var(--qitu-space-o3);
   border: 0;
-  border-radius: var(--radius-md);
-  padding: var(--o3);
-  color: var(--text);
+  border-radius: var(--qitu-radius-md);
+  padding: var(--qitu-space-o3);
+  color: var(--qitu-text);
   background: transparent;
   transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard);
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard),
+    color var(--qitu-motion-fast) var(--qitu-ease-standard);
 }
 
 .qitu-panel-action:hover,
 .qitu-panel-action:focus-visible,
 .qitu-panel-action[data-active="true"] {
-  background: var(--surface-row-hover);
+  background: var(--qitu-surface-row-hover);
   outline: none;
 }
 
 .qitu-panel-action[data-active="true"],
 .qitu-row-card-active {
   border-color: transparent;
-  background: var(--surface-row-active);
-  box-shadow: var(--shadow-active-ring);
+  background: var(--qitu-surface-row-active);
+  box-shadow: var(--qitu-shadow-active-ring);
 }
 
 .qitu-table-cell {
-  background: var(--surface-row);
+  background: var(--qitu-surface-row);
   box-shadow: none;
 }
 
 .qitu-surface,
 .qitu-card {
   border: 1px solid transparent;
-  border-radius: var(--radius-card);
-  background: var(--surface-panel);
-  box-shadow: var(--surface-panel-highlight);
+  border-radius: var(--qitu-radius-card);
+  background: var(--qitu-surface-panel);
+  box-shadow: var(--qitu-surface-panel-highlight);
   backdrop-filter: blur(22px) saturate(1.16);
 }
 
 .qitu-surface-subtle {
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: var(--surface-row);
+  border-radius: var(--qitu-radius-md);
+  background: var(--qitu-surface-row);
   box-shadow: none;
   backdrop-filter: blur(18px) saturate(1.12);
 }
 
 .qitu-number {
-  font-family: var(--font-number);
+  font-family: var(--qitu-font-number);
   font-variant-numeric: tabular-nums;
 }
 
 .qitu-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--surface-row-hover);
+  background: var(--qitu-surface-row-hover);
 }
 
 .qitu-skeleton::after {
@@ -643,7 +643,7 @@ button.qitu-command {
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in oklch, var(--text) 8%, transparent),
+    color-mix(in oklch, var(--qitu-text) 8%, transparent),
     transparent
   );
   animation: qitu-shimmer 1.6s infinite;
@@ -658,15 +658,15 @@ button.qitu-command {
 
 @media (max-width: 1180px) {
   .qitu-topbar {
-    padding: var(--o4);
+    padding: var(--qitu-space-o4);
   }
 
   .qitu-topbar-main {
     flex-wrap: wrap;
     align-items: center;
-    row-gap: var(--o3);
+    row-gap: var(--qitu-space-o3);
     min-height: auto;
-    column-gap: var(--o4);
+    column-gap: var(--qitu-space-o4);
   }
 
   .qitu-brand-lockup {
@@ -712,7 +712,7 @@ button.qitu-command {
   }
 
   .qitu-main {
-    padding: var(--o4);
+    padding: var(--qitu-space-o4);
   }
 }
 
@@ -728,14 +728,14 @@ button.qitu-command {
   }
 
   .qitu-primary-nav-track {
-    gap: var(--o1);
+    gap: var(--qitu-space-o1);
   }
 
   .qitu-readonly-field {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--o0);
+    gap: var(--qitu-space-o0);
     align-items: start;
-    padding-block: var(--o3);
+    padding-block: var(--qitu-space-o3);
   }
 
   .qitu-readonly-value {

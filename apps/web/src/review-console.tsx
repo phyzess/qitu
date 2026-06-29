@@ -141,36 +141,36 @@ export function ReviewConsole(props: {
       subNavigation={props.subNavigation}
       onCommand={props.onCommand}
     >
-      <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.7fr)_minmax(280px,0.85fr)]">
-        <section className="space-y-[var(--gutter)]">
-          <Surface className="p-[var(--s1)]">
+      <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.7fr)_minmax(280px,0.85fr)]">
+        <section className="space-y-[var(--qitu-layout-gutter)]">
+          <Surface className="p-[var(--qitu-space-s1)]">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <StatusBadge tone="active">{props.user.email}</StatusBadge>
-                <h1 className="mt-3 truncate text-[length:var(--text-heading-20)] font-semibold leading-[var(--leading-heading-20)]">
+                <h1 className="mt-3 truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
                   Review console
                 </h1>
-                <div className="mt-1 text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--dim)]">
+                <div className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-dim)]">
                   {props.notice}
                 </div>
               </div>
-              <LockKeyhole size={17} className="shrink-0 text-[var(--chroma-lime-ink)]" />
+              <LockKeyhole size={17} className="shrink-0 text-[var(--qitu-chroma-lime-ink)]" />
             </div>
             {props.error ? <ErrorText>{props.error}</ErrorText> : null}
-            <MetricStrip className="mt-[var(--s1)]" items={metrics} />
-            <div className="mt-[var(--s1)] grid gap-[var(--s0)]">
+            <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
+            <div className="mt-[var(--qitu-space-s1)] grid gap-[var(--qitu-space-s0)]">
               <TimeSeriesChart data={props.reviewTrend} height={132} label="Review status trend" />
               <BarChart data={reviewBars} height={156} label="Review status distribution" />
             </div>
           </Surface>
 
-          <Surface className="p-[var(--s1)]">
+          <Surface className="p-[var(--qitu-space-s1)]">
             <SectionHeader
               description="Authenticated source intake with content-hash idempotency."
               icon={<FileSpreadsheet size={16} />}
               title="Source files"
             />
-            <div className="mt-[var(--s1)] space-y-3">
+            <div className="mt-[var(--qitu-space-s1)] space-y-3">
               <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -191,7 +191,7 @@ export function ReviewConsole(props: {
                 </Button>
               </div>
             </div>
-            <div className="mt-[var(--s1)]">
+            <div className="mt-[var(--qitu-space-s1)]">
               <DataState
                 description="Upload a sample or local file to create an import job."
                 state={props.sourceFiles.length === 0 ? "empty" : "ready"}
@@ -210,7 +210,7 @@ export function ReviewConsole(props: {
             </div>
           </Surface>
 
-          <Surface className="p-[var(--s1)]">
+          <Surface className="p-[var(--qitu-space-s1)]">
             <SectionHeader
               action={
                 props.runtimeEnvironment === "local" ? (
@@ -227,7 +227,7 @@ export function ReviewConsole(props: {
               icon={<Activity size={16} />}
               title="Import jobs"
             />
-            <div className="mt-[var(--s1)]">
+            <div className="mt-[var(--qitu-space-s1)]">
               <DataState
                 description="Queued imports will appear here after a source file is accepted."
                 state={props.importJobs.length === 0 ? "empty" : "ready"}
@@ -249,7 +249,7 @@ export function ReviewConsole(props: {
         </section>
 
         <Surface className="min-h-[640px] overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--s1)] py-[var(--s0)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--qitu-space-s1)] py-[var(--qitu-space-s0)]">
             <SectionHeader
               description={
                 props.selectedJob ? props.selectedJob.sourceFile.filename : "No import job selected"
@@ -288,7 +288,7 @@ export function ReviewConsole(props: {
                 <col className="w-[14%]" />
               </colgroup>
               <thead>
-                <tr className="text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+                <tr className="text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
                   <th className="px-3 py-2 font-medium">Record</th>
                   <th className="px-3 py-2 font-medium">Payload</th>
                   <th className="px-3 py-2 font-medium">Issue</th>
@@ -323,10 +323,10 @@ export function ReviewConsole(props: {
           </div>
         </Surface>
 
-        <aside className="space-y-[var(--gutter)]">
-          <Surface as="aside" className="p-[var(--s1)]">
+        <aside className="space-y-[var(--qitu-layout-gutter)]">
+          <Surface as="aside" className="p-[var(--qitu-space-s1)]">
             <SectionHeader icon={<ShieldCheck size={16} />} title="Guardrails" />
-            <div className="mt-[var(--s1)] space-y-2">
+            <div className="mt-[var(--qitu-space-s1)] space-y-2">
               <Guardrail label="Reviewer identity required" state="active" />
               <Guardrail label="Rejected rows cannot commit" state="active" />
               <Guardrail label="AI output stays advisory" state="active" />
@@ -334,7 +334,7 @@ export function ReviewConsole(props: {
             </div>
           </Surface>
 
-          <Surface as="aside" className="p-[var(--s1)]">
+          <Surface as="aside" className="p-[var(--qitu-space-s1)]">
             <SectionHeader
               action={
                 <Button
@@ -349,7 +349,7 @@ export function ReviewConsole(props: {
               icon={<Sparkles size={16} />}
               title="AI advisory"
             />
-            <div className="mt-[var(--s1)]">
+            <div className="mt-[var(--qitu-space-s1)]">
               <DataState
                 description="Generate an advisory for the selected import job."
                 state={props.aiAdvisories.length === 0 ? "empty" : "ready"}
@@ -370,18 +370,18 @@ export function ReviewConsole(props: {
             </div>
           </Surface>
 
-          <Surface as="aside" className="p-[var(--s1)]">
+          <Surface as="aside" className="p-[var(--qitu-space-s1)]">
             <SectionHeader icon={<Activity size={16} />} title="Event stream" />
             <Timeline
-              className="mt-[var(--s1)]"
+              className="mt-[var(--qitu-space-s1)]"
               emptyLabel="Select or process an import job to populate the event stream."
               items={importTimeline}
             />
           </Surface>
 
-          <Surface as="aside" className="p-[var(--s1)]">
+          <Surface as="aside" className="p-[var(--qitu-space-s1)]">
             <SectionHeader icon={<ListChecks size={16} />} title="Audit timeline" />
-            <Timeline className="mt-[var(--s1)]" items={auditTimeline} />
+            <Timeline className="mt-[var(--qitu-space-s1)]" items={auditTimeline} />
           </Surface>
         </aside>
       </div>
@@ -396,10 +396,10 @@ function SourceFileItem(props: { file: SourceFile; job: ImportJobListItem | null
     <div className="qitu-surface-subtle p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+          <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
             {props.file.filename}
           </div>
-          <div className="qitu-number mt-1 text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+          <div className="qitu-number mt-1 text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
             {formatBytes(props.file.size)}
           </div>
         </div>
@@ -421,15 +421,15 @@ function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () 
         {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+        <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.job.sourceFile.filename}
         </div>
-        <div className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <div className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {formatTime(props.job.updatedAt)}
         </div>
       </div>
       <StatusBadge tone={statusTone(props.job.status)}>{props.job.status}</StatusBadge>
-      <ArrowRight size={14} className="shrink-0 text-[var(--dim)]" />
+      <ArrowRight size={14} className="shrink-0 text-[var(--qitu-dim)]" />
     </button>
   );
 }
@@ -444,21 +444,21 @@ function ReviewRow(props: {
 
   return (
     <tr>
-      <td className="qitu-table-cell rounded-l-[var(--radius-md)] px-3 py-3 align-top">
-        <div className="text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+      <td className="qitu-table-cell rounded-l-[var(--qitu-radius-md)] px-3 py-3 align-top">
+        <div className="text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.record.sourceRowKey}
         </div>
-        <div className="mt-1 max-w-[180px] truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <div className="mt-1 max-w-[180px] truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {props.record.stagedRecordKey}
         </div>
       </td>
       <td className="qitu-table-cell px-3 py-3 align-top">
-        <div className="qitu-number max-w-[160px] truncate text-[length:var(--text-label-12)] leading-[var(--leading-label-12)]">
+        <div className="qitu-number max-w-[160px] truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)]">
           {payloadSummary(props.record.payload)}
         </div>
       </td>
       <td className="qitu-table-cell max-w-[190px] px-3 py-3 align-top">
-        <div className="text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--muted)]">
+        <div className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
           {props.issue?.message ?? "No issue"}
         </div>
       </td>
@@ -467,7 +467,7 @@ function ReviewRow(props: {
           {props.record.reviewStatus}
         </StatusBadge>
       </td>
-      <td className="qitu-table-cell rounded-r-[var(--radius-md)] px-3 py-3 text-right align-top">
+      <td className="qitu-table-cell rounded-r-[var(--qitu-radius-md)] px-3 py-3 text-right align-top">
         <div className="flex justify-end gap-2">
           <Button
             aria-label="Reject record"
@@ -500,7 +500,7 @@ function ReviewRow(props: {
 function Guardrail(props: { label: string; state: "active" }) {
   return (
     <div className="qitu-surface-subtle flex items-center justify-between gap-3 px-3 py-2">
-      <div className="text-[length:var(--text-label-13)] leading-[var(--leading-label-13)]">
+      <div className="text-[length:var(--qitu-text-label-13)] leading-[var(--qitu-leading-label-13)]">
         {props.label}
       </div>
       <StatusBadge tone={props.state}>{props.state}</StatusBadge>
@@ -520,14 +520,14 @@ function AiAdvisoryItem(props: {
     <div className="qitu-surface-subtle p-3">
       <div className="flex items-center justify-between gap-3">
         <StatusBadge tone={statusTone(props.advisory.status)}>{props.advisory.status}</StatusBadge>
-        <span className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <span className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {formatTime(props.advisory.createdAt)}
         </span>
       </div>
-      <div className="mt-3 text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)]">
+      <div className="mt-3 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)]">
         {props.advisory.summary}
       </div>
-      <div className="qitu-number mt-2 text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+      <div className="qitu-number mt-2 text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
         {props.advisory.provider}/{props.advisory.model}
       </div>
       {canDecide ? (

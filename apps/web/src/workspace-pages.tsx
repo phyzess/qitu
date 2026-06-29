@@ -88,20 +88,20 @@ export function OverviewPage(props: {
   ];
 
   return (
-    <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="space-y-[var(--gutter)]">
-        <Surface className="p-[var(--s1)]">
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <section className="space-y-[var(--qitu-layout-gutter)]">
+        <Surface className="p-[var(--qitu-space-s1)]">
           <SectionHeader
             description="Authenticated workbench state across source intake, import jobs, review, and audit."
             icon={<Activity size={16} />}
             title="Workspace overview"
           />
-          <MetricStrip className="mt-[var(--s1)]" items={metrics} />
+          <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
         </Surface>
 
-        <Surface className="p-[var(--s1)]">
+        <Surface className="p-[var(--qitu-space-s1)]">
           <SectionHeader icon={<ListChecks size={16} />} title="Primary workflow" />
-          <div className="mt-[var(--s1)] grid gap-3 md:grid-cols-3">
+          <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-3">
             <WorkflowTarget
               description="Upload a source file and create an import job."
               icon={<FileSpreadsheet size={16} />}
@@ -127,10 +127,10 @@ export function OverviewPage(props: {
         </Surface>
       </section>
 
-      <Surface as="aside" className="p-[var(--s1)]">
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<ShieldCheck size={16} />} title="Recent audit" />
         <Timeline
-          className="mt-[var(--s1)]"
+          className="mt-[var(--qitu-space-s1)]"
           emptyLabel="No audit events have been recorded yet."
           items={props.auditEvents.slice(0, 8).map(auditTimelineItem)}
         />
@@ -150,14 +150,14 @@ export function SourcesPage(props: {
   const jobBySourceId = new Map(props.importJobs.map((job) => [job.sourceFileId, job]));
 
   return (
-    <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <Surface className="p-[var(--s1)]">
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           description="Authenticated source intake with content-hash idempotency."
           icon={<FileSpreadsheet size={16} />}
           title="Source files"
         />
-        <div className="mt-[var(--s1)] grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
           <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -178,7 +178,7 @@ export function SourcesPage(props: {
             </Button>
           </div>
         </div>
-        <div className="mt-[var(--s1)]">
+        <div className="mt-[var(--qitu-space-s1)]">
           <DataState
             description="Upload a sample or local file to create an import job."
             state={props.sourceFiles.length === 0 ? "empty" : "ready"}
@@ -193,9 +193,9 @@ export function SourcesPage(props: {
         </div>
       </Surface>
 
-      <Surface as="aside" className="p-[var(--s1)]">
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<ShieldCheck size={16} />} title="Intake guardrails" />
-        <div className="mt-[var(--s1)] space-y-2">
+        <div className="mt-[var(--qitu-space-s1)] space-y-2">
           <Guardrail label="Login required" />
           <Guardrail label="Content hash stored" />
           <Guardrail label="Duplicate upload detected" />
@@ -218,8 +218,8 @@ export function ImportsPage(props: {
   selectedJobId: string | null;
 }) {
   return (
-    <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <Surface className="p-[var(--s1)]">
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           action={
             <div className="flex flex-wrap gap-2">
@@ -248,7 +248,7 @@ export function ImportsPage(props: {
           icon={<Database size={16} />}
           title="Import jobs"
         />
-        <div className="mt-[var(--s1)]">
+        <div className="mt-[var(--qitu-space-s1)]">
           <DataState
             description="Queued imports will appear here after a source file is accepted."
             state={props.importJobs.length === 0 ? "empty" : "ready"}
@@ -269,9 +269,9 @@ export function ImportsPage(props: {
         </div>
       </Surface>
 
-      <Surface as="aside" className="p-[var(--s1)]">
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<Activity size={16} />} title="Runtime" />
-        <div className="mt-[var(--s1)] space-y-3">
+        <div className="mt-[var(--qitu-space-s1)] space-y-3">
           <RuntimeRow label="Worker" value="/api" />
           <RuntimeRow label="Environment" value={props.runtimeEnvironment} />
           <RuntimeRow label="Selected job" value={props.selectedJobId ?? "none"} />
@@ -283,14 +283,14 @@ export function ImportsPage(props: {
 
 export function AuditPage(props: { auditEvents: AuditEvent[] }) {
   return (
-    <Surface className="p-[var(--s1)]">
+    <Surface className="p-[var(--qitu-space-s1)]">
       <SectionHeader
         description="Compliance trail for auth, RBAC, source, import, review, advisory, and commit events."
         icon={<ShieldCheck size={16} />}
         title="Audit timeline"
       />
       <Timeline
-        className="mt-[var(--s1)]"
+        className="mt-[var(--qitu-space-s1)]"
         emptyLabel="No audit events have been recorded yet."
         items={props.auditEvents.map(auditTimelineItem)}
       />
@@ -305,25 +305,25 @@ export function AccountPage(props: {
   user: ApiUser;
 }) {
   return (
-    <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <Surface className="p-[var(--s1)]">
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<KeyRound size={16} />} title="Account" />
-        <div className="mt-[var(--s1)] grid gap-3 md:grid-cols-2">
+        <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-2">
           <RuntimeRow label="Email" value={props.user.email} />
           <RuntimeRow label="Display name" value={props.user.displayName ?? "none"} />
           <RuntimeRow label="Role" value={props.user.role} />
           <RuntimeRow label="Created" value={formatDateTime(props.user.createdAt)} />
         </div>
-        <div className="mt-[var(--s1)] flex flex-wrap gap-2">
+        <div className="mt-[var(--qitu-space-s1)] flex flex-wrap gap-2">
           <Button variant="secondary" onClick={props.onLogout}>
             <X size={15} /> Logout
           </Button>
         </div>
       </Surface>
 
-      <Surface as="aside" className="p-[var(--s1)]">
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<Activity size={16} />} title="Session" />
-        <div className="mt-[var(--s1)] space-y-3">
+        <div className="mt-[var(--qitu-space-s1)] space-y-3">
           <RuntimeRow label="Runtime" value={props.runtimeEnvironment} />
           <RuntimeRow label="Status" value={props.notice} />
           <RuntimeRow label="Cookie" value="HttpOnly session" />
@@ -349,9 +349,9 @@ export function UsersPage(props: {
 
   if (!canManage) {
     return (
-      <Surface className="p-[var(--s1)]">
+      <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<UserCog size={16} />} title="User management" />
-        <div className="mt-[var(--s1)]">
+        <div className="mt-[var(--qitu-space-s1)]">
           <DataState
             description="Owner or admin role is required for user and invitation management."
             state="error"
@@ -363,9 +363,9 @@ export function UsersPage(props: {
   }
 
   return (
-    <div className="grid gap-[var(--gutter)] xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="space-y-[var(--gutter)]">
-        <Surface className="p-[var(--s1)]">
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="space-y-[var(--qitu-layout-gutter)]">
+        <Surface className="p-[var(--qitu-space-s1)]">
           <SectionHeader
             action={
               <Button
@@ -381,7 +381,7 @@ export function UsersPage(props: {
             title="User management"
           />
           {props.adminError ? <ErrorText>{props.adminError}</ErrorText> : null}
-          <div className="mt-[var(--s1)]">
+          <div className="mt-[var(--qitu-space-s1)]">
             <DataState
               description="Users accepted through invitation links will appear here."
               state={props.users.length === 0 ? "empty" : "ready"}
@@ -396,9 +396,9 @@ export function UsersPage(props: {
           </div>
         </Surface>
 
-        <Surface className="p-[var(--s1)]">
+        <Surface className="p-[var(--qitu-space-s1)]">
           <SectionHeader icon={<ShieldCheck size={16} />} title="Invitations" />
-          <div className="mt-[var(--s1)]">
+          <div className="mt-[var(--qitu-space-s1)]">
             <DataState
               description="Pending, accepted, revoked, and expired invitations are listed here."
               state={props.invitations.length === 0 ? "empty" : "ready"}
@@ -414,9 +414,9 @@ export function UsersPage(props: {
         </Surface>
       </section>
 
-      <Surface as="aside" className="p-[var(--s1)]">
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<KeyRound size={16} />} title="Create invitation" />
-        <div className="mt-[var(--s1)] space-y-4">
+        <div className="mt-[var(--qitu-space-s1)] space-y-4">
           <Field
             label="Email"
             onChange={(email) =>
@@ -444,7 +444,7 @@ export function UsersPage(props: {
           </Button>
           {props.createdInvitationUrl ? (
             <a
-              className="block break-all text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--chroma-lime-ink)]"
+              className="block break-all text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-chroma-lime-ink)]"
               href={props.createdInvitationUrl}
             >
               {props.createdInvitationUrl}
@@ -465,18 +465,18 @@ function WorkflowTarget(props: {
 }) {
   return (
     <button
-      className="qitu-surface-subtle min-h-36 p-[var(--o5)] text-left transition-[background-color,border-color,transform] duration-[var(--motion-fast)] ease-[var(--ease-standard)] hover:bg-[var(--surface-row-hover)] active:scale-[0.995]"
+      className="qitu-surface-subtle min-h-36 p-[var(--qitu-space-o5)] text-left transition-[background-color,border-color,transform] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] hover:bg-[var(--qitu-surface-row-hover)] active:scale-[0.995]"
       onClick={props.onClick}
       type="button"
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-[var(--chroma-lime-ink)]">{props.icon}</span>
+        <span className="text-[var(--qitu-chroma-lime-ink)]">{props.icon}</span>
         <StatusBadge tone="neutral">{props.status}</StatusBadge>
       </div>
-      <div className="mt-4 text-[length:var(--text-heading-16)] font-semibold leading-[var(--leading-heading-16)]">
+      <div className="mt-4 text-[length:var(--qitu-text-heading-16)] font-semibold leading-[var(--qitu-leading-heading-16)]">
         {props.label}
       </div>
-      <div className="mt-2 text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--muted)]">
+      <div className="mt-2 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
         {props.description}
       </div>
     </button>
@@ -490,10 +490,10 @@ function SourceFileRow(props: { file: SourceFile; job: ImportJobListItem | null 
     <div className="qitu-surface-subtle p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+          <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
             {props.file.filename}
           </div>
-          <div className="qitu-number mt-1 text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+          <div className="qitu-number mt-1 text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
             {formatBytes(props.file.size)} · {formatDateTime(props.file.uploadedAt)}
           </div>
         </div>
@@ -525,10 +525,10 @@ function ImportJobRow(props: {
           {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
         </div>
         <div className="min-w-0">
-          <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+          <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
             {props.job.sourceFile.filename}
           </div>
-          <div className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+          <div className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
             {formatDateTime(props.job.updatedAt)}
           </div>
         </div>
@@ -545,16 +545,16 @@ function UserRow(props: { user: ApiUser }) {
   return (
     <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 p-3">
       <div className="min-w-0">
-        <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+        <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.user.email}
         </div>
-        <div className="text-[length:var(--text-copy-13)] leading-[var(--leading-copy-13)] text-[var(--muted)]">
+        <div className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
           {props.user.displayName ?? "No display name"}
         </div>
       </div>
       <div className="flex items-center gap-2">
         <StatusBadge tone="active">{props.user.role}</StatusBadge>
-        <span className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <span className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {formatDateTime(props.user.createdAt)}
         </span>
       </div>
@@ -566,10 +566,10 @@ function InvitationRow(props: { invitation: InvitationSummary }) {
   return (
     <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 p-3">
       <div className="min-w-0">
-        <div className="truncate text-[length:var(--text-label-14)] font-medium leading-[var(--leading-label-14)]">
+        <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.invitation.email}
         </div>
-        <div className="qitu-number text-[length:var(--text-label-12)] leading-[var(--leading-label-12)] text-[var(--dim)]">
+        <div className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           Expires {formatDateTime(props.invitation.expiresAt)}
         </div>
       </div>
@@ -586,7 +586,7 @@ function InvitationRow(props: { invitation: InvitationSummary }) {
 function Guardrail(props: { label: string }) {
   return (
     <div className="qitu-surface-subtle flex items-center justify-between gap-3 px-3 py-2">
-      <div className="text-[length:var(--text-label-13)] leading-[var(--leading-label-13)]">
+      <div className="text-[length:var(--qitu-text-label-13)] leading-[var(--qitu-leading-label-13)]">
         {props.label}
       </div>
       <StatusBadge tone="active">active</StatusBadge>
