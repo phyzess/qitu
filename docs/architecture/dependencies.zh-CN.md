@@ -9,13 +9,14 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 
 ## Runtime
 
-| Package       |   Version | 用途                      |
-| ------------- | --------: | ------------------------- |
-| `react`       |  `19.2.7` | Web UI                    |
-| `react-dom`   |  `19.2.7` | Web UI rendering          |
-| `hono`        | `4.12.26` | Worker HTTP 路由          |
-| `valibot`     |   `1.4.1` | Runtime 校验              |
-| `drizzle-orm` |  `0.45.2` | 数据库 schema/query layer |
+| Package                  |    Version | 用途                      |
+| ------------------------ | ---------: | ------------------------- |
+| `react`                  |   `19.2.7` | Web UI                    |
+| `react-dom`              |   `19.2.7` | Web UI rendering          |
+| `@tanstack/react-router` | `1.170.16` | 应用自有 Web 路由         |
+| `hono`                   |  `4.12.26` | Worker HTTP 路由          |
+| `valibot`                |    `1.4.1` | Runtime 校验              |
+| `drizzle-orm`            |   `0.45.2` | 数据库 schema/query layer |
 
 ## Tooling
 

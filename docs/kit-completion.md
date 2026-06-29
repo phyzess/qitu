@@ -1,7 +1,7 @@
 # Kit Completion Contract
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-06-29
 
 This document defines what "complete but not redundant" means for `qitu`.
 
@@ -85,6 +85,8 @@ Verified coverage added in this pass:
 4. RBAC baseline covers owner/admin/reviewer/viewer roles, invitation-assigned user roles, viewer write denial, and `rbac.denied` audit evidence.
 5. Release and upgrade notes document the current baseline and safe adoption path for cloned apps.
 6. DLQ remediation is documented and `ops:failed-jobs` provides a read-only D1 recovery snapshot.
+7. Audit filtering, selected-event details, invitation revocation, source/job diagnostics, recovery guidance, and import-to-review route memory are covered by integration or browser smoke checks.
+8. Browser smoke generates and confirms a deterministic AI advisory before approval/commit, then verifies `ai_advisory.confirmed` in the job event stream.
 
 ## Deliberately Out of Scope
 

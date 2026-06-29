@@ -204,6 +204,7 @@ app.get("/api/audit-events", async (context) => {
   const subjectId = context.req.query("subjectId") ?? null;
   const subjectKind = context.req.query("subjectKind") ?? null;
   const actorId = context.req.query("actorId") ?? null;
+  const action = context.req.query("action") ?? null;
   const limit = parseQueryLimit(context.req.query("limit"), 50);
   const result = await context.env.DB.prepare(
     `
@@ -220,11 +221,12 @@ app.get("/api/audit-events", async (context) => {
       WHERE (? IS NULL OR subject_id = ?)
         AND (? IS NULL OR subject_kind = ?)
         AND (? IS NULL OR actor_id = ?)
+        AND (? IS NULL OR action = ?)
       ORDER BY occurred_at DESC
       LIMIT ?
     `,
   )
-    .bind(subjectId, subjectId, subjectKind, subjectKind, actorId, actorId, limit)
+    .bind(subjectId, subjectId, subjectKind, subjectKind, actorId, actorId, action, action, limit)
     .all<AuditEventRow>();
 
   return context.json({

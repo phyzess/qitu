@@ -40,8 +40,12 @@ export function ReviewConsole(props: {
   actions: ReactNode;
   aiAdvisories: AiAdvisoryArtifact[];
   auditEvents: AuditEvent[];
+  canDecideReviews: boolean;
   canCommit: boolean;
+  canProcessImports: boolean;
   canRetry: boolean;
+  canUploadSources: boolean;
+  canWriteAiAdvisories: boolean;
   counts: ReviewCounts;
   error: string | null;
   importJobEvents: ImportJobEvent[];
@@ -64,6 +68,7 @@ export function ReviewConsole(props: {
   reviewRecords: StagedRecord[];
   reviewTrend: ChartDatum[];
   runtimeEnvironment: string;
+  retryAvailable: boolean;
   selectedJob: ImportJobListItem | null;
   selectedJobId: string | null;
   sourceFiles: SourceFile[];
@@ -190,7 +195,7 @@ export function ReviewConsole(props: {
               <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
               <div className="flex flex-wrap gap-2">
                 <Button
-                  disabled={props.isBusy}
+                  disabled={props.isBusy || !props.canUploadSources}
                   size="sm"
                   variant="secondary"
                   onClick={props.onUploadSelected}
@@ -198,7 +203,7 @@ export function ReviewConsole(props: {
                   <FileUp size={14} /> {t("action.uploadSelected")}
                 </Button>
                 <Button
-                  disabled={props.isBusy}
+                  disabled={props.isBusy || !props.canUploadSources}
                   size="sm"
                   variant="ghost"
                   onClick={props.onUploadSample}
@@ -207,6 +212,11 @@ export function ReviewConsole(props: {
                 </Button>
               </div>
             </div>
+            {!props.canUploadSources ? (
+              <div className="mt-3">
+                <PermissionHint label={t("permission.sourceUpload")} />
+              </div>
+            ) : null}
             <div className="mt-[var(--qitu-space-s1)]">
               <DataState
                 description={t("sources.emptyDescription")}
@@ -231,7 +241,7 @@ export function ReviewConsole(props: {
               action={
                 props.runtimeEnvironment === "local" ? (
                   <Button
-                    disabled={props.isBusy}
+                    disabled={props.isBusy || !props.canProcessImports}
                     size="sm"
                     variant="ghost"
                     onClick={props.onProcessLocalQueue}
@@ -260,6 +270,11 @@ export function ReviewConsole(props: {
                   ))}
                 </div>
               </DataState>
+              {!props.canProcessImports ? (
+                <div className="mt-3">
+                  <PermissionHint label={t("permission.importProcess")} />
+                </div>
+              ) : null}
             </div>
           </Surface>
         </section>
@@ -276,9 +291,9 @@ export function ReviewConsole(props: {
               title={t("review.stagedRecords")}
             />
             <div className="flex flex-wrap gap-2">
-              {props.canRetry ? (
+              {props.retryAvailable ? (
                 <Button
-                  disabled={props.isBusy}
+                  disabled={props.isBusy || !props.canRetry}
                   size="sm"
                   variant="secondary"
                   onClick={props.onRetrySelectedJob}
@@ -295,6 +310,16 @@ export function ReviewConsole(props: {
               </Button>
             </div>
           </div>
+          {!props.canCommit && props.selectedJobId && props.counts.approved > 0 ? (
+            <div className="px-[var(--qitu-space-s1)] pb-[var(--qitu-space-s0)]">
+              <PermissionHint label={t("permission.importCommit")} />
+            </div>
+          ) : null}
+          {!props.canDecideReviews && props.reviewRecords.length > 0 ? (
+            <div className="px-[var(--qitu-space-s1)] pb-[var(--qitu-space-s0)]">
+              <PermissionHint label={t("permission.reviewDecide")} />
+            </div>
+          ) : null}
 
           <div className="overflow-x-auto px-3 pb-4">
             <table className="w-full min-w-[560px] table-fixed border-separate border-spacing-y-2 text-left">
@@ -328,6 +353,7 @@ export function ReviewConsole(props: {
                 ) : (
                   props.reviewRecords.map((record) => (
                     <ReviewRow
+                      canDecide={props.canDecideReviews}
                       issue={issueForRecord(record, props.reviewIssues)}
                       key={record.id}
                       onApprove={() => props.onDecide(record.id, "approved")}
@@ -359,7 +385,7 @@ export function ReviewConsole(props: {
             <SectionHeader
               action={
                 <Button
-                  disabled={!props.selectedJobId || props.isBusy}
+                  disabled={!props.selectedJobId || props.isBusy || !props.canWriteAiAdvisories}
                   size="sm"
                   variant="ghost"
                   onClick={props.onGenerateAdvisory}
@@ -380,7 +406,7 @@ export function ReviewConsole(props: {
                   {props.aiAdvisories.map((advisory) => (
                     <AiAdvisoryItem
                       advisory={advisory}
-                      disabled={props.isBusy}
+                      disabled={props.isBusy || !props.canWriteAiAdvisories}
                       key={advisory.id}
                       onConfirm={() => props.onConfirmAdvisory(advisory.id)}
                       onDismiss={() => props.onDismissAdvisory(advisory.id)}
@@ -388,6 +414,11 @@ export function ReviewConsole(props: {
                   ))}
                 </div>
               </DataState>
+              {!props.canWriteAiAdvisories ? (
+                <div className="mt-3">
+                  <PermissionHint label={t("permission.aiAdvisory")} />
+                </div>
+              ) : null}
             </div>
           </Surface>
 
@@ -473,13 +504,14 @@ function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () 
 }
 
 function ReviewRow(props: {
+  canDecide: boolean;
   issue: ReviewIssue | null;
   record: StagedRecord;
   onApprove: () => void;
   onReject: () => void;
 }) {
   const { formatStatus, t } = useI18n();
-  const disabled = props.record.reviewStatus === "committed";
+  const disabled = props.record.reviewStatus === "committed" || !props.canDecide;
 
   return (
     <tr>
@@ -545,6 +577,19 @@ function Guardrail(props: { label: string; state: "active" }) {
         {props.label}
       </div>
       <StatusBadge tone={props.state}>{formatStatus(props.state)}</StatusBadge>
+    </div>
+  );
+}
+
+function PermissionHint(props: { label: string }) {
+  const { t } = useI18n();
+
+  return (
+    <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+      <div className="text-[length:var(--qitu-text-label-13)] leading-[var(--qitu-leading-label-13)] text-[var(--qitu-muted)]">
+        {props.label}
+      </div>
+      <StatusBadge tone="neutral">{t("permission.readOnly")}</StatusBadge>
     </div>
   );
 }

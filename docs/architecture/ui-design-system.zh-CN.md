@@ -20,6 +20,7 @@ UI 气质：
 
 ```text
 React
+TanStack Router 用于应用自有 Web 路由
 shadcn/ui Base UI
 Tailwind
 Extend UI for file/import/review surfaces
@@ -99,6 +100,8 @@ Token family 按三层组织：
 /users
 /account
 ```
+
+`apps/web` 通过 TanStack Router 负责 route tree、route matching 和 navigation lifecycle。可复用 UI packages 保持路由无关：可以暴露 `href` 和 callback，但不能 import app router API。
 
 未登录、已登录、admin-only、not-found、loading、empty、error 状态要保持同一套视觉语言。账号入口属于 authenticated topbar，退出登录属于从该入口打开的 user panel；用户管理应该由 RBAC 保护，而不是只存在于测试代码里。
 

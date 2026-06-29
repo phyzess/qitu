@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AnimatedIcon, SectionHeader, StatusBadge, Surface, type AppShellNavItem } from "@qitu/ui";
 import {
+  type AppNavigationPath,
   type AppPrimaryRoute,
   primaryRouteFor,
   routePath,
@@ -13,7 +14,7 @@ export type WorkspaceRouteEntry = {
   description: string;
   group: string;
   label: string;
-  path: string;
+  path: AppNavigationPath;
   route: WorkspaceAppRoute;
 };
 
@@ -114,7 +115,7 @@ export function buildNavigation(
   options: {
     authenticated: boolean;
     canManageUsers?: boolean;
-    onNavigate: (path: string) => void;
+    onNavigate: (path: AppNavigationPath) => void;
     resolvePrimaryRoute?: (
       primaryRoute: AppPrimaryRoute,
       fallbackRoute: WorkspaceAppRoute,
@@ -206,7 +207,9 @@ export function buildNavigation(
 }
 
 function routeAvailable(route: WorkspaceAppRoute, canManageUsers: boolean): boolean {
-  return route !== "users" || canManageUsers;
+  void route;
+  void canManageUsers;
+  return true;
 }
 
 export function Panel(props: { children: ReactNode }) {

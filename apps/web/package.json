@@ -12,7 +12,9 @@
     "@qitu/charts": "workspace:*",
     "@qitu/design-system": "workspace:*",
     "@qitu/i18n": "workspace:*",
+    "@qitu/rbac": "workspace:*",
     "@qitu/ui": "workspace:*",
+    "@tanstack/react-router": "1.170.16",
     "lucide-react": "1.21.0",
     "react": "19.2.7",
     "react-dom": "19.2.7"

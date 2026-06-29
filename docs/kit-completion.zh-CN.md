@@ -1,7 +1,7 @@
 # Kit 完成契约
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-06-29
 
 本文定义 `qitu` 的“完成但不冗余”是什么意思。
 
@@ -85,6 +85,8 @@ Workspace: local filesystem baseline；此证据不依赖 git metadata。
 4. RBAC baseline 覆盖 owner/admin/reviewer/viewer、邀请角色、viewer 写拒绝和 `rbac.denied` audit。
 5. Release/upgrade notes 记录当前 baseline 和 cloned app 的安全采用路径。
 6. DLQ remediation 已记录，`ops:failed-jobs` 提供只读 D1 恢复快照。
+7. Audit filtering、selected-event details、invitation revocation、source/job diagnostics、recovery guidance 和 import-to-review route memory 已由 integration 或 browser smoke 覆盖。
+8. Browser smoke 会在 approve/commit 前生成并确认 deterministic AI advisory，然后验证 job event stream 中的 `ai_advisory.confirmed`。
 
 ## 明确不在范围内
 

@@ -65,9 +65,10 @@ password: correct horse battery staple
 GET /api/users
 GET /api/invitations
 POST /api/invitations
+POST /api/invitations/:invitationId/revoke
 ```
 
-这些路由要求当前 session，并要求 `invitation:create` 权限。starter RBAC 中 `owner` 与 `admin` 可以列出用户、列出邀请并创建邀请；`reviewer` 与 `viewer` 可以继续使用登录后的工作台，但用户管理页会显示 admin-only 状态。
+这些路由要求当前 session，并要求 `invitation:create` 权限。starter RBAC 中 `owner` 与 `admin` 可以列出用户、列出邀请、创建邀请并撤销待接受邀请；`reviewer` 与 `viewer` 可以继续使用登录后的工作台，但用户管理页会显示 admin-only 状态。
 
 本地开发环境中，authenticated invitation creation 可以返回生成的 invite URL；非本地环境应依赖邮件投递，不应在 API response 中暴露明文 invite token。
 

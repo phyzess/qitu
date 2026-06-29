@@ -792,6 +792,16 @@ button.qitu-command {
   outline: none;
 }
 
+.qitu-subnav-button[data-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.qitu-subnav-button[data-disabled="true"]:hover,
+.qitu-subnav-button[data-disabled="true"]:focus-visible {
+  color: color-mix(in oklch, var(--qitu-muted) 72%, transparent);
+}
+
 .qitu-subnav-button[data-active="true"] {
   box-shadow: inset 0 -1px 0 var(--qitu-brand-accent);
 }

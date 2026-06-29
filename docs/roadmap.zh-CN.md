@@ -144,6 +144,75 @@ baseline complete; future extraction hardening tracked
 2. `templates/feature` 是 workspace package，带 typechecked `ImportFeatureAdapter` 和 app-owned registry starter。
 3. Release/upgrade notes 描述当前 starter baseline 和安全采用路径。
 
+## Phase 5: Product-Grade Starter Hardening
+
+状态：
+
+```text
+in progress
+```
+
+目标：
+
+把可运行 baseline 打磨成一个 startup kit：其他团队或 agent clone 后，可以运行、理解、扩展，并且不会马上遇到明显的页面定位或流程联动矛盾。
+
+边界：
+
+这轮 hardening 必须保持 business-neutral。改动应位于 app-owned shell、Worker routes、可复用 qitu UI primitives、文档或验证脚本中；不能把 business metrics、business parser fields、business workflows 或 business reports 加进 `packages/*`。
+
+近期要求：
+
+1. 页面指标和标签必须说明真实数据范围。
+2. 跨页面动作必须保留 workflow context，尤其是 Imports 与 Reviews 之间的 selected import job。
+3. React shell 必须清楚呈现 RBAC：viewer 在遇到后端 `403` 前就应看到 read-only affordance。
+4. 每个 route 应显示有用的 empty、error、blocked states，而不是依赖隐藏的顶层 error。
+5. Review 页面应区分 selected-job review state 与 workspace-wide state。
+6. Governance 页面应通过 filtering、details、清楚的 actor/subject context 变成可用运维工具。
+7. User management 应覆盖 internal app starter 预期的 invitation lifecycle。
+8. Browser smoke 或 integration checks 应覆盖用户能从 UI 打断的 workflow invariants。
+
+第一轮 hardening increment：
+
+1. 让第一版 role-aware UI controls 与现有 RBAC permissions 一致。
+2. 从 Imports 打开 Reviews 时保留 selected job context。
+3. 重命名并重新计算 overview/review labels，避免暗示 UI 实际没有的数据范围。
+4. 在 authenticated workbench 内显示 non-review route errors。
+
+第二轮 hardening increment：
+
+1. 让 audit route 成为 operational governance page，而不只是 passive timeline。
+2. 增加 action、actor、subject kind、subject id 的 server-backed audit filters。
+3. 显示选中 audit event 的 actor、subject、timestamp 和 metadata。
+4. 在 Worker integration 和 browser smoke 中覆盖 audit filtering。
+
+第三轮 hardening increment：
+
+1. 增加 authenticated invitation revocation route，并复用现有 invitation-management permission。
+2. 撤销 pending invitations 时写 `invitation.revoked` audit event。
+3. 在 Users route 显示 invitation lifecycle timestamps 和 revoke actions。
+4. 通过 Worker integration 和 browser smoke 覆盖 invitation revocation。
+
+第四轮 hardening increment：
+
+1. 在 Sources route 显示 source-file-to-import-job linkage。
+2. 把 Imports inspector 变成 job diagnostics panel，展示 status、adapter、attempts、failure class/reason、timestamps 和 content hash。
+3. 复用 `import_job_events` 作为 Imports route event stream，使 failures 和 retries 在打开 Reviews 前可见。
+4. 在 browser smoke 中覆盖 diagnostics panel。
+
+第五轮 hardening increment：
+
+1. 为 failed、queued、processing、review-ready import jobs 显示 page-local recovery path。
+2. 把 failure classes 映射到 DLQ runbook 中的 neutral remediation guidance。
+3. 把 retry action 放进 selected job diagnostics panel，并保留 RBAC-disabled states。
+4. 在 browser smoke 中覆盖真实 failed JSON import 和 recovery guidance。
+
+第六轮 hardening increment：
+
+1. 把 AI advisory panel 纳入 first vertical slice 的 browser smoke。
+2. 从 Review route 生成 local deterministic advisory。
+3. 通过 UI confirm advisory，再 approve 和 commit record。
+4. 断言 import job event stream 显示 `ai_advisory.confirmed`。
+
 ## Completion Gate
 
 最终目标由 `docs/kit-completion.zh-CN.md` 定义。

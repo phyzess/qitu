@@ -71,6 +71,8 @@ const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
 const i18nCheck = text("scripts/i18n-check.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
+const wranglerTypesScript = text("scripts/wrangler-types.mjs");
+const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
 const workflow = text(".github/workflows/verify.yml");
 const envExample = text(".env.example");
@@ -442,6 +444,22 @@ assert(
   "worker package must expose test:runtime.",
 );
 assert(
+  workerPackage.scripts["cf:typegen"] === "node ../../scripts/wrangler-types.mjs" &&
+    wranglerTypesScript.includes("wrangler") &&
+    wranglerTypesScript.includes("Types written to worker-configuration.d.ts"),
+  "worker typegen must use the guarded wrangler types wrapper so verify:kit can complete.",
+);
+assert(
+  workerPackage.scripts["db:migrate:local"] ===
+    "node ../../scripts/wrangler-d1-migrate-local.mjs" &&
+    wranglerD1MigrateLocalScript.includes("d1") &&
+    wranglerD1MigrateLocalScript.includes("QITU_D1_PERSIST_TO") &&
+    wranglerD1MigrateLocalScript.includes("No migrations to apply!") &&
+    wranglerD1MigrateLocalScript.includes("0007_event_foundations.sql") &&
+    wranglerD1MigrateLocalScript.includes("\\u2705"),
+  "local D1 migrations must use the guarded wrangler wrapper so verify:kit can complete.",
+);
+assert(
   webPackage.dependencies["@qitu/charts"] === "workspace:*",
   "web app must depend on the shared charts package.",
 );
@@ -658,7 +676,8 @@ assert(
     webSources.includes("User management") &&
     webSources.includes("Account") &&
     webSources.includes("buildNavigation") &&
-    webSources.includes("readAuthRoute") &&
+    webSources.includes("authRouteFromPath") &&
+    webSources.includes("useNavigate") &&
     webAuthRoute.includes('kind === "invite"') &&
     webAuthRoute.includes('kind === "reset-password"') &&
     webSources.includes("requestPasswordReset") &&
@@ -731,6 +750,7 @@ assert(
     browserSmoke.includes("setInputFiles") &&
     browserSmoke.includes("Process local queue") &&
     browserSmoke.includes("Commit approved") &&
+    browserSmoke.includes("ai_advisory.confirmed") &&
     browserSmoke.includes('getByRole("menu", { name: "Language" })') &&
     browserSmoke.includes('"rejected"') &&
     browserSmoke.includes("import_job.committed") &&

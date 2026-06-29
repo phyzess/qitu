@@ -9,13 +9,14 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 
 ## Runtime
 
-| Package       |   Version | Use                         |
-| ------------- | --------: | --------------------------- |
-| `react`       |  `19.2.7` | Web UI                      |
-| `react-dom`   |  `19.2.7` | Web UI rendering            |
-| `hono`        | `4.12.26` | Worker HTTP routing         |
-| `valibot`     |   `1.4.1` | Runtime validation          |
-| `drizzle-orm` |  `0.45.2` | Database schema/query layer |
+| Package                  |    Version | Use                         |
+| ------------------------ | ---------: | --------------------------- |
+| `react`                  |   `19.2.7` | Web UI                      |
+| `react-dom`              |   `19.2.7` | Web UI rendering            |
+| `@tanstack/react-router` | `1.170.16` | App-owned web routing       |
+| `hono`                   |  `4.12.26` | Worker HTTP routing         |
+| `valibot`                |    `1.4.1` | Runtime validation          |
+| `drizzle-orm`            |   `0.45.2` | Database schema/query layer |
 
 ## Tooling
 

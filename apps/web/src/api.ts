@@ -51,6 +51,10 @@ export type CreateInvitationResponse = {
   invitation: InvitationSummary;
 };
 
+export type RevokeInvitationResponse = {
+  invitation: InvitationSummary;
+};
+
 export type UsersResponse = {
   users: ApiUser[];
 };
@@ -172,6 +176,12 @@ export async function createInvitation(input: {
     headers: {
       "content-type": "application/json",
     },
+  });
+}
+
+export async function revokeInvitation(invitationId: string): Promise<RevokeInvitationResponse> {
+  return apiJson<RevokeInvitationResponse>(`/api/invitations/${invitationId}/revoke`, {
+    method: "POST",
   });
 }
 
@@ -376,6 +386,7 @@ export async function retryImportJob(jobId: string): Promise<{
 
 export async function listAuditEvents(
   input: {
+    action?: string;
     subjectId?: string;
     subjectKind?: string;
     actorId?: string;
@@ -383,6 +394,7 @@ export async function listAuditEvents(
   } = {},
 ): Promise<AuditEventsResponse> {
   const search = new URLSearchParams();
+  if (input.action) search.set("action", input.action);
   if (input.subjectId) search.set("subjectId", input.subjectId);
   if (input.subjectKind) search.set("subjectKind", input.subjectKind);
   if (input.actorId) search.set("actorId", input.actorId);

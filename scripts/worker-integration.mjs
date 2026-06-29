@@ -152,6 +152,40 @@ async function main() {
       ),
       "admin can list invitations",
     );
+    const revokedManagedInvitation = await adminClient.json(
+      `/api/invitations/${managedInvitation.invitation.id}/revoke`,
+      {
+        method: "POST",
+      },
+    );
+    assert(
+      revokedManagedInvitation.invitation.status === "revoked",
+      "admin can revoke pending invitation",
+    );
+    assert(
+      typeof revokedManagedInvitation.invitation.revokedAt === "string",
+      "revoked invitation returns revoked timestamp",
+    );
+    const invitationsAfterRevoke = await adminClient.json("/api/invitations?limit=20");
+    assert(
+      invitationsAfterRevoke.invitations.some(
+        (invitation) =>
+          invitation.id === managedInvitation.invitation.id && invitation.status === "revoked",
+      ),
+      "revoked invitation is visible in invitation list",
+    );
+    const revokeAudit = await env.DB.prepare(
+      "SELECT action, subject_id FROM audit_events WHERE action = 'invitation.revoked' AND subject_id = ? LIMIT 1",
+    )
+      .bind(managedInvitation.invitation.id)
+      .first();
+    assert(revokeAudit?.subject_id === managedInvitation.invitation.id, "revoke is audited");
+    await expectStatus(
+      await adminClient.request(`/api/invitations/${managedInvitation.invitation.id}/revoke`, {
+        method: "POST",
+      }),
+      409,
+    );
 
     const demoClient = createClient(worker, env);
     const demoReviewer = await demoClient.json("/api/bootstrap/local-reviewer", {
@@ -584,6 +618,30 @@ async function main() {
     ]) {
       assert(actions.has(action), `audit list includes ${action}`);
     }
+    const committedAudit = await client.json("/api/audit-events?action=import_job.committed");
+    assert(
+      committedAudit.auditEvents.length > 0 &&
+        committedAudit.auditEvents.every((event) => event.action === "import_job.committed"),
+      "audit list can filter by action",
+    );
+    const actorAudit = await client.json(
+      `/api/audit-events?actorId=${encodeURIComponent(loginAfterReset.user.id)}`,
+    );
+    assert(
+      actorAudit.auditEvents.length > 0 &&
+        actorAudit.auditEvents.every((event) => event.actor.id === loginAfterReset.user.id),
+      "audit list can filter by actor id",
+    );
+    const subjectAudit = await client.json(
+      `/api/audit-events?subjectKind=import_job&subjectId=${encodeURIComponent(upload.importJobId)}`,
+    );
+    assert(
+      subjectAudit.auditEvents.length > 0 &&
+        subjectAudit.auditEvents.every(
+          (event) => event.subject.kind === "import_job" && event.subject.id === upload.importJobId,
+        ),
+      "audit list can filter by subject",
+    );
 
     console.log("Worker integration passed.");
   } finally {

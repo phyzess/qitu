@@ -90,11 +90,10 @@ invite -> register -> login -> upload -> import job -> queue -> staging -> revie
 3. text/json 两个 app-owned starter adapters。
 4. review approve/reject/commit/retry API 与 React review 页面。
 5. local deterministic AI advisory。
-6. browser smoke 覆盖本地 setup、upload、queue drain、review approval、commit、review rejection、audit。
+6. browser smoke 覆盖本地 setup、upload、queue drain、AI advisory 生成与确认、review approval、commit、review rejection、failed JSON diagnostics、audit。
 
 仍需增强：
 
 1. download route。
 2. 更多 failure classes。
-3. 浏览器中更完整的 AI advisory panel 覆盖。
-4. production 前 DLQ 和自动 retry policy。
+3. production 前 DLQ 和自动 retry policy。

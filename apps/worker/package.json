@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
-    "cf:typegen": "wrangler types",
-    "db:migrate:local": "wrangler d1 migrations apply qitu-dev --local",
+    "cf:typegen": "node ../../scripts/wrangler-types.mjs",
+    "db:migrate:local": "node ../../scripts/wrangler-d1-migrate-local.mjs",
     "db:migrate:remote": "vp run db:migrate:preview",
     "db:migrate:preview": "wrangler d1 migrations apply qitu-preview --env preview --remote",
     "db:migrate:production": "wrangler d1 migrations apply qitu-production --env production --remote",

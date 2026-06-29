@@ -160,6 +160,75 @@ Current verification:
 2. `templates/feature` is a workspace package with a typechecked `ImportFeatureAdapter` and app-owned registry starter.
 3. Release and upgrade notes describe the current starter baseline and safe adoption path.
 
+## Phase 5: Product-Grade Starter Hardening
+
+Status:
+
+```text
+in progress
+```
+
+Goal:
+
+Turn the runnable baseline into a startup kit that feels coherent enough for another team or agent to clone, run, understand, and extend without discovering obvious UX or workflow contradictions.
+
+Boundary:
+
+Keep this hardening business-neutral. Improvements should live in the app-owned shell, Worker routes, reusable qitu UI primitives, documentation, or verification scripts. They must not add business metrics, business parser fields, business workflows, or business reports to `packages/*`.
+
+Near-term requirements:
+
+1. Page metrics and labels must describe the real data scope they show.
+2. Cross-page actions must preserve workflow context, especially the selected import job between imports and reviews.
+3. The React shell must project RBAC clearly: viewers should see read-only affordances before a guarded route returns `403`.
+4. Each route should expose useful empty, error, and blocked states rather than relying on a hidden top-level error.
+5. Review pages should distinguish selected-job review state from workspace-wide state.
+6. Governance pages should become useful operational tools through filtering, details, and clear actor/subject context.
+7. User management should cover the invitation lifecycle expected of an internal app starter.
+8. Browser smoke or integration checks should cover the workflow invariants that users can break from the UI.
+
+First hardening increment:
+
+1. Make the first pass of role-aware UI controls match the existing RBAC permissions.
+2. Preserve selected job context when opening Reviews from Imports.
+3. Rename and compute overview/review labels so they do not imply stronger data than the UI actually has.
+4. Show non-review route errors inside the authenticated workbench.
+
+Second hardening increment:
+
+1. Make the audit route an operational governance page, not only a passive timeline.
+2. Add server-backed audit filters for action, actor, subject kind, and subject id.
+3. Show selected audit-event details, including actor, subject, timestamp, and metadata.
+4. Cover audit filtering in Worker integration and browser smoke.
+
+Third hardening increment:
+
+1. Add an authenticated invitation revocation route guarded by the existing invitation-management permission.
+2. Write `invitation.revoked` audit events when pending invitations are revoked.
+3. Show invitation lifecycle timestamps and revoke actions in the Users route.
+4. Cover invitation revocation through Worker integration and browser smoke.
+
+Fourth hardening increment:
+
+1. Show source-file-to-import-job linkage on the Sources route.
+2. Turn the Imports inspector into a job diagnostics panel with status, adapter, attempts, failure class/reason, timestamps, and content hash.
+3. Reuse `import_job_events` as the Imports route event stream so failures and retries are visible before opening Reviews.
+4. Cover the diagnostics panel in browser smoke.
+
+Fifth hardening increment:
+
+1. Show a page-local recovery path for failed, queued, processing, and review-ready import jobs.
+2. Map failure classes to neutral remediation guidance from the DLQ runbook.
+3. Put the retry action inside the selected job diagnostics panel while preserving RBAC-disabled states.
+4. Cover a real failed JSON import and recovery guidance in browser smoke.
+
+Sixth hardening increment:
+
+1. Cover the AI advisory panel in browser smoke as part of the first vertical slice.
+2. Generate a local deterministic advisory from the Review route.
+3. Confirm the advisory through the UI before record approval and commit.
+4. Assert the import job event stream shows `ai_advisory.confirmed`.
+
 ## Completion Gate
 
 The final target is defined in `docs/kit-completion.md`.

@@ -400,6 +400,44 @@ Decision:
 
 第一版本地手画 animated icons 在真实 15-17px shell 尺寸下显得过粗且不一致。AnimateIcons 提供更成熟的比例基线，但为 qitu 当前的小型精选集合引入它的 React runtime 会带来不成比例的 bundle 重量。Vendoring 选中 SVG source 可以保留 qitu 的稳定语义 API 和视觉基线，同时让 app chrome 保持轻量。
 
+### Stable Workspace Bootstrap Shell
+
+Decision:
+
+将受保护深链刷新视为 workspace bootstrap 状态，而不是临时退回 auth page。
+
+规则：
+
+1. 直接进入 `/overview`、`/sources`、`/imports`、`/reviews`、`/audit`、`/users` 或 `/account` 时，只要 session 尚未解析完成，就应保持在 workbench shell 中。
+2. 静态 HTML 入口在模块加载前解析 persisted/system theme，并绘制与应用 light/dark 色系一致的 preboot workbench skeleton。
+3. React theme state 必须在首帧前作用到 `document.documentElement`，避免 route-loading shell 闪过错误主题。
+4. Session bootstrap 只负责 health 与 current-user 解析；workspace list data 与 route-specific companion data 在 session snapshot 明确后再加载。
+5. Route-specific companion data 只在需要它的 route 加载。Users 与 Audit route 不应因为存在 selected job 就触发 review-record/advisory/event 加载。
+6. Protected-route loading 应保留最终 workbench topbar 形态，用 disabled 或 skeletal controls 表示等待，而不是切回 guest/auth action model。
+
+原因：
+
+刷新受保护深链曾暴露白屏和登录页闪烁。问题不是单个页面，而是 theme、auth、route 与 route-owned data 没有共享启动契约。稳定的 bootstrap shell 能让受保护 route 从 HTML 首帧到 authenticated data hydration 都保持在 workspace 语义里。
+
+### App-Owned TanStack Router
+
+Decision:
+
+React Web app 使用 TanStack Router 管理 route tree、location state 与客户端导航。
+
+规则：
+
+1. `apps/web` 拥有 TanStack Router dependency、route tree、route matching 和 navigation calls。
+2. `packages/ui` 等可复用 package 保持路由无关，只接收普通 `href` 与 callback props。
+3. App navigation 使用 router instance，不再使用手写 `window.history` 或 `popstate` subscription。
+4. Route tree 覆盖 starter shell routes、invitation links 与 password-reset links。
+5. Auth、RBAC、audit 与 persistence 仍由 Worker/API 负责；client router 可以控制展示，但不能成为授权事实来源。
+6. 后续 route guards、pending states 与 skeletons 应通过 app-owned router lifecycle API 添加，而不是继续散落在页面级 history effects 中。
+
+原因：
+
+手写 History API router 让 route transition 依赖分散的 link handler 和浏览器默认行为，曾导致 disabled navigation item 落回 full document request，也让受保护 route 刷新闪烁难以推理。成熟的 app-owned router 为 qitu 提供单一导航契约，同时保留 core package 边界。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

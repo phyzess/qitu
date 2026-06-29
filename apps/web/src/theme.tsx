@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type ThemePreference = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
@@ -13,6 +21,10 @@ type ThemeContextValue = {
 const storageKey = "qitu.theme";
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+export function applyInitialTheme(): void {
+  applyResolvedThemeToDocument(resolveTheme(readStoredPreference()));
+}
 
 export function ThemeProvider(props: { children: ReactNode }) {
   const [preference, setPreference] = useState<ThemePreference>(() => readStoredPreference());
@@ -37,10 +49,8 @@ export function ThemeProvider(props: { children: ReactNode }) {
     return () => media.removeEventListener("change", applyResolvedTheme);
   }, [preference]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.dataset.theme = resolvedTheme;
-    root.classList.toggle("dark", resolvedTheme === "dark");
+  useLayoutEffect(() => {
+    applyResolvedThemeToDocument(resolvedTheme);
   }, [resolvedTheme]);
 
   const value = useMemo<ThemeContextValue>(
@@ -80,4 +90,10 @@ function readStoredPreference(): ThemePreference {
 function resolveTheme(preference: ThemePreference): ResolvedTheme {
   if (preference !== "system") return preference;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyResolvedThemeToDocument(theme: ResolvedTheme): void {
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.classList.toggle("dark", theme === "dark");
 }

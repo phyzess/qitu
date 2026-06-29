@@ -116,3 +116,5 @@ The reusable pipeline should distinguish:
 8. Infrastructure failure.
 
 Failures should be visible and retryable unless the adapter marks them as terminal.
+
+The current web starter exposes that visibility in the Imports route: the selected job inspector shows status, adapter, attempt count, failure class, failure reason, timestamps, source hash, recovery guidance, RBAC-aware retry action, and the `import_job_events` stream before the user opens the Review route.

@@ -35,7 +35,11 @@ body {
   pointer-events: none;
   background-image:
     linear-gradient(color-mix(in oklch, var(--qitu-text) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in oklch, var(--qitu-text) 4%, transparent) 1px, transparent 1px);
+    linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--qitu-text) 4%, transparent) 1px,
+      transparent 1px
+    );
   background-position: center;
   background-size: 42px 42px;
   mask-image: linear-gradient(180deg, black, transparent 78%);

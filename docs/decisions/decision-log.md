@@ -497,6 +497,44 @@ Reason:
 
 The first local hand-drawn animated icon set looked too heavy and inconsistent at the real 15-17px shell size. AnimateIcons provides a more polished proportion baseline, but importing its React runtime adds disproportionate bundle weight for qitu's small selected set. Vendoring selected SVG source preserves the semantic qitu API and visual baseline while keeping app chrome lightweight.
 
+### 2026-06-29: Stable Workspace Bootstrap Shell
+
+Decision:
+
+Treat protected-route refresh as a workspace bootstrap state, not an auth-page fallback.
+
+Rules:
+
+1. Direct entry into `/overview`, `/sources`, `/imports`, `/reviews`, `/audit`, `/users`, or `/account` must keep the user inside the workbench shell while session status is unresolved.
+2. The static HTML entrypoint resolves the persisted/system theme before module loading and paints a neutral preboot workbench skeleton with the same light/dark tone family as the app.
+3. React theme state must apply to `document.documentElement` before first paint, so route-loading shells do not render in the wrong theme for a frame.
+4. Session bootstrap owns only health and current-user resolution; workspace list data and route-specific companion data load after the session snapshot is known.
+5. Route-specific companion data should only load where it is needed. User management and audit routes must not trigger review-record/advisory/event loading merely because a selected job exists.
+6. Protected-route loading actions should preserve the final workbench topbar shape with disabled or skeletal controls rather than switching to a guest/auth action model.
+
+Reason:
+
+Refreshing a protected deep link exposed a visible white loading frame before the authenticated page settled. The failure was systemic: theme, auth, route, and route-owned data did not share one startup contract. A stable bootstrap shell keeps protected routes visually and semantically inside the workspace from the first HTML paint through authenticated data hydration.
+
+### 2026-06-29: App-Owned TanStack Router
+
+Decision:
+
+Use TanStack Router for the React web app's route tree, location state, and client-side navigation.
+
+Rules:
+
+1. `apps/web` owns the TanStack Router dependency, route tree, route matching, and navigation calls.
+2. Reusable packages such as `packages/ui` remain router-agnostic and receive plain `href` and callback props.
+3. App navigation must use the router instance instead of manual `window.history` writes or `popstate` subscriptions.
+4. The route tree covers the starter shell routes, invitation links, and password-reset links.
+5. Auth, RBAC, audit, and persistence remain Worker/API responsibilities; the client router may gate presentation but must not become the source of authorization truth.
+6. Future route guards, pending states, and skeletons should be added through app-owned router lifecycle APIs rather than page-local history effects.
+
+Reason:
+
+The hand-written History API router made route transitions depend on scattered link handlers and browser default behavior. That allowed a disabled navigation item to fall through to a full document request and made protected-route refresh flashes harder to reason about. A mature app-owned router gives qitu a single navigation contract while preserving the core package boundary.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

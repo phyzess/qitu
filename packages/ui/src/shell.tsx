@@ -135,11 +135,19 @@ function SubNavButton(props: { item: AppShellNavItem }) {
     return (
       <a
         aria-current={props.item.active ? "page" : undefined}
+        aria-disabled={props.item.disabled ? true : undefined}
         className="qitu-subnav-button"
         data-active={props.item.active ? "true" : "false"}
+        data-disabled={props.item.disabled ? "true" : "false"}
         href={props.item.href}
+        tabIndex={props.item.disabled ? -1 : undefined}
         onClick={(event) => {
-          if (!props.item.onSelect || props.item.disabled) return;
+          if (props.item.disabled) {
+            event.preventDefault();
+            return;
+          }
+
+          if (!props.item.onSelect) return;
           event.preventDefault();
           props.item.onSelect();
         }}
@@ -183,13 +191,21 @@ function PrimaryNavButton(props: {
     return (
       <a
         aria-current={props.item.active ? "page" : undefined}
+        aria-disabled={props.item.disabled ? true : undefined}
         aria-label={props.item.label}
         className={className}
         data-active={props.item.active ? "true" : "false"}
+        data-disabled={props.item.disabled ? "true" : "false"}
         href={props.item.href}
+        tabIndex={props.item.disabled ? -1 : undefined}
         onBlur={() => props.onFocusIndex(null)}
         onClick={(event) => {
-          if (!props.item.onSelect || props.item.disabled) return;
+          if (props.item.disabled) {
+            event.preventDefault();
+            return;
+          }
+
+          if (!props.item.onSelect) return;
           event.preventDefault();
           props.item.onSelect();
         }}

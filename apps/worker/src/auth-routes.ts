@@ -195,6 +195,69 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     });
   });
 
+  app.post("/api/invitations/:invitationId/revoke", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
+    }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
+
+    const invitationId = context.req.param("invitationId");
+    const invitation = await context.env.DB.prepare(
+      `
+        SELECT
+          id, email, role, status, token_hash, expires_at, created_by, created_at, accepted_at, revoked_at
+        FROM invitations
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+      .bind(invitationId)
+      .first<InvitationRow>();
+
+    if (!invitation) {
+      return authError(context, "invitation_not_found", "Invitation was not found.", 404);
+    }
+
+    if (invitation.status !== "pending") {
+      return authError(context, "invitation_not_pending", "Invitation is no longer pending.", 409);
+    }
+
+    const now = new Date().toISOString();
+    await context.env.DB.batch([
+      context.env.DB.prepare(
+        "UPDATE invitations SET status = 'revoked', revoked_at = ? WHERE id = ? AND status = 'pending'",
+      ).bind(now, invitation.id),
+      prepareAuditInsert(
+        context.env,
+        createAuditEvent({
+          action: "invitation.revoked",
+          actor: {
+            id: current.user.id,
+            kind: "user",
+          },
+          subject: {
+            id: invitation.id,
+            kind: "invitation",
+          },
+          metadata: {
+            email: invitation.email,
+            role: invitation.role,
+          },
+        }),
+      ),
+    ]);
+
+    return context.json({
+      invitation: publicInvitationListItem({
+        ...invitation,
+        revoked_at: now,
+        status: "revoked",
+      }),
+    });
+  });
+
   app.post("/api/invitations/:token/accept", async (context) => {
     const token = context.req.param("token");
     const input = await parseRequestJson(context, AcceptInvitationInputSchema);

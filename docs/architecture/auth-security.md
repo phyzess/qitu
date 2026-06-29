@@ -65,9 +65,10 @@ Baseline routes:
 GET /api/users
 GET /api/invitations
 POST /api/invitations
+POST /api/invitations/:invitationId/revoke
 ```
 
-These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, and create invitations. `reviewer` and `viewer` can still use the authenticated workbench, but they see an admin-only state for user management.
+These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, and revoke pending invitations. `reviewer` and `viewer` can still use the authenticated workbench, but they see an admin-only state for user management.
 
 Local development may return the generated invite URL for authenticated invitation creation. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
 

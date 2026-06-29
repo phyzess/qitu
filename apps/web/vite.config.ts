@@ -3,6 +3,9 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [...tailwindcss()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
   server: {
     port: 5173,
     proxy: {

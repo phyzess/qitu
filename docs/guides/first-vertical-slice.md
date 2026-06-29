@@ -212,7 +212,8 @@ Current gap:
 4. Scripted browser smoke covers local setup, upload, queue drain, review approval, commit, review rejection, and audit.
 5. The demo commit table is intentionally example-owned; real apps must provide their own commit target.
 6. Handler integration covers invite, login, password reset, upload, queue, adapter staging, AI advisory, review approval, adapter commit, duplicate upload, duplicate commit, source-missing retry, and audit visibility.
-7. Additional tests still need to cover more failure classes and the AI advisory panel in the browser.
+7. Browser smoke covers the AI advisory panel by generating a local deterministic advisory, confirming it, and checking the import job event stream.
+8. Additional tests still need to cover more failure classes beyond the current invalid JSON browser path and source-missing integration path.
 
 ## Initial Issues
 

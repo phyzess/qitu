@@ -1,4 +1,4 @@
-import { type ReactNode, type RefObject } from "react";
+import { type FormEvent, type ReactNode, type RefObject } from "react";
 import {
   AnimatedIcon,
   Button,
@@ -13,21 +13,22 @@ import {
   type TimelineItem,
 } from "@qitu/ui";
 import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
+import type { AppNavigationPath } from "./app-routes";
 import { ErrorText, Field, RuntimeRow, SelectField } from "./app-ui";
 import { useI18n, type Translate } from "./i18n";
 import type {
   ApiUser,
   AuditEvent,
+  ImportJobEvent,
   ImportJobListItem,
   InvitationSummary,
   SourceFile,
 } from "./types";
 
-type ReviewCounts = {
-  pending: number;
-  approved: number;
-  rejected: number;
-  committed: number;
+type WorkspaceReviewCounts = {
+  approvedForCommit: number;
+  failed: number;
+  reviewQueue: number;
 };
 
 type InvitationForm = {
@@ -35,12 +36,19 @@ type InvitationForm = {
   role: string;
 };
 
+type AuditFilters = {
+  action: string;
+  actorId: string;
+  subjectId: string;
+  subjectKind: string;
+};
+
 export function OverviewPage(props: {
   auditEvents: AuditEvent[];
-  counts: ReviewCounts;
   importJobs: ImportJobListItem[];
-  onNavigate: (path: string) => void;
+  onNavigate: (path: AppNavigationPath) => void;
   sourceFiles: SourceFile[];
+  workspaceReviewCounts: WorkspaceReviewCounts;
 }) {
   const { formatDateTime, t } = useI18n();
   const metrics: MetricItem[] = [
@@ -66,9 +74,15 @@ export function OverviewPage(props: {
     },
     {
       id: "pending",
-      label: t("overview.metricPendingReview"),
-      value: props.counts.pending,
-      tone: props.counts.pending > 0 ? "warning" : "neutral",
+      label: t("overview.metricReviewQueue"),
+      value: props.workspaceReviewCounts.reviewQueue,
+      tone: props.workspaceReviewCounts.reviewQueue > 0 ? "warning" : "neutral",
+      meta:
+        props.workspaceReviewCounts.approvedForCommit > 0
+          ? t("overview.metricApprovedForCommit", {
+              count: props.workspaceReviewCounts.approvedForCommit,
+            })
+          : undefined,
     },
     {
       id: "audit",
@@ -114,7 +128,9 @@ export function OverviewPage(props: {
               icon={<AnimatedIcon name="reviews" size={16} />}
               label={t("nav.reviews")}
               onClick={() => props.onNavigate("/reviews")}
-              status={t("overview.workflowReviewsStatus", { count: props.counts.pending })}
+              status={t("overview.workflowReviewsStatus", {
+                count: props.workspaceReviewCounts.reviewQueue,
+              })}
             />
           </div>
         </Surface>
@@ -136,6 +152,7 @@ export function OverviewPage(props: {
 }
 
 export function SourcesPage(props: {
+  canUploadSources: boolean;
   importJobs: ImportJobListItem[];
   isBusy: boolean;
   onUploadSample: () => void;
@@ -144,7 +161,12 @@ export function SourcesPage(props: {
   uploadInputRef: RefObject<HTMLInputElement | null>;
 }) {
   const { t } = useI18n();
-  const jobBySourceId = new Map(props.importJobs.map((job) => [job.sourceFileId, job]));
+  const jobsBySourceId = new Map<string, ImportJobListItem[]>();
+  for (const job of props.importJobs) {
+    const jobs = jobsBySourceId.get(job.sourceFileId) ?? [];
+    jobs.push(job);
+    jobsBySourceId.set(job.sourceFileId, jobs);
+  }
 
   return (
     <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -158,7 +180,7 @@ export function SourcesPage(props: {
           <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={props.isBusy}
+              disabled={props.isBusy || !props.canUploadSources}
               size="sm"
               variant="secondary"
               onClick={props.onUploadSelected}
@@ -166,7 +188,7 @@ export function SourcesPage(props: {
               <FileUp size={14} /> {t("action.uploadSelected")}
             </Button>
             <Button
-              disabled={props.isBusy}
+              disabled={props.isBusy || !props.canUploadSources}
               size="sm"
               variant="ghost"
               onClick={props.onUploadSample}
@@ -175,6 +197,11 @@ export function SourcesPage(props: {
             </Button>
           </div>
         </div>
+        {!props.canUploadSources ? (
+          <div className="mt-3">
+            <PermissionHint label={t("permission.sourceUpload")} />
+          </div>
+        ) : null}
         <div className="mt-[var(--qitu-space-s1)]">
           <DataState
             description={t("sources.emptyDescription")}
@@ -183,7 +210,7 @@ export function SourcesPage(props: {
           >
             <div className="grid gap-3 lg:grid-cols-2">
               {props.sourceFiles.map((file) => (
-                <SourceFileRow file={file} job={jobBySourceId.get(file.id) ?? null} key={file.id} />
+                <SourceFileRow file={file} jobs={jobsBySourceId.get(file.id) ?? []} key={file.id} />
               ))}
             </div>
           </DataState>
@@ -207,17 +234,34 @@ export function SourcesPage(props: {
 }
 
 export function ImportsPage(props: {
+  canProcessImports: boolean;
   canRetry: boolean;
+  importJobEvents: ImportJobEvent[];
   importJobs: ImportJobListItem[];
   isBusy: boolean;
-  onNavigate: (path: string) => void;
+  retryAvailable: boolean;
+  onOpenReview: (jobId: string) => void;
   onProcessLocalQueue: () => void;
   onRetrySelectedJob: () => void;
   onSelectJob: (jobId: string) => void;
   runtimeEnvironment: string;
+  selectedJob: ImportJobListItem | null;
   selectedJobId: string | null;
+  sourceFiles: SourceFile[];
 }) {
-  const { t } = useI18n();
+  const { formatDateTime, formatStatus, formatTime, t } = useI18n();
+  const selectedJob =
+    props.selectedJob ??
+    props.importJobs.find((job) => job.id === props.selectedJobId) ??
+    props.importJobs[0] ??
+    null;
+  const selectedSource = selectedJob
+    ? (props.sourceFiles.find((source) => source.id === selectedJob.sourceFileId) ?? null)
+    : null;
+  const importTimeline = props.importJobEvents.map((event) =>
+    importJobTimelineItem(event, formatStatus, formatTime, t),
+  );
+  const recoveryGuidance = selectedJob ? importRecoveryGuidance(selectedJob, t) : null;
 
   return (
     <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -227,7 +271,7 @@ export function ImportsPage(props: {
             <div className="flex flex-wrap gap-2">
               {props.runtimeEnvironment === "local" ? (
                 <Button
-                  disabled={props.isBusy}
+                  disabled={props.isBusy || !props.canProcessImports}
                   size="sm"
                   variant="ghost"
                   onClick={props.onProcessLocalQueue}
@@ -235,9 +279,9 @@ export function ImportsPage(props: {
                   <AnimatedIcon name="refresh" size={14} /> {t("action.processLocalQueue")}
                 </Button>
               ) : null}
-              {props.canRetry ? (
+              {props.retryAvailable ? (
                 <Button
-                  disabled={props.isBusy}
+                  disabled={props.isBusy || !props.canRetry}
                   size="sm"
                   variant="secondary"
                   onClick={props.onRetrySelectedJob}
@@ -262,50 +306,260 @@ export function ImportsPage(props: {
                   active={job.id === props.selectedJobId}
                   job={job}
                   key={job.id}
-                  onOpenReview={() => props.onNavigate("/reviews")}
+                  onOpenReview={() => props.onOpenReview(job.id)}
                   onSelect={() => props.onSelectJob(job.id)}
                 />
               ))}
             </div>
           </DataState>
+          {!props.canProcessImports ? (
+            <div className="mt-3">
+              <PermissionHint label={t("permission.importProcess")} />
+            </div>
+          ) : null}
         </div>
       </Surface>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           icon={<AnimatedIcon name="activity" size={16} />}
-          title={t("common.runtime")}
+          title={t("imports.diagnostics")}
         />
-        <div className="mt-[var(--qitu-space-s1)] space-y-3">
-          <RuntimeRow label={t("common.worker")} value="/api" />
-          <RuntimeRow label={t("common.environment")} value={props.runtimeEnvironment} />
-          <RuntimeRow
-            label={t("imports.runtimeSelectedJob")}
-            value={props.selectedJobId ?? t("common.none")}
+        {selectedJob ? (
+          <div className="mt-[var(--qitu-space-s1)] space-y-4">
+            <div className="space-y-3">
+              <RuntimeRow label={t("common.environment")} value={props.runtimeEnvironment} />
+              <RuntimeRow label={t("imports.status")} value={formatStatus(selectedJob.status)} />
+              <RuntimeRow label={t("imports.source")} value={selectedJob.sourceFile.filename} />
+              <RuntimeRow
+                label={t("imports.adapter")}
+                value={selectedJob.adapterId ?? selectedJob.jobKind ?? t("common.none")}
+              />
+              <RuntimeRow label={t("imports.attempts")} value={String(selectedJob.attemptCount)} />
+              <RuntimeRow
+                label={t("imports.failureClass")}
+                value={selectedJob.failureClass ?? t("common.none")}
+              />
+              <RuntimeRow
+                label={t("imports.failureReason")}
+                value={selectedJob.failureReason ?? t("common.none")}
+              />
+              <RuntimeRow
+                label={t("imports.started")}
+                value={
+                  selectedJob.processingStartedAt
+                    ? formatDateTime(selectedJob.processingStartedAt)
+                    : t("common.none")
+                }
+              />
+              <RuntimeRow
+                label={t("imports.completed")}
+                value={
+                  selectedJob.completedAt
+                    ? formatDateTime(selectedJob.completedAt)
+                    : t("common.none")
+                }
+              />
+              <RuntimeRow
+                label={t("imports.contentHash")}
+                value={selectedSource?.contentHash ?? t("common.none")}
+              />
+            </div>
+            {recoveryGuidance ? (
+              <div className="qitu-surface-subtle p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
+                      {t("imports.recoveryPath")}
+                    </div>
+                    <div className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+                      {recoveryGuidance.description}
+                    </div>
+                  </div>
+                  <StatusBadge tone={recoveryGuidance.tone}>{recoveryGuidance.label}</StatusBadge>
+                </div>
+                {selectedJob.status === "failed" ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      disabled={props.isBusy || !props.canRetry}
+                      size="sm"
+                      variant="secondary"
+                      onClick={props.onRetrySelectedJob}
+                    >
+                      <AnimatedIcon name="refresh" size={14} /> {t("action.retryJob")}
+                    </Button>
+                    {!props.canRetry ? (
+                      <span className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+                        {t("permission.importRetry")}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            <div>
+              <SectionHeader
+                icon={<AnimatedIcon name="activity" size={16} />}
+                title={t("imports.eventStream")}
+              />
+              <Timeline
+                className="mt-[var(--qitu-space-s1)]"
+                emptyLabel={t("empty.noEventsDescription")}
+                emptyTitle={t("empty.noEvents")}
+                items={importTimeline}
+              />
+            </div>
+          </div>
+        ) : (
+          <DataState
+            className="mt-[var(--qitu-space-s1)]"
+            description={t("imports.selectJobDescription")}
+            state="empty"
+            title={t("imports.noSelectedJob")}
           />
-        </div>
+        )}
       </Surface>
     </div>
   );
 }
 
-export function AuditPage(props: { auditEvents: AuditEvent[] }) {
-  const { formatTime, t } = useI18n();
+export function AuditPage(props: {
+  auditEvents: AuditEvent[];
+  filters: AuditFilters;
+  isBusy: boolean;
+  selectedEventId: string | null;
+  onApplyFilters: () => void;
+  onClearFilters: () => void;
+  onFiltersChange: (filters: AuditFilters) => void;
+  onSelectEvent: (eventId: string) => void;
+}) {
+  const { formatDateTime, formatTime, t } = useI18n();
+  const selectedEvent =
+    props.auditEvents.find((event) => event.id === props.selectedEventId) ??
+    props.auditEvents[0] ??
+    null;
+
+  function submitFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    props.onApplyFilters();
+  }
 
   return (
-    <Surface className="p-[var(--qitu-space-s1)]">
-      <SectionHeader
-        description={t("audit.description")}
-        icon={<AnimatedIcon name="audit" size={16} />}
-        title={t("audit.title")}
-      />
-      <Timeline
-        className="mt-[var(--qitu-space-s1)]"
-        emptyLabel={t("audit.empty")}
-        emptyTitle={t("empty.noEvents")}
-        items={props.auditEvents.map((event) => auditTimelineItem(event, formatTime))}
-      />
-    </Surface>
+    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_420px]">
+      <section className="space-y-[var(--qitu-layout-gutter)]">
+        <Surface className="p-[var(--qitu-space-s1)]">
+          <SectionHeader
+            description={t("audit.description")}
+            icon={<AnimatedIcon name="audit" size={16} />}
+            title={t("audit.title")}
+          />
+          <form
+            className="mt-[var(--qitu-space-s1)] grid gap-3 lg:grid-cols-4"
+            onSubmit={submitFilters}
+          >
+            <Field
+              label={t("audit.filterAction")}
+              onChange={(action) => props.onFiltersChange({ ...props.filters, action })}
+              value={props.filters.action}
+            />
+            <Field
+              label={t("audit.filterActor")}
+              onChange={(actorId) => props.onFiltersChange({ ...props.filters, actorId })}
+              value={props.filters.actorId}
+            />
+            <Field
+              label={t("audit.filterSubjectKind")}
+              onChange={(subjectKind) =>
+                props.onFiltersChange({
+                  ...props.filters,
+                  subjectKind,
+                })
+              }
+              value={props.filters.subjectKind}
+            />
+            <Field
+              label={t("audit.filterSubjectId")}
+              onChange={(subjectId) => props.onFiltersChange({ ...props.filters, subjectId })}
+              value={props.filters.subjectId}
+            />
+            <div className="flex flex-wrap gap-2 lg:col-span-4">
+              <Button disabled={props.isBusy} size="sm" type="submit">
+                <AnimatedIcon name="search" size={14} /> {t("action.applyFilters")}
+              </Button>
+              <Button
+                disabled={props.isBusy}
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={props.onClearFilters}
+              >
+                <X size={14} /> {t("action.clearFilters")}
+              </Button>
+            </div>
+          </form>
+        </Surface>
+
+        <Surface className="p-[var(--qitu-space-s1)]">
+          <SectionHeader
+            icon={<AnimatedIcon name="activity" size={16} />}
+            title={t("audit.results")}
+          />
+          <div className="mt-[var(--qitu-space-s1)]">
+            <DataState
+              description={t("audit.empty")}
+              state={props.auditEvents.length === 0 ? "empty" : "ready"}
+              title={t("empty.noEvents")}
+            >
+              <div className="space-y-2">
+                {props.auditEvents.map((event) => (
+                  <AuditEventRow
+                    active={event.id === selectedEvent?.id}
+                    event={event}
+                    formatTime={formatTime}
+                    key={event.id}
+                    onSelect={() => props.onSelectEvent(event.id)}
+                  />
+                ))}
+              </div>
+            </DataState>
+          </div>
+        </Surface>
+      </section>
+
+      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
+        <SectionHeader
+          icon={<AnimatedIcon name="audit" size={16} />}
+          title={t("audit.eventDetails")}
+        />
+        {selectedEvent ? (
+          <div className="mt-[var(--qitu-space-s1)] space-y-3">
+            <RuntimeRow label={t("audit.eventId")} value={selectedEvent.id} />
+            <RuntimeRow label={t("audit.action")} value={selectedEvent.action} />
+            <RuntimeRow label={t("audit.actor")} value={actorLabel(selectedEvent)} />
+            <RuntimeRow label={t("audit.subject")} value={subjectLabel(selectedEvent)} />
+            <RuntimeRow
+              label={t("audit.occurredAt")}
+              value={formatDateTime(selectedEvent.occurredAt)}
+            />
+            <div className="qitu-surface-subtle p-3">
+              <div className="text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
+                {t("audit.metadata")}
+              </div>
+              <pre className="qitu-number mt-2 max-h-[360px] overflow-auto whitespace-pre-wrap break-words text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-muted)]">
+                {formatMetadata(selectedEvent.metadata)}
+              </pre>
+            </div>
+          </div>
+        ) : (
+          <DataState
+            className="mt-[var(--qitu-space-s1)]"
+            description={t("audit.selectEventDescription")}
+            state="empty"
+            title={t("audit.noSelectedEvent")}
+          />
+        )}
+      </Surface>
+    </div>
   );
 }
 
@@ -352,20 +606,59 @@ export function AccountPage(props: {
   );
 }
 
+function AuditEventRow(props: {
+  active: boolean;
+  event: AuditEvent;
+  formatTime: (value: string) => string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      className={[
+        "qitu-surface-subtle w-full p-3 text-left transition-[background-color,box-shadow] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] hover:bg-[var(--qitu-surface-row-hover)]",
+        props.active ? "qitu-row-card-active" : "",
+      ].join(" ")}
+      onClick={props.onSelect}
+      type="button"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
+            {props.event.action}
+          </div>
+          <div className="mt-1 truncate text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+            {subjectLabel(props.event)}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge tone={auditStatusTone(props.event.action)}>
+            {props.event.actor.kind}
+          </StatusBadge>
+          <span className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
+            {props.formatTime(props.event.occurredAt)}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function UsersPage(props: {
   adminError: string | null;
+  canManageUsers: boolean;
   createdInvitationUrl: string | null;
   invitationForm: InvitationForm;
   invitations: InvitationSummary[];
   isBusy: boolean;
+  isLoading: boolean;
   onCreateInvitation: () => void;
   onInvitationFormChange: (form: InvitationForm) => void;
   onRefreshUsers: () => void;
+  onRevokeInvitation: (invitationId: string) => void;
   user: ApiUser;
   users: ApiUser[];
 }) {
   const { t } = useI18n();
-  const canManage = canManageUsers(props.user);
   const roleOptions = [
     { label: t("role.viewer"), value: "viewer" },
     { label: t("role.reviewer"), value: "reviewer" },
@@ -373,7 +666,7 @@ export function UsersPage(props: {
     { label: t("role.owner"), value: "owner" },
   ];
 
-  if (!canManage) {
+  if (!props.canManageUsers) {
     return (
       <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<AnimatedIcon name="users" size={16} />} title={t("users.title")} />
@@ -409,9 +702,11 @@ export function UsersPage(props: {
           {props.adminError ? <ErrorText>{props.adminError}</ErrorText> : null}
           <div className="mt-[var(--qitu-space-s1)]">
             <DataState
-              description={t("users.acceptedDescription")}
-              state={props.users.length === 0 ? "empty" : "ready"}
-              title={t("users.emptyTitle")}
+              description={
+                props.isLoading ? t("users.loadingDescription") : t("users.acceptedDescription")
+              }
+              state={props.isLoading ? "loading" : props.users.length === 0 ? "empty" : "ready"}
+              title={props.isLoading ? t("users.loadingTitle") : t("users.emptyTitle")}
             >
               <div className="space-y-2">
                 {props.users.map((user) => (
@@ -429,13 +724,24 @@ export function UsersPage(props: {
           />
           <div className="mt-[var(--qitu-space-s1)]">
             <DataState
-              description={t("invitation.pendingDescription")}
-              state={props.invitations.length === 0 ? "empty" : "ready"}
-              title={t("invitation.emptyTitle")}
+              description={
+                props.isLoading
+                  ? t("invitation.loadingDescription")
+                  : t("invitation.pendingDescription")
+              }
+              state={
+                props.isLoading ? "loading" : props.invitations.length === 0 ? "empty" : "ready"
+              }
+              title={props.isLoading ? t("invitation.loadingTitle") : t("invitation.emptyTitle")}
             >
               <div className="space-y-2">
                 {props.invitations.map((invitation) => (
-                  <InvitationRow invitation={invitation} key={invitation.id} />
+                  <InvitationRow
+                    invitation={invitation}
+                    isBusy={props.isBusy}
+                    key={invitation.id}
+                    onRevoke={props.onRevokeInvitation}
+                  />
                 ))}
               </div>
             </DataState>
@@ -515,9 +821,10 @@ function WorkflowTarget(props: {
   );
 }
 
-function SourceFileRow(props: { file: SourceFile; job: ImportJobListItem | null }) {
-  const { formatBytes, formatDateTime, formatStatus } = useI18n();
-  const status = props.job?.status ?? "stored";
+function SourceFileRow(props: { file: SourceFile; jobs: ImportJobListItem[] }) {
+  const { formatBytes, formatDateTime, formatStatus, t } = useI18n();
+  const latestJob = props.jobs[0] ?? null;
+  const status = latestJob?.status ?? "stored";
 
   return (
     <div className="qitu-surface-subtle p-3">
@@ -531,6 +838,22 @@ function SourceFileRow(props: { file: SourceFile; job: ImportJobListItem | null 
           </div>
         </div>
         <StatusBadge tone={statusTone(status)}>{formatStatus(status)}</StatusBadge>
+      </div>
+      <div className="mt-3 grid gap-2 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge tone="neutral">
+            {t("sources.jobCount", { count: String(props.jobs.length) })}
+          </StatusBadge>
+          <span>
+            {latestJob ? t("sources.latestJob", { id: latestJob.id }) : t("sources.noImportJob")}
+          </span>
+        </div>
+        <div className="qitu-number truncate">
+          {t("sources.contentType", { value: props.file.contentType })}
+        </div>
+        <div className="qitu-number truncate">
+          {t("sources.contentHash", { value: props.file.contentHash ?? t("common.none") })}
+        </div>
       </div>
     </div>
   );
@@ -601,24 +924,61 @@ function UserRow(props: { user: ApiUser }) {
   );
 }
 
-function InvitationRow(props: { invitation: InvitationSummary }) {
+function InvitationRow(props: {
+  invitation: InvitationSummary;
+  isBusy: boolean;
+  onRevoke: (invitationId: string) => void;
+}) {
   const { formatDateTime, formatStatus, roleLabel, t } = useI18n();
+  const canRevoke = props.invitation.status === "pending";
 
   return (
-    <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 p-3">
+    <div className="qitu-surface-subtle flex flex-wrap items-start justify-between gap-3 p-3">
       <div className="min-w-0">
         <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.invitation.email}
         </div>
-        <div className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-          {t("invitation.expires", { value: formatDateTime(props.invitation.expiresAt) })}
+        <div className="mt-1 grid gap-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+          <span className="qitu-number">
+            {t("invitation.created", { value: formatDateTime(props.invitation.createdAt) })}
+          </span>
+          <span className="qitu-number">
+            {t("invitation.expires", { value: formatDateTime(props.invitation.expiresAt) })}
+          </span>
+          {props.invitation.acceptedAt ? (
+            <span className="qitu-number">
+              {t("invitation.accepted", {
+                value: formatDateTime(props.invitation.acceptedAt),
+              })}
+            </span>
+          ) : null}
+          {props.invitation.revokedAt ? (
+            <span className="qitu-number">
+              {t("invitation.revoked", {
+                value: formatDateTime(props.invitation.revokedAt),
+              })}
+            </span>
+          ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <StatusBadge tone={statusTone(props.invitation.status)}>
           {formatStatus(props.invitation.status)}
         </StatusBadge>
         <StatusBadge tone="neutral">{roleLabel(props.invitation.role)}</StatusBadge>
+        {canRevoke ? (
+          <Button
+            aria-label={t("action.revokeInvitationFor", {
+              email: props.invitation.email,
+            })}
+            disabled={props.isBusy}
+            size="sm"
+            variant="ghost"
+            onClick={() => props.onRevoke(props.invitation.id)}
+          >
+            <X size={14} /> {t("action.revoke")}
+          </Button>
+        ) : null}
       </div>
     </div>
   );
@@ -637,8 +997,17 @@ function Guardrail(props: { label: string }) {
   );
 }
 
-function canManageUsers(user: ApiUser): boolean {
-  return user.role === "owner" || user.role === "admin";
+function PermissionHint(props: { label: string }) {
+  const { t } = useI18n();
+
+  return (
+    <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+      <div className="text-[length:var(--qitu-text-label-13)] leading-[var(--qitu-leading-label-13)] text-[var(--qitu-muted)]">
+        {props.label}
+      </div>
+      <StatusBadge tone="neutral">{t("permission.readOnly")}</StatusBadge>
+    </div>
+  );
 }
 
 function auditTimelineItem(event: AuditEvent, formatTime: (value: string) => string): TimelineItem {
@@ -649,6 +1018,93 @@ function auditTimelineItem(event: AuditEvent, formatTime: (value: string) => str
     time: formatTime(event.occurredAt),
     tone: timelineTone(event.action),
   };
+}
+
+function importJobTimelineItem(
+  event: ImportJobEvent,
+  formatStatus: (value: string) => string,
+  formatTime: (value: string) => string,
+  t: Translate,
+): TimelineItem {
+  const transition = [event.statusFrom, event.statusTo]
+    .filter((status): status is string => Boolean(status))
+    .map(formatStatus)
+    .join(" -> ");
+
+  return {
+    id: event.id,
+    title: event.eventType,
+    description: event.message ?? (transition || t("imports.eventFallback")),
+    time: formatTime(event.createdAt),
+    tone: timelineTone(event.eventType),
+  };
+}
+
+function importRecoveryGuidance(
+  job: ImportJobListItem,
+  t: Translate,
+): { description: string; label: string; tone: StatusBadgeTone } | null {
+  if (job.status === "failed") {
+    const failureClass = job.failureClass ?? "unknown";
+    const keyByFailureClass: Record<string, Parameters<Translate>[0]> = {
+      adapter_missing: "imports.recoveryAdapterMissing",
+      processing: "imports.recoveryProcessing",
+      queue_dispatch: "imports.recoveryQueueDispatch",
+      source_missing: "imports.recoverySourceMissing",
+      validation: "imports.recoveryValidation",
+    };
+
+    return {
+      description: t(keyByFailureClass[failureClass] ?? "imports.recoveryUnknown"),
+      label: t("imports.retryCandidate"),
+      tone:
+        failureClass === "queue_dispatch" || failureClass === "source_missing"
+          ? "danger"
+          : "warning",
+    };
+  }
+
+  if (job.status === "queued" || job.status === "processing") {
+    return {
+      description: t("imports.recoveryWaitForProcessing"),
+      label: t("imports.inProgress"),
+      tone: "warning",
+    };
+  }
+
+  if (job.status === "needs_review") {
+    return {
+      description: t("imports.recoveryNeedsReview"),
+      label: t("imports.humanReview"),
+      tone: "info",
+    };
+  }
+
+  return null;
+}
+
+function actorLabel(event: AuditEvent): string {
+  return `${event.actor.kind}:${event.actor.id}`;
+}
+
+function subjectLabel(event: AuditEvent): string {
+  return `${event.subject.kind}:${event.subject.id}`;
+}
+
+function formatMetadata(metadata: unknown): string {
+  if (metadata === null || metadata === undefined) {
+    return "{}";
+  }
+
+  return JSON.stringify(metadata, null, 2);
+}
+
+function auditStatusTone(action: string): StatusBadgeTone {
+  if (action.includes("failed") || action.includes("denied")) return "danger";
+  if (action.includes("queued") || action.includes("requested")) return "warning";
+  if (action.includes("succeeded") || action.includes("committed")) return "success";
+  if (action.includes("advisory")) return "info";
+  return "neutral";
 }
 
 function latestTime(

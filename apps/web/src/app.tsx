@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ChartDatum } from "@qitu/charts";
+import { can, normalizeRole, type Permission } from "@qitu/rbac";
 import {
   AnimatedIcon,
   AppShell,
   Button,
   QituMark,
   StatusBadge,
+  Surface,
   type AppShellNavItem,
 } from "@qitu/ui";
 import { ChevronDown } from "lucide-react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   acceptInvitation,
   bootstrapLocalAdmin,
@@ -35,21 +38,23 @@ import {
   me,
   rejectStagedRecord,
   requestPasswordReset,
+  revokeInvitation,
   retryImportJob,
   uploadSourceFile,
 } from "./api";
 import {
+  type AppNavigationPath,
   type AppPrimaryRoute,
+  appRouteFromPath,
   defaultAuthenticatedPath,
   isWorkspaceAppRoute,
   isProtectedRoute,
   loginPath,
   primaryRouteFor,
-  readAppRoute,
   type AppRoute,
   type WorkspaceAppRoute,
 } from "./app-routes";
-import { readAuthRoute } from "./auth-route";
+import { authRouteFromPath } from "./auth-route";
 import {
   type AppNavigationModel,
   buildNavigation,
@@ -101,13 +106,41 @@ const defaultInvitationForm = {
   role: "viewer",
 };
 
+const defaultAuditFilters = {
+  action: "",
+  actorId: "",
+  subjectId: "",
+  subjectKind: "",
+};
+
 type RouteMemory = Partial<Record<AppPrimaryRoute, WorkspaceAppRoute>>;
+type AuditFilters = typeof defaultAuditFilters;
 type NoticeDescriptor = {
   key: MessageKey;
   values?: Record<string, number | string>;
 };
+type WorkspaceReviewCounts = {
+  approvedForCommit: number;
+  failed: number;
+  reviewQueue: number;
+};
+type SessionBootstrap = {
+  runtimeEnvironment: string | null;
+  user: ApiUser | null;
+};
+type WebPermissions = {
+  canCommitImports: boolean;
+  canDecideReviews: boolean;
+  canManageUsers: boolean;
+  canProcessImports: boolean;
+  canRetryImports: boolean;
+  canUploadSources: boolean;
+  canWriteAiAdvisories: boolean;
+};
 
 const routeMemoryStorageKey = "qitu.route-memory";
+let sessionBootstrapCache: SessionBootstrap | null = null;
+let sessionBootstrapPromise: Promise<SessionBootstrap> | null = null;
 
 const localDemoProfiles = {
   admin: {
@@ -120,14 +153,58 @@ const localDemoProfiles = {
   },
 } as const;
 
+const defaultWebPermissions: WebPermissions = {
+  canCommitImports: false,
+  canDecideReviews: false,
+  canManageUsers: false,
+  canProcessImports: false,
+  canRetryImports: false,
+  canUploadSources: false,
+  canWriteAiAdvisories: false,
+};
+
+function loadSessionBootstrap(): Promise<SessionBootstrap> {
+  if (sessionBootstrapCache) {
+    return Promise.resolve(sessionBootstrapCache);
+  }
+
+  sessionBootstrapPromise ??= Promise.all([health().catch(() => null), me()])
+    .then(([runtime, session]) => {
+      const snapshot = {
+        runtimeEnvironment: runtime?.environment ?? null,
+        user: session.user,
+      };
+      sessionBootstrapCache = snapshot;
+      return snapshot;
+    })
+    .finally(() => {
+      sessionBootstrapPromise = null;
+    });
+
+  return sessionBootstrapPromise;
+}
+
+function resetSessionBootstrap(): void {
+  sessionBootstrapCache = null;
+  sessionBootstrapPromise = null;
+}
+
+function selectedJobDataNeededForRoute(route: AppRoute): boolean {
+  return route === "reviews" || route === "imports";
+}
+
 export function App() {
   const { formatBytes, formatStatus, roleLabel, t } = useI18n();
+  const location = useLocation();
+  const routerNavigate = useNavigate();
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const loadedJobDataIdRef = useRef<string | null>(null);
+  const loadingJobDataIdRef = useRef<string | null>(null);
   const [authForm, setAuthForm] = useState(defaultAuthForm);
   const [authMode, setAuthMode] = useState<"login" | "setup" | "reset">("login");
   const [setupRole, setSetupRole] = useState<"admin" | "reviewer">("reviewer");
-  const [authRoute, setAuthRoute] = useState(readAuthRoute);
-  const [route, setRoute] = useState<AppRoute>(readAppRoute);
+  const authRoute = useMemo(() => authRouteFromPath(location.pathname), [location.pathname]);
+  const route = useMemo(() => appRouteFromPath(location.pathname), [location.pathname]);
   const [routeMemory, setRouteMemory] = useState<RouteMemory>(() => readRouteMemory());
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -143,30 +220,46 @@ export function App() {
   const [importJobs, setImportJobs] = useState<ImportJobListItem[]>([]);
   const [importJobEvents, setImportJobEvents] = useState<ImportJobEvent[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
+  const [auditPageEvents, setAuditPageEvents] = useState<AuditEvent[]>([]);
+  const [auditFilters, setAuditFilters] = useState<AuditFilters>(defaultAuditFilters);
+  const [auditFilterDraft, setAuditFilterDraft] = useState<AuditFilters>(defaultAuditFilters);
+  const [selectedAuditEventId, setSelectedAuditEventId] = useState<string | null>(null);
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [invitations, setInvitations] = useState<InvitationSummary[]>([]);
+  const [hasLoadedUserManagement, setHasLoadedUserManagement] = useState(false);
+  const [isLoadingUserManagement, setIsLoadingUserManagement] = useState(false);
   const [invitationForm, setInvitationForm] = useState(defaultInvitationForm);
   const [createdInvitationUrl, setCreatedInvitationUrl] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [reviewRecords, setReviewRecords] = useState<StagedRecord[]>([]);
   const [reviewIssues, setReviewIssues] = useState<ReviewIssue[]>([]);
   const [aiAdvisories, setAiAdvisories] = useState<AiAdvisoryArtifact[]>([]);
+  const permissions = useMemo<WebPermissions>(() => {
+    return user ? buildWebPermissions(user) : defaultWebPermissions;
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadSession() {
       try {
-        const runtime = await health().catch(() => null);
-        const session = await me();
+        const session = await loadSessionBootstrap();
         if (cancelled) return;
-        if (runtime) {
-          setRuntimeEnvironment(runtime.environment);
+        if (session.runtimeEnvironment) {
+          setRuntimeEnvironment(session.runtimeEnvironment);
         }
         setUser(session.user);
         if (session.user) {
-          await loadWorkspace();
-          setNotice({ key: "notice.reviewQueueReady" });
+          await loadWorkspace(undefined, {
+            loadSelectedJobData: selectedJobDataNeededForRoute(route),
+            updateReviewNotice: route === "reviews",
+          });
+          if (cancelled) return;
+          setNotice({
+            key: selectedJobDataNeededForRoute(route)
+              ? "notice.reviewQueueReady"
+              : "notice.workspaceReady",
+          });
         }
       } catch (caught) {
         if (!cancelled) {
@@ -184,15 +277,6 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  useEffect(() => {
-    function handlePopState() {
-      syncRouteState();
-    }
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
@@ -215,7 +299,7 @@ export function App() {
 
   useEffect(() => {
     if (!user || !isWorkspaceAppRoute(route)) return;
-    if (route === "users" && !canManageUsers(user)) return;
+    if (route === "users" && !permissions.canManageUsers) return;
 
     const primaryRoute = primaryRouteFor(route);
     if (!primaryRoute) return;
@@ -230,7 +314,7 @@ export function App() {
       writeRouteMemory(next);
       return next;
     });
-  }, [route, user]);
+  }, [permissions.canManageUsers, route, user]);
 
   useEffect(() => {
     if (isLoadingSession || authRoute.kind !== "home") return;
@@ -246,9 +330,20 @@ export function App() {
   }, [authRoute.kind, isLoadingSession, route, user]);
 
   useEffect(() => {
-    if (route !== "users" || !user || !canManageUsers(user)) return;
+    if (route !== "users" || !user || !permissions.canManageUsers) return;
     void loadUserManagement();
-  }, [route, user]);
+  }, [permissions.canManageUsers, route, user]);
+
+  useEffect(() => {
+    if (!user || !selectedJobId || !selectedJobDataNeededForRoute(route)) return;
+    if (loadedJobDataIdRef.current === selectedJobId) return;
+
+    void runAction(async () => {
+      await loadReview(selectedJobId, {
+        updateNotice: route === "reviews",
+      });
+    });
+  }, [route, selectedJobId, user]);
 
   const counts = useMemo(() => {
     return reviewRecords.reduce(
@@ -267,6 +362,21 @@ export function App() {
       },
     );
   }, [reviewRecords]);
+  const workspaceReviewCounts = useMemo<WorkspaceReviewCounts>(() => {
+    return importJobs.reduce(
+      (accumulator, job) => {
+        if (job.status === "needs_review") accumulator.reviewQueue += 1;
+        if (job.status === "approved") accumulator.approvedForCommit += 1;
+        if (job.status === "failed") accumulator.failed += 1;
+        return accumulator;
+      },
+      {
+        approvedForCommit: 0,
+        failed: 0,
+        reviewQueue: 0,
+      },
+    );
+  }, [importJobs]);
   const reviewTrend: ChartDatum[] = useMemo(
     () => [
       { x: 0, y: counts.pending, label: formatStatus("pending") },
@@ -278,20 +388,24 @@ export function App() {
   );
 
   const selectedJob = importJobs.find((job) => job.id === selectedJobId) ?? null;
-  const canCommit = Boolean(selectedJobId && counts.approved > 0);
-  const canRetry = Boolean(selectedJobId && selectedJob?.status === "failed");
+  const retryAvailable = Boolean(selectedJobId && selectedJob?.status === "failed");
+  const canCommit = Boolean(selectedJobId && counts.approved > 0 && permissions.canCommitImports);
+  const canRetry = Boolean(retryAvailable && permissions.canRetryImports);
+  const isInitialUserManagementLoad = Boolean(
+    route === "users" && permissions.canManageUsers && !hasLoadedUserManagement,
+  );
   const noticeText = t(notice.key, notice.values);
   const navigationModel = useMemo<AppNavigationModel>(
     () =>
       buildNavigation(route, {
         authenticated: Boolean(user),
-        canManageUsers: user ? canManageUsers(user) : false,
+        canManageUsers: permissions.canManageUsers,
         onNavigate: (path) => navigate(path),
         resolvePrimaryRoute: (primaryRoute, fallbackRoute) =>
           routeMemory[primaryRoute] ?? fallbackRoute,
         t,
       }),
-    [route, routeMemory, t, user],
+    [permissions.canManageUsers, route, routeMemory, t, user],
   );
   const searchEntries = useMemo(
     () =>
@@ -345,7 +459,7 @@ export function App() {
         onQueryChange={setSearchQuery}
       />
       <UserPanel
-        canManageUsers={canManageUsers(user)}
+        canManageUsers={permissions.canManageUsers}
         notice={noticeText}
         open={userPanelOpen}
         runtimeEnvironment={runtimeEnvironment}
@@ -360,17 +474,13 @@ export function App() {
     </>
   ) : null;
 
-  function syncRouteState() {
-    setAuthRoute(readAuthRoute());
-    setRoute(readAppRoute());
-  }
+  function navigate(path: AppNavigationPath, options: { replace?: boolean } = {}) {
+    if (location.pathname === path) return;
 
-  function navigate(path: string, options: { replace?: boolean } = {}) {
-    if (window.location.pathname !== path) {
-      const method = options.replace ? "replaceState" : "pushState";
-      window.history[method](null, "", path);
-    }
-    syncRouteState();
+    const navigateOptions =
+      options.replace === undefined ? { to: path } : { replace: options.replace, to: path };
+
+    void routerNavigate(navigateOptions);
   }
 
   function openSearch() {
@@ -383,7 +493,15 @@ export function App() {
     setSearchOpen(false);
   }
 
-  async function loadWorkspace(preferredJobId?: string) {
+  async function loadWorkspace(
+    preferredJobId?: string,
+    options: {
+      loadSelectedJobData?: boolean;
+      updateReviewNotice?: boolean;
+    } = {},
+  ) {
+    const loadSelectedJobData = options.loadSelectedJobData ?? true;
+    const updateReviewNotice = options.updateReviewNotice ?? true;
     const [sourceFileResponse, importJobResponse, auditResponse] = await Promise.all([
       listSourceFiles({ limit: 20 }),
       listImportJobs({ limit: 20 }),
@@ -393,14 +511,23 @@ export function App() {
     setSourceFiles(sourceFileResponse.sourceFiles);
     setImportJobs(importJobResponse.importJobs);
     setAuditEvents(auditResponse.auditEvents);
+    if (!hasAuditFilters(auditFilters)) {
+      setAuditPageEvents(auditResponse.auditEvents);
+      setSelectedAuditEventId((current) =>
+        current && auditResponse.auditEvents.some((event) => event.id === current)
+          ? current
+          : (auditResponse.auditEvents[0]?.id ?? null),
+      );
+    }
 
     const nextJobId =
       preferredJobId ?? selectedJobId ?? importJobResponse.importJobs[0]?.id ?? null;
     setSelectedJobId(nextJobId);
 
-    if (nextJobId) {
-      await loadReview(nextJobId);
+    if (nextJobId && loadSelectedJobData) {
+      await loadReview(nextJobId, { updateNotice: updateReviewNotice });
     } else {
+      loadedJobDataIdRef.current = null;
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
@@ -408,19 +535,52 @@ export function App() {
     }
   }
 
+  async function loadAuditPageEvents(filters: AuditFilters) {
+    const response = await listAuditEvents({
+      ...auditFilterQuery(filters),
+      limit: 50,
+    });
+    setAuditPageEvents(response.auditEvents);
+    setSelectedAuditEventId(response.auditEvents[0]?.id ?? null);
+  }
+
+  async function handleApplyAuditFilters() {
+    await runAction(async () => {
+      setAuditFilters(auditFilterDraft);
+      await loadAuditPageEvents(auditFilterDraft);
+      setNotice({ key: "notice.auditFiltersApplied" });
+    });
+  }
+
+  async function handleClearAuditFilters() {
+    await runAction(async () => {
+      setAuditFilters(defaultAuditFilters);
+      setAuditFilterDraft(defaultAuditFilters);
+      await loadAuditPageEvents(defaultAuditFilters);
+      setNotice({ key: "notice.auditFiltersCleared" });
+    });
+  }
+
   async function handleRefreshWorkspace() {
     await runAction(async () => {
-      await loadWorkspace();
+      await loadWorkspace(undefined, {
+        loadSelectedJobData: selectedJobDataNeededForRoute(route),
+        updateReviewNotice: route === "reviews",
+      });
       if (route === "users") {
         await loadUserManagement();
+      }
+      if (route === "audit") {
+        await loadAuditPageEvents(auditFilters);
       }
       setNotice({ key: "notice.workspaceRefreshed" });
     });
   }
 
   async function loadUserManagement() {
-    if (!user || !canManageUsers(user)) return;
+    if (!user || !permissions.canManageUsers) return;
 
+    setIsLoadingUserManagement(true);
     setAdminError(null);
     try {
       const [userResponse, invitationResponse] = await Promise.all([
@@ -429,34 +589,72 @@ export function App() {
       ]);
       setUsers(userResponse.users);
       setInvitations(invitationResponse.invitations);
+      setHasLoadedUserManagement(true);
     } catch (caught) {
       setAdminError(errorMessage(caught));
+      setHasLoadedUserManagement(true);
+    } finally {
+      setIsLoadingUserManagement(false);
     }
   }
 
-  async function loadReview(jobId: string) {
+  async function loadReview(
+    jobId: string,
+    options: {
+      updateNotice?: boolean;
+    } = {},
+  ) {
+    if (loadingJobDataIdRef.current === jobId) return;
+    loadingJobDataIdRef.current = jobId;
+    const updateNotice = options.updateNotice ?? true;
     try {
-      const [review, advisoryResponse, eventResponse] = await Promise.all([
+      const [reviewResult, advisoryResult, eventResult] = await Promise.allSettled([
         getImportJobReview(jobId),
         listAiAdvisories(jobId),
         listImportJobEvents(jobId, { limit: 30 }),
       ]);
-      setReviewRecords(review.records);
-      setReviewIssues(review.issues);
-      setAiAdvisories(advisoryResponse.advisories);
-      setImportJobEvents(eventResponse.events);
-      setNotice({
-        key: "notice.reviewLoaded",
-        values: { filename: review.job.sourceFile.filename },
-      });
-    } catch (caught) {
+
+      if (eventResult.status === "fulfilled") {
+        setImportJobEvents(eventResult.value.events);
+      } else {
+        setImportJobEvents([]);
+        if (!String(eventResult.reason).includes("404")) {
+          setError(errorMessage(eventResult.reason));
+        }
+      }
+
+      if (advisoryResult.status === "fulfilled") {
+        setAiAdvisories(advisoryResult.value.advisories);
+      } else {
+        setAiAdvisories([]);
+      }
+
+      if (reviewResult.status === "fulfilled") {
+        const review = reviewResult.value;
+        setReviewRecords(review.records);
+        setReviewIssues(review.issues);
+        loadedJobDataIdRef.current = jobId;
+        if (updateNotice) {
+          setNotice({
+            key: "notice.reviewLoaded",
+            values: { filename: review.job.sourceFile.filename },
+          });
+        }
+        return;
+      }
+
+      loadedJobDataIdRef.current = null;
       setReviewRecords([]);
       setReviewIssues([]);
-      setAiAdvisories([]);
-      setImportJobEvents([]);
-      setNotice({ key: "notice.reviewWaiting" });
-      if (!String(caught).includes("404")) {
-        setError(errorMessage(caught));
+      if (updateNotice) {
+        setNotice({ key: "notice.reviewWaiting" });
+      }
+      if (!String(reviewResult.reason).includes("404")) {
+        setError(errorMessage(reviewResult.reason));
+      }
+    } finally {
+      if (loadingJobDataIdRef.current === jobId) {
+        loadingJobDataIdRef.current = null;
       }
     }
   }
@@ -477,14 +675,22 @@ export function App() {
     setSourceFiles([]);
     setImportJobs([]);
     setAuditEvents([]);
+    setAuditPageEvents([]);
+    setAuditFilters(defaultAuditFilters);
+    setAuditFilterDraft(defaultAuditFilters);
+    setSelectedAuditEventId(null);
     setUsers([]);
     setInvitations([]);
+    setHasLoadedUserManagement(false);
+    setIsLoadingUserManagement(false);
     setCreatedInvitationUrl(null);
     setReviewRecords([]);
     setReviewIssues([]);
     setAiAdvisories([]);
     setImportJobEvents([]);
     setSelectedJobId(null);
+    loadedJobDataIdRef.current = null;
+    loadingJobDataIdRef.current = null;
   }
 
   async function handleLocalSetup(event: FormEvent<HTMLFormElement>) {
@@ -497,6 +703,7 @@ export function App() {
         password: authForm.password,
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
+      resetSessionBootstrap();
       setUser(response.user);
       setNotice({
         key:
@@ -533,6 +740,7 @@ export function App() {
         password: authForm.password,
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
+      resetSessionBootstrap();
       setUser(accepted.user);
       setNotice({ key: "notice.invitationAccepted" });
       await loadWorkspace();
@@ -547,6 +755,7 @@ export function App() {
         email: authForm.email,
         password: authForm.password,
       });
+      resetSessionBootstrap();
       setUser(response.user);
       setNotice({ key: "notice.signedIn" });
       await loadWorkspace();
@@ -563,6 +772,7 @@ export function App() {
         token: authRoute.token,
         password: authForm.password,
       });
+      resetSessionBootstrap();
       setUser(null);
       clearWorkspace();
       setAuthMode("login");
@@ -594,6 +804,7 @@ export function App() {
         token: authForm.resetToken,
         password: authForm.password,
       });
+      resetSessionBootstrap();
       setAuthMode("login");
       setNotice({ key: "notice.passwordResetComplete" });
       navigate(loginPath, { replace: true });
@@ -607,6 +818,7 @@ export function App() {
 
     await runAction(async () => {
       await logout();
+      resetSessionBootstrap();
       setUser(null);
       clearWorkspace();
       setNotice({ key: "notice.signedOut" });
@@ -629,6 +841,22 @@ export function App() {
           ? "notice.localInvitationCreated"
           : "notice.invitationEmailRequested",
       });
+      await loadUserManagement();
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleRevokeInvitation(invitationId: string) {
+    setIsBusy(true);
+    setError(null);
+    setAdminError(null);
+    try {
+      await revokeInvitation(invitationId);
+      setCreatedInvitationUrl(null);
+      setNotice({ key: "notice.invitationRevoked" });
       await loadUserManagement();
     } catch (caught) {
       setAdminError(errorMessage(caught));
@@ -669,6 +897,14 @@ export function App() {
 
   async function selectJob(jobId: string) {
     setSelectedJobId(jobId);
+    await runAction(async () => {
+      await loadReview(jobId);
+    });
+  }
+
+  async function openReviewForJob(jobId: string) {
+    setSelectedJobId(jobId);
+    navigate("/reviews");
     await runAction(async () => {
       await loadReview(jobId);
     });
@@ -769,12 +1005,13 @@ export function App() {
     });
   }
 
+  if (authRoute.kind === "home" && isProtectedRoute(route) && (isLoadingSession || !user)) {
+    return <ProtectedWorkspaceLoading notice={noticeText} route={route} />;
+  }
+
   if (isLoadingSession) {
     return (
-      <AuthPageFrame
-        eyebrow={t("auth.secureAccess")}
-        notice={noticeText}
-      >
+      <AuthPageFrame eyebrow={t("auth.secureAccess")} notice={noticeText}>
         <div className="qitu-auth-card">
           <StatusBadge tone="info">{t("loading.session")}</StatusBadge>
           <h1 className="qitu-auth-card-title">{t("auth.loadingTitle")}</h1>
@@ -791,10 +1028,7 @@ export function App() {
 
   if (authRoute.kind === "invite") {
     return (
-      <AuthPageFrame
-        eyebrow={t("auth.invitationBadge")}
-        notice={noticeText}
-      >
+      <AuthPageFrame eyebrow={t("auth.invitationBadge")} notice={noticeText}>
         <div className="qitu-auth-card">
           <AuthCardHeader
             badge={t("auth.invitationBadge")}
@@ -825,10 +1059,7 @@ export function App() {
 
   if (authRoute.kind === "reset") {
     return (
-      <AuthPageFrame
-        eyebrow={t("auth.passwordResetBadge")}
-        notice={noticeText}
-      >
+      <AuthPageFrame eyebrow={t("auth.passwordResetBadge")} notice={noticeText}>
         <div className="qitu-auth-card">
           <AuthCardHeader
             badge={t("auth.passwordResetBadge")}
@@ -854,10 +1085,7 @@ export function App() {
 
   if (!user) {
     return (
-      <AuthPageFrame
-        eyebrow={t("auth.secureAccess")}
-        notice={noticeText}
-      >
+      <AuthPageFrame eyebrow={t("auth.secureAccess")} notice={noticeText}>
         <div className="qitu-auth-card">
           <AuthCardHeader
             badge={t("auth.protectedWorkspace")}
@@ -935,18 +1163,14 @@ export function App() {
             {authMode === "setup" ? (
               <Field
                 label={t("field.displayName")}
-                onChange={(value) =>
-                  setAuthForm((current) => ({ ...current, displayName: value }))
-                }
+                onChange={(value) => setAuthForm((current) => ({ ...current, displayName: value }))}
                 value={authForm.displayName}
               />
             ) : null}
             {authMode === "reset" ? (
               <Field
                 label={t("auth.resetToken")}
-                onChange={(value) =>
-                  setAuthForm((current) => ({ ...current, resetToken: value }))
-                }
+                onChange={(value) => setAuthForm((current) => ({ ...current, resetToken: value }))}
                 value={authForm.resetToken}
               />
             ) : null}
@@ -982,8 +1206,12 @@ export function App() {
           actions={shellActions}
           aiAdvisories={aiAdvisories}
           auditEvents={auditEvents}
+          canDecideReviews={permissions.canDecideReviews}
           canCommit={canCommit}
+          canProcessImports={permissions.canProcessImports}
           canRetry={canRetry}
+          canUploadSources={permissions.canUploadSources}
+          canWriteAiAdvisories={permissions.canWriteAiAdvisories}
           counts={counts}
           error={error}
           importJobEvents={importJobEvents}
@@ -1007,6 +1235,7 @@ export function App() {
           reviewRecords={reviewRecords}
           reviewTrend={reviewTrend}
           runtimeEnvironment={runtimeEnvironment}
+          retryAvailable={retryAvailable}
           selectedJob={selectedJob}
           selectedJobId={selectedJobId}
           sourceFiles={sourceFiles}
@@ -1022,6 +1251,7 @@ export function App() {
     <>
       <WorkspaceShell
         actions={shellActions}
+        error={error}
         navigation={navigationModel.primaryNavigation}
         notice={noticeText}
         subNavigation={navigationModel.subNavigation}
@@ -1030,14 +1260,15 @@ export function App() {
         {route === "overview" ? (
           <OverviewPage
             auditEvents={auditEvents}
-            counts={counts}
             importJobs={importJobs}
             onNavigate={(path) => navigate(path)}
             sourceFiles={sourceFiles}
+            workspaceReviewCounts={workspaceReviewCounts}
           />
         ) : null}
         {route === "sources" ? (
           <SourcesPage
+            canUploadSources={permissions.canUploadSources}
             importJobs={importJobs}
             isBusy={isBusy}
             onUploadSample={() => void handleUploadSample()}
@@ -1048,28 +1279,47 @@ export function App() {
         ) : null}
         {route === "imports" ? (
           <ImportsPage
+            canProcessImports={permissions.canProcessImports}
             canRetry={canRetry}
+            importJobEvents={importJobEvents}
             importJobs={importJobs}
             isBusy={isBusy}
-            onNavigate={(path) => navigate(path)}
+            retryAvailable={retryAvailable}
             onProcessLocalQueue={() => void processLocalQueue()}
+            onOpenReview={(jobId) => void openReviewForJob(jobId)}
             onRetrySelectedJob={() => void retrySelectedJob()}
             onSelectJob={(jobId) => void selectJob(jobId)}
             runtimeEnvironment={runtimeEnvironment}
+            selectedJob={selectedJob}
             selectedJobId={selectedJobId}
+            sourceFiles={sourceFiles}
           />
         ) : null}
-        {route === "audit" ? <AuditPage auditEvents={auditEvents} /> : null}
+        {route === "audit" ? (
+          <AuditPage
+            auditEvents={auditPageEvents}
+            filters={auditFilterDraft}
+            isBusy={isBusy}
+            selectedEventId={selectedAuditEventId}
+            onApplyFilters={() => void handleApplyAuditFilters()}
+            onClearFilters={() => void handleClearAuditFilters()}
+            onFiltersChange={setAuditFilterDraft}
+            onSelectEvent={setSelectedAuditEventId}
+          />
+        ) : null}
         {route === "users" ? (
           <UsersPage
             adminError={adminError}
+            canManageUsers={permissions.canManageUsers}
             createdInvitationUrl={createdInvitationUrl}
             invitationForm={invitationForm}
             invitations={invitations}
-            isBusy={isBusy}
+            isBusy={isBusy || isLoadingUserManagement}
+            isLoading={isInitialUserManagementLoad}
             onCreateInvitation={() => void handleCreateInvitation()}
             onInvitationFormChange={setInvitationForm}
             onRefreshUsers={() => void loadUserManagement()}
+            onRevokeInvitation={(invitationId) => void handleRevokeInvitation(invitationId)}
             user={user}
             users={users}
           />
@@ -1104,6 +1354,7 @@ export function App() {
 function WorkspaceShell(props: {
   actions: ReactNode;
   children: ReactNode;
+  error: string | null;
   navigation: AppShellNavItem[];
   notice: string;
   subNavigation: AppShellNavItem[];
@@ -1122,16 +1373,70 @@ function WorkspaceShell(props: {
       subNavigation={props.subNavigation}
       onCommand={props.onCommand}
     >
+      {props.error ? (
+        <Surface className="mb-[var(--qitu-layout-gutter)] p-[var(--qitu-space-s1)]">
+          <StatusBadge tone="danger">{t("error.requestFailed")}</StatusBadge>
+          <div className="mt-3 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-red)]">
+            {props.error}
+          </div>
+        </Surface>
+      ) : null}
       {props.children}
     </AppShell>
   );
 }
 
-function AuthPageFrame(props: {
-  children: ReactNode;
-  eyebrow: string;
-  notice: string;
-}) {
+function ProtectedWorkspaceLoading(props: { notice: string; route: AppRoute }) {
+  const { t } = useI18n();
+  const navigationModel = useMemo<AppNavigationModel>(
+    () =>
+      buildNavigation(props.route, {
+        authenticated: true,
+        canManageUsers: true,
+        onNavigate: () => undefined,
+        t,
+      }),
+    [props.route, t],
+  );
+
+  return (
+    <AppShell
+      actions={<WorkspaceLoadingActions />}
+      brand="qitu"
+      commandLabel={t("command.findSourceJobUserAudit")}
+      commandShortcutLabel="Cmd K"
+      eyebrow={props.notice}
+      navigation={navigationModel.primaryNavigation}
+      subNavigation={navigationModel.subNavigation}
+    >
+      <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_380px]">
+        <Surface className="p-[var(--qitu-space-s1)]">
+          <StatusBadge tone="info">{t("loading.session")}</StatusBadge>
+          <h1 className="mt-3 text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
+            {t("workspace.loadingTitle")}
+          </h1>
+          <p className="mt-2 max-w-[34rem] text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+            {t("workspace.loadingDescription")}
+          </p>
+          <div className="mt-[var(--qitu-space-s1)] grid gap-3" aria-hidden="true">
+            <span className="qitu-skeleton h-9 rounded-[var(--qitu-radius-md)]" />
+            <span className="qitu-skeleton h-20 rounded-[var(--qitu-radius-md)]" />
+            <span className="qitu-skeleton h-20 rounded-[var(--qitu-radius-md)]" />
+          </div>
+        </Surface>
+        <Surface className="p-[var(--qitu-space-s1)]">
+          <div className="grid gap-3" aria-hidden="true">
+            <span className="qitu-skeleton h-8 rounded-[var(--qitu-radius-md)]" />
+            <span className="qitu-skeleton h-24 rounded-[var(--qitu-radius-md)]" />
+            <span className="qitu-skeleton h-24 rounded-[var(--qitu-radius-md)]" />
+          </div>
+        </Surface>
+      </div>
+    </AppShell>
+  );
+}
+
+function AuthPageFrame(props: { children: ReactNode; eyebrow: string; notice: string }) {
   const { t } = useI18n();
 
   return (
@@ -1166,9 +1471,7 @@ function AuthPageFrame(props: {
           </div>
         </div>
 
-        <div className="qitu-auth-content">
-          {props.children}
-        </div>
+        <div className="qitu-auth-content">{props.children}</div>
       </section>
     </main>
   );
@@ -1183,17 +1486,46 @@ function AuthProof(props: { icon: "audit" | "key" | "reviews"; title: string }) 
   );
 }
 
-function AuthCardHeader(props: {
-  badge: string;
-  description: string;
-  title: string;
-}) {
+function AuthCardHeader(props: { badge: string; description: string; title: string }) {
   return (
     <div className="min-w-0">
       <StatusBadge tone="info">{props.badge}</StatusBadge>
       <h2 className="qitu-auth-card-title">{props.title}</h2>
       <p className="qitu-auth-card-copy">{props.description}</p>
     </div>
+  );
+}
+
+function WorkspaceLoadingActions() {
+  const { t } = useI18n();
+
+  return (
+    <>
+      <Button
+        aria-label={t("action.refreshWorkspace")}
+        className="qitu-topbar-control"
+        disabled
+        size="sm"
+        title={t("action.refreshWorkspace")}
+        variant="ghost"
+      >
+        <AnimatedIcon name="refresh" size={15} />
+        <span className="sr-only">{t("action.refresh")}</span>
+      </Button>
+      <LanguageSelector className="qitu-topbar-control" compact />
+      <ThemeToggleButton className="qitu-topbar-control" compact />
+      <Button
+        aria-label={t("workspace.loadingTitle")}
+        className="qitu-account-trigger"
+        disabled
+        size="sm"
+        title={t("workspace.loadingTitle")}
+        variant="ghost"
+      >
+        <span className="qitu-avatar-mark qitu-skeleton size-8" aria-hidden="true" />
+        <ChevronDown size={14} className="text-[var(--qitu-dim)]" />
+      </Button>
+    </>
   );
 }
 
@@ -1255,7 +1587,7 @@ function buildSearchEntries(props: {
   formatBytes: (value: number | null) => string;
   formatStatus: (status: string) => string;
   importJobs: ImportJobListItem[];
-  onNavigate: (path: string) => void;
+  onNavigate: (path: AppNavigationPath) => void;
   onSelectJob: (jobId: string) => void;
   roleLabel: (role: string) => string;
   routeEntries: WorkspaceRouteEntry[];
@@ -1376,8 +1708,44 @@ function isWorkspaceRouteName(route: string): route is WorkspaceAppRoute {
   return workspaceRouteNames.includes(route as WorkspaceAppRoute);
 }
 
-function canManageUsers(user: ApiUser): boolean {
-  return user.role === "owner" || user.role === "admin";
+function hasAuditFilters(filters: AuditFilters): boolean {
+  return Object.values(filters).some((value) => value.trim().length > 0);
+}
+
+function auditFilterQuery(filters: AuditFilters): {
+  action?: string;
+  actorId?: string;
+  subjectId?: string;
+  subjectKind?: string;
+} {
+  return {
+    ...(filters.action.trim() ? { action: filters.action.trim() } : {}),
+    ...(filters.actorId.trim() ? { actorId: filters.actorId.trim() } : {}),
+    ...(filters.subjectId.trim() ? { subjectId: filters.subjectId.trim() } : {}),
+    ...(filters.subjectKind.trim() ? { subjectKind: filters.subjectKind.trim() } : {}),
+  };
+}
+
+function buildWebPermissions(user: ApiUser): WebPermissions {
+  return {
+    canCommitImports: canUse(user, "import_job:commit"),
+    canDecideReviews: canUse(user, "review:decide"),
+    canManageUsers: canUse(user, "invitation:create"),
+    canProcessImports: canUse(user, "import_job:process"),
+    canRetryImports: canUse(user, "import_job:retry"),
+    canUploadSources: canUse(user, "source_file:upload"),
+    canWriteAiAdvisories: canUse(user, "ai_advisory:write"),
+  };
+}
+
+function canUse(user: ApiUser, permission: Permission): boolean {
+  return can(
+    {
+      id: user.id,
+      role: normalizeRole(user.role),
+    },
+    permission,
+  );
 }
 
 function errorMessage(error: unknown): string {

@@ -11,8 +11,8 @@ export type AuthRoute =
       token: string;
     };
 
-export function readAuthRoute(): AuthRoute {
-  const segments = window.location.pathname.split("/").filter(Boolean);
+export function authRouteFromPath(pathname: string): AuthRoute {
+  const segments = pathname.split("/").filter(Boolean);
   const [kind, token] = segments;
 
   if (kind === "invite" && token) {
@@ -32,9 +32,4 @@ export function readAuthRoute(): AuthRoute {
   return {
     kind: "home",
   };
-}
-
-export function replaceAuthPath(path: string, setAuthRoute: (route: AuthRoute) => void): void {
-  window.history.replaceState(null, "", path);
-  setAuthRoute(readAuthRoute());
 }

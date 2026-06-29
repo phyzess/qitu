@@ -22,6 +22,7 @@ The UI should feel:
 
 ```text
 React
+TanStack Router for app-owned web routes
 shadcn/ui Base UI
 Tailwind
 Extend UI inspiration for file/import/review surfaces
@@ -102,6 +103,8 @@ Authenticated apps must expose the shell as real routes, not a single stateful d
 /users
 /account
 ```
+
+`apps/web` owns the route tree, route matching, and navigation lifecycle through TanStack Router. Reusable UI packages stay router-agnostic: they may expose `href` values and callbacks, but they must not import app router APIs.
 
 The shell must keep unauthenticated, authenticated, admin-only, not-found, loading, empty, and error states visually consistent. The account entry belongs in the authenticated topbar, logout belongs in the user panel opened from that entry, and user management belongs behind RBAC rather than being hidden as a code-only capability.
 

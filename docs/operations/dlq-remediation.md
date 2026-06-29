@@ -57,9 +57,10 @@ Use the app retry path, not direct SQL updates:
 
 1. Sign in as a user with `import_job:retry`.
 2. Open the failed job from the import job list.
-3. Use `Retry job`.
-4. Confirm `import_job.retry_queued` appears in the audit timeline.
-5. Confirm the job returns to `needs_review`, `committed`, or a new classified failure.
+3. Review the selected job diagnostics panel for failure class, failure reason, event stream, and recovery path.
+4. Use `Retry job` from the diagnostics panel or import list header.
+5. Confirm `import_job.retry_queued` appears in the audit timeline.
+6. Confirm the job returns to `needs_review`, `committed`, or a new classified failure.
 
 For API-level recovery, use the same endpoint with an authenticated session:
 

@@ -57,9 +57,10 @@ retry 前先分类：
 
 1. 使用有 `import_job:retry` 权限的用户登录。
 2. 从 import job list 打开 failed job。
-3. 点击 `Retry job`。
-4. 确认 audit timeline 出现 `import_job.retry_queued`。
-5. 确认 job 进入 `needs_review`、`committed` 或新的 classified failure。
+3. 先查看选中 job 的 diagnostics panel，确认 failure class、failure reason、event stream 和 recovery path。
+4. 在 diagnostics panel 或 import list header 中点击 `Retry job`。
+5. 确认 audit timeline 出现 `import_job.retry_queued`。
+6. 确认 job 进入 `needs_review`、`committed` 或新的 classified failure。
 
 API-level recovery 使用相同 endpoint，并携带已鉴权 session：
 

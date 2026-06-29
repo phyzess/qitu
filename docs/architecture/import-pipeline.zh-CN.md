@@ -58,6 +58,8 @@ queued / processing
 
 失败会记录 `failure_class` 和 `failure_reason`，并写 audit event。
 
+当前 Web starter 会在 Imports 路由暴露这些信息：选中 job 的 diagnostics panel 会显示 status、adapter、attempt count、failure class、failure reason、timestamps、source hash、recovery guidance、受 RBAC 控制的 retry action，以及进入 Review 路由前可见的 `import_job_events` stream。
+
 ## Review 模型
 
 每条 staged record 可以有：
@@ -103,3 +105,18 @@ Pipeline 在这些地方保持幂等：
 5. 在 app registry 注册 adapter。
 
 只有当多个真实 adapter 共享同一能力时，才考虑抽回 core。
+
+## 失败分类
+
+可复用 pipeline 应能区分：
+
+1. Unsupported source。
+2. Parse error。
+3. Missing required business fields。
+4. Invalid business date or number。
+5. Duplicate source。
+6. Duplicate target record。
+7. Commit conflict。
+8. Infrastructure failure。
+
+除非 adapter 标记为 terminal，失败应保持可见且可 retry。

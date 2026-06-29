@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatedIcon, Button, cn, StatusBadge } from "@qitu/ui";
 import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
+import type { AppNavigationPath } from "./app-routes";
 import { localeOptions, useI18n } from "./i18n";
 import { useTheme } from "./theme";
 import type { ApiUser } from "./types";
@@ -263,7 +264,7 @@ export function UserPanel(props: {
   notice: string;
   onClose: () => void;
   onLogout: () => void;
-  onNavigate: (path: string) => void;
+  onNavigate: (path: AppNavigationPath) => void;
   open: boolean;
   runtimeEnvironment: string;
   user: ApiUser;

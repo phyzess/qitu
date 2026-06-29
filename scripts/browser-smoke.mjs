@@ -61,8 +61,10 @@ async function runBrowserSmoke() {
     const email = `reviewer-${runId}@example.com`;
     const filename = `browser-smoke-${runId}.txt`;
     const rejectedFilename = `browser-smoke-reject-${runId}.txt`;
+    const failedFilename = `browser-smoke-failed-${runId}.json`;
     const content = `label,value\nbrowser-smoke-${runId},${runId}\n`;
     const rejectedContent = `label,value\nbrowser-smoke-reject-${runId},${runId + 1}\n`;
+    const failedContent = `{"broken-${runId}":`;
     const initialPassword = "correct horse battery staple";
     const resetPassword = "correct horse battery staple reset";
     const invitation = await postWorkerJson("/api/bootstrap/invitations", {
@@ -132,6 +134,16 @@ async function runBrowserSmoke() {
       timeout: 20_000,
     });
 
+    await page.getByRole("button", { name: "Generate" }).click();
+    await expect(page.getByText("This advisory is informational", { exact: false })).toBeVisible();
+    await expect(
+      page.getByText("local/deterministic-review-summary", { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("suggested", { exact: true }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByText("confirmed", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("ai_advisory.confirmed", { exact: true }).first()).toBeVisible();
+
     await page.getByRole("button", { name: "Approve record", exact: true }).click();
     await expect(
       page.getByRole("table").getByText("approved", { exact: true }).first(),
@@ -147,6 +159,18 @@ async function runBrowserSmoke() {
       page.getByText("import_review.record_committed", { exact: true }).first(),
     ).toBeVisible();
 
+    await page.goto(`${webUrl}/audit`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Audit timeline" })).toBeVisible();
+    await page.getByLabel("Action", { exact: true }).fill("import_job.committed");
+    await page.getByRole("button", { name: "Apply filters" }).click();
+    await expect(page.getByText("import_job.committed", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Event details" })).toBeVisible();
+
+    await page.goto(`${webUrl}/reviews`, {
+      waitUntil: "domcontentloaded",
+    });
     await page.locator('input[type="file"]').setInputFiles({
       name: rejectedFilename,
       mimeType: "text/plain",
@@ -157,6 +181,28 @@ async function runBrowserSmoke() {
       page.getByRole("button", { name: new RegExp(escapeRegExp(rejectedFilename)) }),
     ).toBeVisible();
 
+    await page.goto(`${webUrl}/imports`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Job diagnostics" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Event stream" })).toBeVisible();
+    await expect(page.getByText("import_job.queued", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Content hash", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/sha256:/).first()).toBeVisible();
+    const committedImportRow = page
+      .locator(".qitu-surface-subtle")
+      .filter({ hasText: filename })
+      .filter({ has: page.getByRole("button", { name: "Reviews" }) })
+      .first();
+    await committedImportRow.getByRole("button", { name: "Reviews" }).click();
+    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
+    await expect(
+      page
+        .getByRole("table")
+        .getByText(new RegExp(`label: ${escapeRegExp(`browser-smoke-${runId}`)}`)),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: new RegExp(escapeRegExp(rejectedFilename)) }).click();
     await drainButton.click();
     await expect(
       page.getByText("Record was staged and requires human review before commit.", {
@@ -174,6 +220,63 @@ async function runBrowserSmoke() {
     await expect(
       page.getByText("import_review.record_rejected", { exact: true }).first(),
     ).toBeVisible();
+
+    await page.locator('input[type="file"]').setInputFiles({
+      name: failedFilename,
+      mimeType: "application/json",
+      buffer: Buffer.from(failedContent),
+    });
+    await page.getByRole("button", { name: "Upload selected" }).click();
+    await expect(
+      page.getByRole("button", { name: new RegExp(escapeRegExp(failedFilename)) }),
+    ).toBeVisible();
+    await drainButton.click();
+    await page.goto(`${webUrl}/imports`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Job diagnostics" })).toBeVisible();
+    await expect(page.getByText("Failure class", { exact: true })).toBeVisible();
+    await expect(page.getByText("processing", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Recovery path", { exact: true })).toBeVisible();
+    await expect(page.getByText("Retry candidate", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Inspect Worker logs and source content first.", { exact: false }).first(),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry job" }).first()).toBeVisible();
+
+    const adminEmail = `admin-${runId}@example.com`;
+    const managedEmail = `managed-${runId}@example.com`;
+    await postWorkerJson("/api/bootstrap/local-admin", {
+      email: adminEmail,
+      displayName: "Browser Admin",
+      password: initialPassword,
+    });
+    await context.clearCookies();
+    await page.goto(`${webUrl}/login`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.getByLabel("Email", { exact: true }).fill(adminEmail);
+    await page.getByLabel("Password", { exact: true }).fill(initialPassword);
+    await page.locator("form").getByRole("button", { name: "Login" }).click();
+    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
+
+    await page.goto(`${webUrl}/users`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "User management" })).toBeVisible();
+    await page.getByLabel("Email", { exact: true }).fill(managedEmail);
+    await page.getByRole("button", { name: "Create invitation" }).click();
+    const managedInvitationRow = page
+      .locator(".qitu-surface-subtle")
+      .filter({ hasText: managedEmail })
+      .first();
+    await expect(managedInvitationRow).toBeVisible();
+    await managedInvitationRow
+      .getByRole("button", {
+        name: new RegExp(`Revoke invitation for ${escapeRegExp(managedEmail)}`),
+      })
+      .click();
+    await expect(managedInvitationRow.getByText("revoked", { exact: true })).toBeVisible();
   } finally {
     await context.close();
     await browser.close();
