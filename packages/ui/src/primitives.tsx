@@ -143,6 +143,7 @@ export type TimelineItem = {
 export function Timeline(props: {
   items: TimelineItem[];
   emptyLabel?: string | undefined;
+  emptyTitle?: string | undefined;
   className?: string | undefined;
 }) {
   if (props.items.length === 0) {
@@ -151,7 +152,7 @@ export function Timeline(props: {
         className={props.className}
         description={props.emptyLabel ?? "No events have been recorded yet."}
         state="empty"
-        title="No events"
+        title={props.emptyTitle ?? "No events"}
       />
     );
   }

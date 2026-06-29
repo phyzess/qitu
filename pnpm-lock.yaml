@@ -29,6 +29,9 @@ importers:
       '@qitu/design-system':
         specifier: workspace:*
         version: link:../../packages/design-system
+      '@qitu/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@qitu/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -78,6 +81,9 @@ importers:
       '@qitu/files':
         specifier: workspace:*
         version: link:../../packages/files
+      '@qitu/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@qitu/import-pipeline':
         specifier: workspace:*
         version: link:../../packages/import-pipeline
@@ -191,6 +197,9 @@ importers:
 
   packages/email:
     dependencies:
+      '@qitu/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@7.0.1-rc)
@@ -200,6 +209,12 @@ importers:
       valibot:
         specifier: 1.4.1
         version: 1.4.1(typescript@7.0.1-rc)
+
+  packages/i18n:
+    devDependencies:
+      typescript:
+        specifier: 7.0.1-rc
+        version: 7.0.1-rc
 
   packages/import-pipeline:
     dependencies:

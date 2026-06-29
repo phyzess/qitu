@@ -24,6 +24,7 @@
       "@qitu/design-system": ["./packages/design-system/src/index.ts"],
       "@qitu/email": ["./packages/email/src/index.ts"],
       "@qitu/files": ["./packages/files/src/index.ts"],
+      "@qitu/i18n": ["./packages/i18n/src/index.ts"],
       "@qitu/import-pipeline": ["./packages/import-pipeline/src/index.ts"],
       "@qitu/jobs": ["./packages/jobs/src/index.ts"],
       "@qitu/rbac": ["./packages/rbac/src/index.ts"],

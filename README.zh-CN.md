@@ -97,6 +97,7 @@ packages/
   files/
   jobs/
   import-pipeline/
+  i18n/
   audit/
   email/
   ai-advisory/
@@ -137,7 +138,7 @@ templates/
 8. Audit events、security events 和 alerts。
 9. 事务邮件与未来 inbound email 能力。
 10. 需要人工确认的 AI advisory artifacts。
-11. React app shell 与 design system。
+11. 支持 locale 的 React app shell 与 design system。
 12. 文档与 decision log 约定。
 
 不是所有能力都 production-ready。成熟度以 `docs/capability-matrix.zh-CN.md` 为准。

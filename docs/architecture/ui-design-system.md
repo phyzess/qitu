@@ -111,13 +111,24 @@ Shell interaction rules:
 3. Primary navigation may remember the last visited subroute for each section in session storage, but only route ids are stored.
 4. Topbar command search is a real `Cmd/Ctrl+K` control over route and app-owned data projections.
 5. Authenticated account controls open a user panel with profile, RBAC role, user management entry when permitted, theme switching, and logout.
-6. Theme switching is token-driven and supports light, dark, and system preferences without changing reusable package semantics.
-7. Desktop route navigation must not use a side rail or sidebar. A drawer may exist only as a compact/mobile disclosure pattern.
-8. Desktop primary navigation follows the qitu route-control shape: icon-only main route buttons, a compact active underline, then a divider and adjacent active/hover live label.
-9. Under constrained width, primary navigation remains pure icon and may hide the adjacent live label.
-10. Secondary route tabs are text-only with an active underline.
-11. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
-12. Theme is a pure icon control. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+6. Language switching is app-owned, persisted client-side, and available before login; the starter supports English and Simplified Chinese while keeping room for more locale dictionaries.
+7. Theme switching is token-driven and supports light, dark, and system preferences without changing reusable package semantics.
+8. Desktop route navigation must not use a side rail or sidebar. A drawer may exist only as a compact/mobile disclosure pattern.
+9. Desktop primary navigation follows the qitu route-control shape: icon-only main route buttons, a compact active underline, then a divider and adjacent active/hover live label.
+10. Under constrained width, primary navigation remains pure icon and may hide the adjacent live label.
+11. Secondary route tabs are text-only with an active underline.
+12. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
+13. Theme remains a compact icon control; language uses a compact icon trigger that opens explicit locale choices. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+
+Internationalization rules:
+
+1. `packages/i18n` owns locale metadata types, typed dictionary helpers, message interpolation, fallback, locale negotiation, code-label helpers, and locale-aware date/number/byte/plural/relative-time formatting primitives.
+2. `apps/web` owns the React provider, persisted locale preference, document language updates, explicit language chooser, and qitu web shell dictionaries.
+3. English remains the default locale for stable local development and existing smoke coverage.
+4. Reusable `packages/ui` components accept strings by prop and must not import app-owned dictionaries.
+5. Adding a locale requires a complete app dictionary that typechecks against the English key set.
+6. Worker routes may derive locale from request body, `x-qitu-locale`, locale cookie, or `Accept-Language`; package code must not import web dictionaries.
+7. Machine-readable server codes may stay canonical until the API exposes stable display metadata; UI labels should be translated at the app layer.
 
 Visual extraction rules:
 

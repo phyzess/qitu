@@ -103,6 +103,8 @@ export type DrainLocalImportJobsResponse = {
 };
 
 type RequestOptions = Omit<RequestInit, "credentials">;
+const localeStorageKey = "qitu.locale";
+const localeHeaderName = "x-qitu-locale";
 
 export async function me(): Promise<MeResponse> {
   return apiJson<MeResponse>("/api/auth/me");
@@ -404,8 +406,15 @@ async function decideStagedRecord(
 }
 
 async function apiJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  const locale = readLocalePreference();
+  if (locale && !headers.has(localeHeaderName)) {
+    headers.set(localeHeaderName, locale);
+  }
+
   const response = await fetch(url, {
     ...options,
+    headers,
     credentials: "include",
   });
 
@@ -414,6 +423,10 @@ async function apiJson<T>(url: string, options: RequestOptions = {}): Promise<T>
   }
 
   return response.json() as Promise<T>;
+}
+
+function readLocalePreference(): string | null {
+  return window.localStorage.getItem(localeStorageKey);
 }
 
 function withSearch(path: string, search: URLSearchParams): string {

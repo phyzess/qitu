@@ -112,7 +112,27 @@ Does not own:
 
 1. Business-specific audit interpretation.
 
-### 2.7 Planned `security` Capability
+### 2.7 `packages/i18n`
+
+Owns:
+
+1. Locale metadata types.
+2. Typed dictionary helpers.
+3. Message interpolation.
+4. Locale fallback, matching, and Accept-Language candidate helpers.
+5. Locale-aware number, date/time, byte, plural, and relative-time formatting primitives.
+6. Generic code-to-label helpers.
+
+Does not own:
+
+1. App route labels.
+2. Product copy.
+3. Business terminology.
+4. Locale persistence policy.
+5. React providers or UI controls.
+6. App-owned dictionaries.
+
+### 2.8 Planned `security` Capability
 
 For now, security events stay in `packages/audit` or app-owned code. Split a package only when reuse pressure is proven.
 
@@ -127,7 +147,7 @@ Does not own:
 
 1. Business risk scoring.
 
-### 2.8 Planned `alerts` Capability
+### 2.9 Planned `alerts` Capability
 
 For now, alerts stay in app-owned code or audit-driven operational views. Split a package only when alert lifecycle behavior becomes reusable.
 
@@ -142,7 +162,7 @@ Does not own:
 
 1. Business-specific escalation policy.
 
-### 2.9 `packages/email`
+### 2.10 `packages/email`
 
 Owns:
 
@@ -157,7 +177,7 @@ Does not own:
 
 1. Business-specific attachment parsing.
 
-### 2.10 `packages/ai-advisory`
+### 2.11 `packages/ai-advisory`
 
 Owns:
 
@@ -172,7 +192,7 @@ Does not own:
 1. Business calculations.
 2. Business truth.
 
-### 2.11 `packages/ui`
+### 2.12 `packages/ui`
 
 Owns:
 
@@ -189,7 +209,7 @@ Does not own:
 1. Business-specific pages.
 2. Business terminology.
 
-### 2.12 `packages/design-system`
+### 2.13 `packages/design-system`
 
 Owns:
 
@@ -204,7 +224,7 @@ Does not own:
 
 1. Business information architecture.
 
-### 2.13 `packages/charts`
+### 2.14 `packages/charts`
 
 Owns:
 

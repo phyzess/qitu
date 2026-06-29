@@ -9,6 +9,7 @@ export async function parseRequestJson<TSchema extends v.GenericSchema>(
 ): Promise<
   | {
       ok: true;
+      body: unknown;
       value: v.InferOutput<TSchema>;
     }
   | {
@@ -38,6 +39,7 @@ export async function parseRequestJson<TSchema extends v.GenericSchema>(
   const result = v.safeParse(schema, body);
   if (result.success) {
     return {
+      body,
       ok: true,
       value: result.output,
     };

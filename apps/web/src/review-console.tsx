@@ -30,6 +30,7 @@ import {
   X,
 } from "lucide-react";
 import { ErrorText } from "./app-ui";
+import { useI18n } from "./i18n";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
@@ -83,26 +84,42 @@ export function ReviewConsole(props: {
   uploadInputRef: RefObject<HTMLInputElement | null>;
   user: ApiUser;
 }) {
+  const { formatStatus, formatTime, t } = useI18n();
   const jobBySourceId = useMemo(() => {
     return new Map(props.importJobs.map((job) => [job.sourceFileId, job]));
   }, [props.importJobs]);
   const metrics: MetricItem[] = useMemo(
     () => [
-      { id: "pending", label: "Pending", value: props.counts.pending, tone: "warning" },
-      { id: "approved", label: "Approved", value: props.counts.approved, tone: "positive" },
-      { id: "rejected", label: "Rejected", value: props.counts.rejected, tone: "negative" },
-      { id: "committed", label: "Committed", value: props.counts.committed },
+      {
+        id: "pending",
+        label: formatStatus("pending"),
+        value: props.counts.pending,
+        tone: "warning",
+      },
+      {
+        id: "approved",
+        label: formatStatus("approved"),
+        value: props.counts.approved,
+        tone: "positive",
+      },
+      {
+        id: "rejected",
+        label: formatStatus("rejected"),
+        value: props.counts.rejected,
+        tone: "negative",
+      },
+      { id: "committed", label: formatStatus("committed"), value: props.counts.committed },
     ],
-    [props.counts],
+    [formatStatus, props.counts],
   );
   const reviewBars: CategoryDatum[] = useMemo(
     () => [
-      { label: "Pending", value: props.counts.pending, tone: "warning" },
-      { label: "Approved", value: props.counts.approved, tone: "positive" },
-      { label: "Rejected", value: props.counts.rejected, tone: "negative" },
-      { label: "Committed", value: props.counts.committed, tone: "info" },
+      { label: formatStatus("pending"), value: props.counts.pending, tone: "warning" },
+      { label: formatStatus("approved"), value: props.counts.approved, tone: "positive" },
+      { label: formatStatus("rejected"), value: props.counts.rejected, tone: "negative" },
+      { label: formatStatus("committed"), value: props.counts.committed, tone: "info" },
     ],
-    [props.counts],
+    [formatStatus, props.counts],
   );
   const auditTimeline: TimelineItem[] = useMemo(
     () =>
@@ -113,28 +130,32 @@ export function ReviewConsole(props: {
         time: formatTime(event.occurredAt),
         tone: timelineTone(event.action),
       })),
-    [props.auditEvents],
+    [formatTime, props.auditEvents],
   );
   const importTimeline: TimelineItem[] = useMemo(
     () =>
-      props.importJobEvents.map((event) => ({
-        id: event.id,
-        title: event.eventType,
-        description:
-          event.message ??
-          [event.statusFrom, event.statusTo].filter(Boolean).join(" -> ") ??
-          "Import job event",
-        time: formatTime(event.createdAt),
-        tone: timelineTone(event.eventType),
-      })),
-    [props.importJobEvents],
+      props.importJobEvents.map((event) => {
+        const transition = [event.statusFrom, event.statusTo]
+          .filter((status): status is string => Boolean(status))
+          .map(formatStatus)
+          .join(" -> ");
+
+        return {
+          id: event.id,
+          title: event.eventType,
+          description: event.message ?? (transition || t("imports.eventFallback")),
+          time: formatTime(event.createdAt),
+          tone: timelineTone(event.eventType),
+        };
+      }),
+    [formatStatus, formatTime, props.importJobEvents, t],
   );
 
   return (
     <AppShell
       actions={props.actions}
       brand="qitu"
-      commandLabel="Find source, job, or staged record"
+      commandLabel={t("command.findSourceJobRecord")}
       commandShortcutLabel="Cmd K"
       eyebrow={props.notice}
       navigation={props.navigation}
@@ -148,7 +169,7 @@ export function ReviewConsole(props: {
               <div className="min-w-0">
                 <StatusBadge tone="active">{props.user.email}</StatusBadge>
                 <h1 className="mt-3 truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
-                  Review console
+                  {t("review.consoleTitle")}
                 </h1>
                 <div className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-dim)]">
                   {props.notice}
@@ -159,16 +180,20 @@ export function ReviewConsole(props: {
             {props.error ? <ErrorText>{props.error}</ErrorText> : null}
             <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
             <div className="mt-[var(--qitu-space-s1)] grid gap-[var(--qitu-space-s0)]">
-              <TimeSeriesChart data={props.reviewTrend} height={132} label="Review status trend" />
-              <BarChart data={reviewBars} height={156} label="Review status distribution" />
+              <TimeSeriesChart
+                data={props.reviewTrend}
+                height={132}
+                label={t("review.chartTrend")}
+              />
+              <BarChart data={reviewBars} height={156} label={t("review.chartDistribution")} />
             </div>
           </Surface>
 
           <Surface className="p-[var(--qitu-space-s1)]">
             <SectionHeader
-              description="Authenticated source intake with content-hash idempotency."
+              description={t("sources.description")}
               icon={<FileSpreadsheet size={16} />}
-              title="Source files"
+              title={t("sources.title")}
             />
             <div className="mt-[var(--qitu-space-s1)] space-y-3">
               <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
@@ -179,7 +204,7 @@ export function ReviewConsole(props: {
                   variant="secondary"
                   onClick={props.onUploadSelected}
                 >
-                  <FileUp size={14} /> Upload selected
+                  <FileUp size={14} /> {t("action.uploadSelected")}
                 </Button>
                 <Button
                   disabled={props.isBusy}
@@ -187,15 +212,15 @@ export function ReviewConsole(props: {
                   variant="ghost"
                   onClick={props.onUploadSample}
                 >
-                  <FileUp size={14} /> Upload sample
+                  <FileUp size={14} /> {t("action.uploadSample")}
                 </Button>
               </div>
             </div>
             <div className="mt-[var(--qitu-space-s1)]">
               <DataState
-                description="Upload a sample or local file to create an import job."
+                description={t("sources.emptyDescription")}
                 state={props.sourceFiles.length === 0 ? "empty" : "ready"}
-                title="No source files"
+                title={t("sources.emptyTitle")}
               >
                 <div className="space-y-2">
                   {props.sourceFiles.map((file) => (
@@ -220,18 +245,18 @@ export function ReviewConsole(props: {
                     variant="ghost"
                     onClick={props.onProcessLocalQueue}
                   >
-                    <RefreshCw size={14} /> Process local queue
+                    <RefreshCw size={14} /> {t("action.processLocalQueue")}
                   </Button>
                 ) : null
               }
               icon={<Activity size={16} />}
-              title="Import jobs"
+              title={t("imports.title")}
             />
             <div className="mt-[var(--qitu-space-s1)]">
               <DataState
-                description="Queued imports will appear here after a source file is accepted."
+                description={t("imports.emptyDescription")}
                 state={props.importJobs.length === 0 ? "empty" : "ready"}
-                title="No import jobs"
+                title={t("imports.emptyTitle")}
               >
                 <div className="space-y-2">
                   {props.importJobs.map((job) => (
@@ -252,10 +277,12 @@ export function ReviewConsole(props: {
           <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--qitu-space-s1)] py-[var(--qitu-space-s0)]">
             <SectionHeader
               description={
-                props.selectedJob ? props.selectedJob.sourceFile.filename : "No import job selected"
+                props.selectedJob
+                  ? props.selectedJob.sourceFile.filename
+                  : t("review.noJobSelected")
               }
               icon={<ListChecks size={16} />}
-              title="Staged records"
+              title={t("review.stagedRecords")}
             />
             <div className="flex flex-wrap gap-2">
               {props.canRetry ? (
@@ -265,7 +292,7 @@ export function ReviewConsole(props: {
                   variant="secondary"
                   onClick={props.onRetrySelectedJob}
                 >
-                  <RefreshCw size={14} /> Retry job
+                  <RefreshCw size={14} /> {t("action.retryJob")}
                 </Button>
               ) : null}
               <Button
@@ -273,7 +300,7 @@ export function ReviewConsole(props: {
                 size="sm"
                 onClick={props.onCommitApproved}
               >
-                <Database size={14} /> Commit approved
+                <Database size={14} /> {t("action.commitApproved")}
               </Button>
             </div>
           </div>
@@ -289,11 +316,11 @@ export function ReviewConsole(props: {
               </colgroup>
               <thead>
                 <tr className="text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-                  <th className="px-3 py-2 font-medium">Record</th>
-                  <th className="px-3 py-2 font-medium">Payload</th>
-                  <th className="px-3 py-2 font-medium">Issue</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 text-right font-medium">Decision</th>
+                  <th className="px-3 py-2 font-medium">{t("review.record")}</th>
+                  <th className="px-3 py-2 font-medium">{t("review.payload")}</th>
+                  <th className="px-3 py-2 font-medium">{t("review.issue")}</th>
+                  <th className="px-3 py-2 font-medium">{t("review.status")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("review.decision")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -301,9 +328,9 @@ export function ReviewConsole(props: {
                   <tr>
                     <td colSpan={5}>
                       <DataState
-                        description="Select or process an import job to review staged records."
+                        description={t("review.emptyStagedDescription")}
                         state="empty"
-                        title="No staged records"
+                        title={t("review.emptyStagedTitle")}
                       />
                     </td>
                   </tr>
@@ -325,12 +352,12 @@ export function ReviewConsole(props: {
 
         <aside className="space-y-[var(--qitu-layout-gutter)]">
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<ShieldCheck size={16} />} title="Guardrails" />
+            <SectionHeader icon={<ShieldCheck size={16} />} title={t("intake.guardrails")} />
             <div className="mt-[var(--qitu-space-s1)] space-y-2">
-              <Guardrail label="Reviewer identity required" state="active" />
-              <Guardrail label="Rejected rows cannot commit" state="active" />
-              <Guardrail label="AI output stays advisory" state="active" />
-              <Guardrail label="Audit event per decision" state="active" />
+              <Guardrail label={t("guardrail.reviewerIdentity")} state="active" />
+              <Guardrail label={t("guardrail.rejectedRows")} state="active" />
+              <Guardrail label={t("guardrail.aiAdvisory")} state="active" />
+              <Guardrail label={t("guardrail.auditDecision")} state="active" />
             </div>
           </Surface>
 
@@ -343,17 +370,17 @@ export function ReviewConsole(props: {
                   variant="ghost"
                   onClick={props.onGenerateAdvisory}
                 >
-                  <Sparkles size={14} /> Generate
+                  <Sparkles size={14} /> {t("action.generate")}
                 </Button>
               }
               icon={<Sparkles size={16} />}
-              title="AI advisory"
+              title={t("advisory.title")}
             />
             <div className="mt-[var(--qitu-space-s1)]">
               <DataState
-                description="Generate an advisory for the selected import job."
+                description={t("advisory.description")}
                 state={props.aiAdvisories.length === 0 ? "empty" : "ready"}
-                title="No advisory yet"
+                title={t("advisory.emptyTitle")}
               >
                 <div className="space-y-3">
                   {props.aiAdvisories.map((advisory) => (
@@ -371,17 +398,23 @@ export function ReviewConsole(props: {
           </Surface>
 
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<Activity size={16} />} title="Event stream" />
+            <SectionHeader icon={<Activity size={16} />} title={t("review.eventStream")} />
             <Timeline
               className="mt-[var(--qitu-space-s1)]"
-              emptyLabel="Select or process an import job to populate the event stream."
+              emptyLabel={t("review.eventEmpty")}
+              emptyTitle={t("empty.noEvents")}
               items={importTimeline}
             />
           </Surface>
 
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<ListChecks size={16} />} title="Audit timeline" />
-            <Timeline className="mt-[var(--qitu-space-s1)]" items={auditTimeline} />
+            <SectionHeader icon={<ListChecks size={16} />} title={t("audit.title")} />
+            <Timeline
+              className="mt-[var(--qitu-space-s1)]"
+              emptyLabel={t("audit.empty")}
+              emptyTitle={t("empty.noEvents")}
+              items={auditTimeline}
+            />
           </Surface>
         </aside>
       </div>
@@ -390,6 +423,7 @@ export function ReviewConsole(props: {
 }
 
 function SourceFileItem(props: { file: SourceFile; job: ImportJobListItem | null }) {
+  const { formatBytes, formatStatus } = useI18n();
   const status = props.job?.status ?? "stored";
 
   return (
@@ -403,13 +437,15 @@ function SourceFileItem(props: { file: SourceFile; job: ImportJobListItem | null
             {formatBytes(props.file.size)}
           </div>
         </div>
-        <StatusBadge tone={statusTone(status)}>{status}</StatusBadge>
+        <StatusBadge tone={statusTone(status)}>{formatStatus(status)}</StatusBadge>
       </div>
     </div>
   );
 }
 
 function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () => void }) {
+  const { formatStatus, formatTime } = useI18n();
+
   return (
     <button
       className="qitu-panel-action w-full text-left"
@@ -428,7 +464,9 @@ function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () 
           {formatTime(props.job.updatedAt)}
         </div>
       </div>
-      <StatusBadge tone={statusTone(props.job.status)}>{props.job.status}</StatusBadge>
+      <StatusBadge tone={statusTone(props.job.status)}>
+        {formatStatus(props.job.status)}
+      </StatusBadge>
       <ArrowRight size={14} className="shrink-0 text-[var(--qitu-dim)]" />
     </button>
   );
@@ -440,6 +478,7 @@ function ReviewRow(props: {
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const { formatStatus, t } = useI18n();
   const disabled = props.record.reviewStatus === "committed";
 
   return (
@@ -459,33 +498,33 @@ function ReviewRow(props: {
       </td>
       <td className="qitu-table-cell max-w-[190px] px-3 py-3 align-top">
         <div className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
-          {props.issue?.message ?? "No issue"}
+          {props.issue?.message ?? t("review.noIssue")}
         </div>
       </td>
       <td className="qitu-table-cell px-3 py-3 align-top">
         <StatusBadge tone={statusTone(props.record.reviewStatus)}>
-          {props.record.reviewStatus}
+          {formatStatus(props.record.reviewStatus)}
         </StatusBadge>
       </td>
       <td className="qitu-table-cell rounded-r-[var(--qitu-radius-md)] px-3 py-3 text-right align-top">
         <div className="flex justify-end gap-2">
           <Button
-            aria-label="Reject record"
+            aria-label={t("action.rejectRecord")}
             className="size-8 px-0"
             disabled={disabled}
             size="sm"
-            title="Reject record"
+            title={t("action.rejectRecord")}
             variant="ghost"
             onClick={props.onReject}
           >
             <X size={14} />
           </Button>
           <Button
-            aria-label="Approve record"
+            aria-label={t("action.approveRecord")}
             className="size-8 px-0"
             disabled={disabled}
             size="sm"
-            title="Approve record"
+            title={t("action.approveRecord")}
             variant="secondary"
             onClick={props.onApprove}
           >
@@ -498,12 +537,14 @@ function ReviewRow(props: {
 }
 
 function Guardrail(props: { label: string; state: "active" }) {
+  const { formatStatus } = useI18n();
+
   return (
     <div className="qitu-surface-subtle flex items-center justify-between gap-3 px-3 py-2">
       <div className="text-[length:var(--qitu-text-label-13)] leading-[var(--qitu-leading-label-13)]">
         {props.label}
       </div>
-      <StatusBadge tone={props.state}>{props.state}</StatusBadge>
+      <StatusBadge tone={props.state}>{formatStatus(props.state)}</StatusBadge>
     </div>
   );
 }
@@ -514,12 +555,15 @@ function AiAdvisoryItem(props: {
   onConfirm: () => void;
   onDismiss: () => void;
 }) {
+  const { formatStatus, formatTime, t } = useI18n();
   const canDecide = props.advisory.status === "suggested";
 
   return (
     <div className="qitu-surface-subtle p-3">
       <div className="flex items-center justify-between gap-3">
-        <StatusBadge tone={statusTone(props.advisory.status)}>{props.advisory.status}</StatusBadge>
+        <StatusBadge tone={statusTone(props.advisory.status)}>
+          {formatStatus(props.advisory.status)}
+        </StatusBadge>
         <span className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {formatTime(props.advisory.createdAt)}
         </span>
@@ -533,10 +577,10 @@ function AiAdvisoryItem(props: {
       {canDecide ? (
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <Button disabled={props.disabled} size="sm" variant="ghost" onClick={props.onDismiss}>
-            <X size={14} /> Dismiss
+            <X size={14} /> {t("action.dismiss")}
           </Button>
           <Button disabled={props.disabled} size="sm" variant="secondary" onClick={props.onConfirm}>
-            <Check size={14} /> Confirm
+            <Check size={14} /> {t("action.confirm")}
           </Button>
         </div>
       ) : null}
@@ -562,26 +606,6 @@ function payloadSummary(payload: unknown): string {
     .map(([key, value]) => `${key}: ${String(value)}`);
 
   return entries.join(", ");
-}
-
-function formatBytes(value: number | null): string {
-  if (value === null) {
-    return "unknown";
-  }
-
-  if (value < 1024) {
-    return `${value} B`;
-  }
-
-  return `${(value / 1024).toFixed(1)} KB`;
-}
-
-function formatTime(value: string): string {
-  return new Date(value).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
 }
 
 function timelineTone(action: string): TimelineItem["tone"] {

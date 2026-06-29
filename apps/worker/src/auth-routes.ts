@@ -31,6 +31,7 @@ import {
   requestFingerprint,
 } from "./event-store";
 import { authError, parseQueryLimit, parseRequestJson, type AppContext } from "./http-utils";
+import { localeFromRequest, type WorkerLocale } from "./locale";
 import { appName, buildAppUrl, isLocalAppEnv, runtimeConfig } from "./runtime";
 
 const sessionCookieName = "qitu_session";
@@ -97,9 +98,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
 
     const input = await parseRequestJson(context, CreateInvitationInputSchema);
     if (!input.ok) return input.response;
+    const locale = localeFromRequest(context, input.body);
 
     return createInvitationResponse(context, input.value, {
       createdBy: "system",
+      locale,
       returnToken: true,
     });
   });
@@ -183,9 +186,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
 
     const input = await parseRequestJson(context, CreateInvitationInputSchema);
     if (!input.ok) return input.response;
+    const locale = localeFromRequest(context, input.body);
 
     return createInvitationResponse(context, input.value, {
       createdBy: current.user.id,
+      locale,
       returnToken: isLocalRuntime(context),
     });
   });
@@ -419,6 +424,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/api/auth/password-reset/request", async (context) => {
     const input = await parseRequestJson(context, RequestPasswordResetInputSchema);
     if (!input.ok) return input.response;
+    const locale = localeFromRequest(context, input.body);
 
     const email = normalizeEmail(input.value.email);
     const user = await context.env.DB.prepare(
@@ -495,6 +501,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     const emailMessage = renderPasswordResetEmail({
       appName: appName(context.env),
       email,
+      locale,
       url: resetUrl,
     });
     const delivery = await deliverEmail(context.env, {
@@ -781,7 +788,7 @@ async function createLocalUserBootstrapResponse(
 async function createInvitationResponse(
   context: AppContext,
   input: { email: string; role?: string | undefined },
-  options: { createdBy: string; returnToken: boolean },
+  options: { createdBy: string; locale: WorkerLocale; returnToken: boolean },
 ): Promise<Response> {
   const requestedRole = input.role ?? "viewer";
   if (!isRoleName(requestedRole)) {
@@ -838,6 +845,7 @@ async function createInvitationResponse(
   const email = renderInvitationEmail({
     appName: appName(context.env),
     email: invitation.email,
+    locale: options.locale,
     url: inviteUrl,
   });
   const delivery = await deliverEmail(context.env, {

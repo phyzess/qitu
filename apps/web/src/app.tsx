@@ -57,11 +57,13 @@ import {
 } from "./app-ui";
 import { ReviewConsole } from "./review-console";
 import {
+  LanguageSelector,
   type SearchEntry,
   ThemeToggleButton,
   UserPanel,
   WorkspaceSearchDialog,
 } from "./shell-controls";
+import { useI18n, type MessageKey, type Translate } from "./i18n";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
@@ -95,6 +97,10 @@ const defaultInvitationForm = {
 };
 
 type RouteMemory = Partial<Record<AppPrimaryRoute, WorkspaceAppRoute>>;
+type NoticeDescriptor = {
+  key: MessageKey;
+  values?: Record<string, number | string>;
+};
 
 const routeMemoryStorageKey = "qitu.route-memory";
 
@@ -110,6 +116,7 @@ const localDemoProfiles = {
 } as const;
 
 export function App() {
+  const { formatBytes, formatStatus, roleLabel, t } = useI18n();
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const [authForm, setAuthForm] = useState(defaultAuthForm);
   const [authMode, setAuthMode] = useState<"login" | "setup" | "reset">("setup");
@@ -124,7 +131,7 @@ export function App() {
   const [runtimeEnvironment, setRuntimeEnvironment] = useState("unknown");
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [notice, setNotice] = useState("Connect to the local Worker to begin");
+  const [notice, setNotice] = useState<NoticeDescriptor>({ key: "notice.connectWorker" });
   const [error, setError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
@@ -154,7 +161,7 @@ export function App() {
         setUser(session.user);
         if (session.user) {
           await loadWorkspace();
-          setNotice("Review queue is ready");
+          setNotice({ key: "notice.reviewQueueReady" });
         }
       } catch (caught) {
         if (!cancelled) {
@@ -257,17 +264,18 @@ export function App() {
   }, [reviewRecords]);
   const reviewTrend: ChartDatum[] = useMemo(
     () => [
-      { x: 0, y: counts.pending, label: "Pending" },
-      { x: 1, y: counts.approved, label: "Approved" },
-      { x: 2, y: counts.rejected, label: "Rejected" },
-      { x: 3, y: counts.committed, label: "Committed" },
+      { x: 0, y: counts.pending, label: formatStatus("pending") },
+      { x: 1, y: counts.approved, label: formatStatus("approved") },
+      { x: 2, y: counts.rejected, label: formatStatus("rejected") },
+      { x: 3, y: counts.committed, label: formatStatus("committed") },
     ],
-    [counts],
+    [counts, formatStatus],
   );
 
   const selectedJob = importJobs.find((job) => job.id === selectedJobId) ?? null;
   const canCommit = Boolean(selectedJobId && counts.approved > 0);
   const canRetry = Boolean(selectedJobId && selectedJob?.status === "failed");
+  const noticeText = t(notice.key, notice.values);
   const navigationModel = useMemo<AppNavigationModel>(
     () =>
       buildNavigation(route, {
@@ -276,22 +284,38 @@ export function App() {
         onNavigate: (path) => navigate(path),
         resolvePrimaryRoute: (primaryRoute, fallbackRoute) =>
           routeMemory[primaryRoute] ?? fallbackRoute,
+        t,
       }),
-    [route, routeMemory, user],
+    [route, routeMemory, t, user],
   );
   const searchEntries = useMemo(
     () =>
       buildSearchEntries({
         auditEvents,
+        formatBytes,
+        formatStatus,
         importJobs,
         onNavigate: (path) => navigate(path),
         onSelectJob: (jobId) => void selectJob(jobId),
+        roleLabel,
         routeEntries: navigationModel.routeEntries,
         sourceFiles,
+        t,
         user,
         users,
       }),
-    [auditEvents, importJobs, navigationModel.routeEntries, sourceFiles, user, users],
+    [
+      auditEvents,
+      formatBytes,
+      formatStatus,
+      importJobs,
+      navigationModel.routeEntries,
+      roleLabel,
+      sourceFiles,
+      t,
+      user,
+      users,
+    ],
   );
   const shellActions = user ? (
     <ShellActions
@@ -301,7 +325,7 @@ export function App() {
       user={user}
     />
   ) : (
-    <ThemeToggleButton compact />
+    <GuestActions />
   );
   const shellOverlays = user ? (
     <>
@@ -317,7 +341,7 @@ export function App() {
       />
       <UserPanel
         canManageUsers={canManageUsers(user)}
-        notice={notice}
+        notice={noticeText}
         open={userPanelOpen}
         runtimeEnvironment={runtimeEnvironment}
         user={user}
@@ -385,7 +409,7 @@ export function App() {
       if (route === "users") {
         await loadUserManagement();
       }
-      setNotice("Workspace data refreshed");
+      setNotice({ key: "notice.workspaceRefreshed" });
     });
   }
 
@@ -416,13 +440,16 @@ export function App() {
       setReviewIssues(review.issues);
       setAiAdvisories(advisoryResponse.advisories);
       setImportJobEvents(eventResponse.events);
-      setNotice(`Review loaded for ${review.job.sourceFile.filename}`);
+      setNotice({
+        key: "notice.reviewLoaded",
+        values: { filename: review.job.sourceFile.filename },
+      });
     } catch (caught) {
       setReviewRecords([]);
       setReviewIssues([]);
       setAiAdvisories([]);
       setImportJobEvents([]);
-      setNotice("Import job is waiting for review records");
+      setNotice({ key: "notice.reviewWaiting" });
       if (!String(caught).includes("404")) {
         setError(errorMessage(caught));
       }
@@ -466,9 +493,16 @@ export function App() {
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
       setUser(response.user);
-      setNotice(
-        response.created ? `Local demo ${setupRole} created` : `Local demo ${setupRole} reset`,
-      );
+      setNotice({
+        key:
+          setupRole === "admin"
+            ? response.created
+              ? "notice.localDemoAdminCreated"
+              : "notice.localDemoAdminReset"
+            : response.created
+              ? "notice.localDemoReviewerCreated"
+              : "notice.localDemoReviewerReset",
+      });
       await loadWorkspace();
       navigate(defaultAuthenticatedPath, { replace: true });
     });
@@ -495,7 +529,7 @@ export function App() {
         ...(authForm.displayName ? { displayName: authForm.displayName } : {}),
       });
       setUser(accepted.user);
-      setNotice("Invitation accepted");
+      setNotice({ key: "notice.invitationAccepted" });
       await loadWorkspace();
       navigate(defaultAuthenticatedPath, { replace: true });
     });
@@ -509,7 +543,7 @@ export function App() {
         password: authForm.password,
       });
       setUser(response.user);
-      setNotice("Signed in");
+      setNotice({ key: "notice.signedIn" });
       await loadWorkspace();
       navigate(defaultAuthenticatedPath, { replace: true });
     });
@@ -527,7 +561,7 @@ export function App() {
       setUser(null);
       clearWorkspace();
       setAuthMode("login");
-      setNotice("Password reset complete. Sign in with the new password.");
+      setNotice({ key: "notice.passwordResetCompleteSignIn" });
       navigate(loginPath, { replace: true });
     });
   }
@@ -543,7 +577,11 @@ export function App() {
           ...current,
           resetToken: response.resetToken ?? current.resetToken,
         }));
-        setNotice(response.resetToken ? "Local reset token created" : "Password reset email sent");
+        setNotice({
+          key: response.resetToken
+            ? "notice.localResetTokenCreated"
+            : "notice.passwordResetEmailSent",
+        });
         return;
       }
 
@@ -552,7 +590,7 @@ export function App() {
         password: authForm.password,
       });
       setAuthMode("login");
-      setNotice("Password reset complete");
+      setNotice({ key: "notice.passwordResetComplete" });
       navigate(loginPath, { replace: true });
     });
   }
@@ -566,7 +604,7 @@ export function App() {
       await logout();
       setUser(null);
       clearWorkspace();
-      setNotice("Signed out");
+      setNotice({ key: "notice.signedOut" });
       navigate(loginPath, { replace: true });
     });
   }
@@ -581,9 +619,11 @@ export function App() {
         role: invitationForm.role,
       });
       setCreatedInvitationUrl(response.inviteUrl ?? null);
-      setNotice(
-        response.inviteUrl ? "Local invitation link created" : "Invitation email requested",
-      );
+      setNotice({
+        key: response.inviteUrl
+          ? "notice.localInvitationCreated"
+          : "notice.invitationEmailRequested",
+      });
       await loadUserManagement();
     } catch (caught) {
       setAdminError(errorMessage(caught));
@@ -595,7 +635,7 @@ export function App() {
   async function handleUploadSelected() {
     const file = uploadInputRef.current?.files?.[0];
     if (!file) {
-      setError("Choose a file first.");
+      setError(t("notice.noFileChosen"));
       return;
     }
 
@@ -615,7 +655,9 @@ export function App() {
         file,
         workspaceId: "default",
       });
-      setNotice(upload.duplicate ? "Duplicate source file found" : "Source file uploaded");
+      setNotice({
+        key: upload.duplicate ? "notice.duplicateSource" : "notice.sourceUploaded",
+      });
       await loadWorkspace(upload.importJobId);
     });
   }
@@ -630,7 +672,10 @@ export function App() {
   async function processLocalQueue() {
     await runAction(async () => {
       const result = await drainLocalImportJobs();
-      setNotice(`Processed ${result.processedCount} local import job(s)`);
+      setNotice({
+        key: "notice.processedLocalJobs",
+        values: { count: result.processedCount },
+      });
       await loadWorkspace(selectedJobId ?? result.processedJobIds[0]);
     });
   }
@@ -655,7 +700,7 @@ export function App() {
       setReviewRecords((current) =>
         current.map((record) => (record.id === recordId ? response.record : record)),
       );
-      setNotice(status === "approved" ? "Record approved" : "Record rejected");
+      setNotice({ key: status === "approved" ? "notice.recordApproved" : "notice.recordRejected" });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -665,7 +710,7 @@ export function App() {
 
     await runAction(async () => {
       await commitImportJob(selectedJobId);
-      setNotice("Approved records committed");
+      setNotice({ key: "notice.recordsCommitted" });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -675,7 +720,10 @@ export function App() {
 
     await runAction(async () => {
       const response = await retryImportJob(selectedJobId);
-      setNotice(`Import job ${response.status}`);
+      setNotice({
+        key: "notice.importJobStatus",
+        values: { status: formatStatus(response.status) },
+      });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -685,7 +733,7 @@ export function App() {
 
     await runAction(async () => {
       await generateAiAdvisory(selectedJobId);
-      setNotice("AI advisory generated");
+      setNotice({ key: "notice.advisoryGenerated" });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -698,7 +746,7 @@ export function App() {
         jobId: selectedJobId,
         advisoryId,
       });
-      setNotice("AI advisory confirmed");
+      setNotice({ key: "notice.advisoryConfirmed" });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -711,7 +759,7 @@ export function App() {
         jobId: selectedJobId,
         advisoryId,
       });
-      setNotice("AI advisory dismissed");
+      setNotice({ key: "notice.advisoryDismissed" });
       await loadWorkspace(selectedJobId);
     });
   }
@@ -719,14 +767,14 @@ export function App() {
   if (isLoadingSession) {
     return (
       <AppShell
-        actions={<ThemeToggleButton compact />}
+        actions={<GuestActions />}
         brand="qitu"
-        commandLabel="Loading workspace"
+        commandLabel={t("command.loadingWorkspace")}
         navigation={navigationModel.primaryNavigation}
         subNavigation={navigationModel.subNavigation}
       >
         <Panel>
-          <div className="text-sm text-[var(--qitu-muted)]">Loading session...</div>
+          <div className="text-sm text-[var(--qitu-muted)]">{t("loading.session")}</div>
         </Panel>
       </AppShell>
     );
@@ -735,33 +783,33 @@ export function App() {
   if (authRoute.kind === "invite") {
     return (
       <AppShell
-        actions={<ThemeToggleButton compact />}
+        actions={<GuestActions />}
         brand="qitu"
-        commandLabel="Accept invitation"
+        commandLabel={t("auth.acceptInvitation")}
         navigation={navigationModel.primaryNavigation}
         subNavigation={navigationModel.subNavigation}
       >
         <AuthLinkLayout
-          badge="invitation"
-          description="Create your reviewer account from the secure link sent by email."
-          notice={notice}
-          title="Accept invitation"
+          badge={t("auth.invitationBadge")}
+          description={t("auth.acceptInvitationDescription")}
+          notice={noticeText}
+          title={t("auth.acceptInvitation")}
         >
           <form className="mt-5 space-y-4" onSubmit={handleInviteAccept}>
             <Field
-              label="Display name"
+              label={t("field.displayName")}
               onChange={(value) => setAuthForm((current) => ({ ...current, displayName: value }))}
               value={authForm.displayName}
             />
             <Field
-              label="Password"
+              label={t("auth.password")}
               onChange={(value) => setAuthForm((current) => ({ ...current, password: value }))}
               type="password"
               value={authForm.password}
             />
             {error ? <ErrorText>{error}</ErrorText> : null}
             <Button disabled={isBusy} type="submit">
-              <ShieldCheck size={15} /> Accept invitation
+              <ShieldCheck size={15} /> {t("auth.acceptInvitation")}
             </Button>
           </form>
         </AuthLinkLayout>
@@ -772,28 +820,28 @@ export function App() {
   if (authRoute.kind === "reset") {
     return (
       <AppShell
-        actions={<ThemeToggleButton compact />}
+        actions={<GuestActions />}
         brand="qitu"
-        commandLabel="Reset password"
+        commandLabel={t("action.resetPassword")}
         navigation={navigationModel.primaryNavigation}
         subNavigation={navigationModel.subNavigation}
       >
         <AuthLinkLayout
-          badge="password reset"
-          description="Choose a new password. Existing sessions will be revoked after confirmation."
-          notice={notice}
-          title="Reset password"
+          badge={t("auth.passwordResetBadge")}
+          description={t("auth.resetDescription")}
+          notice={noticeText}
+          title={t("action.resetPassword")}
         >
           <form className="mt-5 space-y-4" onSubmit={handleRoutePasswordReset}>
             <Field
-              label="New password"
+              label={t("auth.newPassword")}
               onChange={(value) => setAuthForm((current) => ({ ...current, password: value }))}
               type="password"
               value={authForm.password}
             />
             {error ? <ErrorText>{error}</ErrorText> : null}
             <Button disabled={isBusy} type="submit">
-              <ShieldCheck size={15} /> Reset password
+              <ShieldCheck size={15} /> {t("action.resetPassword")}
             </Button>
           </form>
         </AuthLinkLayout>
@@ -804,9 +852,9 @@ export function App() {
   if (!user) {
     return (
       <AppShell
-        actions={<ThemeToggleButton compact />}
+        actions={<GuestActions />}
         brand="qitu"
-        commandLabel="Sign in to search workspace"
+        commandLabel={t("command.searchSignedOut")}
         navigation={navigationModel.primaryNavigation}
         subNavigation={navigationModel.subNavigation}
       >
@@ -814,8 +862,10 @@ export function App() {
           <Panel>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <StatusBadge tone="warning">local demo</StatusBadge>
-                <h1 className="mt-3 text-xl font-semibold tracking-normal">Reviewer access</h1>
+                <StatusBadge tone="warning">{t("auth.localDemo")}</StatusBadge>
+                <h1 className="mt-3 text-xl font-semibold tracking-normal">
+                  {t("auth.reviewerAccess")}
+                </h1>
               </div>
               <LockKeyhole size={18} className="text-[var(--qitu-green)]" />
             </div>
@@ -826,21 +876,21 @@ export function App() {
                 onClick={() => setAuthMode("setup")}
                 type="button"
               >
-                Setup
+                {t("auth.setupTab")}
               </button>
               <button
                 className={tabClass(authMode === "login")}
                 onClick={() => setAuthMode("login")}
                 type="button"
               >
-                Login
+                {t("auth.loginTab")}
               </button>
               <button
                 className={tabClass(authMode === "reset")}
                 onClick={() => setAuthMode("reset")}
                 type="button"
               >
-                Reset
+                {t("auth.resetTab")}
               </button>
             </div>
 
@@ -851,14 +901,14 @@ export function App() {
                   onClick={() => selectSetupRole("reviewer")}
                   type="button"
                 >
-                  Reviewer
+                  {t("auth.reviewer")}
                 </button>
                 <button
                   className={tabClass(setupRole === "admin")}
                   onClick={() => selectSetupRole("admin")}
                   type="button"
                 >
-                  Admin
+                  {t("auth.admin")}
                 </button>
               </div>
             ) : null}
@@ -874,14 +924,14 @@ export function App() {
               }
             >
               <Field
-                label="Email"
+                label={t("field.email")}
                 onChange={(value) => setAuthForm((current) => ({ ...current, email: value }))}
                 type="email"
                 value={authForm.email}
               />
               {authMode === "setup" ? (
                 <Field
-                  label="Display name"
+                  label={t("field.displayName")}
                   onChange={(value) =>
                     setAuthForm((current) => ({ ...current, displayName: value }))
                   }
@@ -890,7 +940,7 @@ export function App() {
               ) : null}
               {authMode === "reset" ? (
                 <Field
-                  label="Reset token"
+                  label={t("auth.resetToken")}
                   onChange={(value) =>
                     setAuthForm((current) => ({ ...current, resetToken: value }))
                   }
@@ -898,7 +948,7 @@ export function App() {
                 />
               ) : null}
               <Field
-                label={authMode === "reset" ? "New password" : "Password"}
+                label={authMode === "reset" ? t("auth.newPassword") : t("auth.password")}
                 onChange={(value) => setAuthForm((current) => ({ ...current, password: value }))}
                 type="password"
                 value={authForm.password}
@@ -907,25 +957,27 @@ export function App() {
               <Button disabled={isBusy} type="submit">
                 <ShieldCheck size={15} />
                 {authMode === "setup"
-                  ? `Use local demo ${setupRole}`
+                  ? setupRole === "admin"
+                    ? t("action.useLocalDemoAdmin")
+                    : t("action.useLocalDemoReviewer")
                   : authMode === "reset"
                     ? authForm.resetToken
-                      ? "Reset password"
-                      : "Send reset email"
-                    : "Login"}
+                      ? t("action.resetPassword")
+                      : t("action.sendResetEmail")
+                    : t("action.login")}
               </Button>
             </form>
           </Panel>
 
           <Panel>
-            <SectionTitle icon={<Activity size={16} />} label="Protected workspace" />
+            <SectionTitle icon={<Activity size={16} />} label={t("auth.protectedWorkspace")} />
             <div className="mt-4 space-y-3">
-              <RuntimeRow label="Routes" value="Workbench / Intake / Governance" />
-              <RuntimeRow label="Reviewer" value="reviewer@example.com" />
-              <RuntimeRow label="Admin" value="admin@example.com" />
-              <RuntimeRow label="Password" value={defaultAuthForm.password} />
-              <RuntimeRow label="Environment" value={runtimeEnvironment} />
-              <RuntimeRow label="Session" value={notice} />
+              <RuntimeRow label={t("auth.routes")} value={t("auth.routesValue")} />
+              <RuntimeRow label={t("auth.reviewer")} value="reviewer@example.com" />
+              <RuntimeRow label={t("auth.admin")} value="admin@example.com" />
+              <RuntimeRow label={t("auth.password")} value={defaultAuthForm.password} />
+              <RuntimeRow label={t("common.environment")} value={runtimeEnvironment} />
+              <RuntimeRow label={t("common.session")} value={noticeText} />
             </div>
           </Panel>
         </div>
@@ -948,7 +1000,7 @@ export function App() {
           importJobs={importJobs}
           isBusy={isBusy}
           navigation={navigationModel.primaryNavigation}
-          notice={notice}
+          notice={noticeText}
           subNavigation={navigationModel.subNavigation}
           onCommand={openSearch}
           onCommitApproved={() => void commitApproved()}
@@ -981,7 +1033,7 @@ export function App() {
       <WorkspaceShell
         actions={shellActions}
         navigation={navigationModel.primaryNavigation}
-        notice={notice}
+        notice={noticeText}
         subNavigation={navigationModel.subNavigation}
         onCommand={openSearch}
       >
@@ -1034,7 +1086,7 @@ export function App() {
         ) : null}
         {route === "account" ? (
           <AccountPage
-            notice={notice}
+            notice={noticeText}
             onLogout={() => void handleLogout()}
             runtimeEnvironment={runtimeEnvironment}
             user={user}
@@ -1042,10 +1094,10 @@ export function App() {
         ) : null}
         {route === "not-found" ? (
           <Panel>
-            <SectionTitle icon={<Activity size={16} />} label="Route not found" />
+            <SectionTitle icon={<Activity size={16} />} label={t("route.notFound")} />
             <div className="mt-4">
               <Button onClick={() => navigate(defaultAuthenticatedPath)}>
-                <ShieldCheck size={15} /> Open reviews
+                <ShieldCheck size={15} /> {t("action.openReviews")}
               </Button>
             </div>
           </Panel>
@@ -1064,11 +1116,13 @@ function WorkspaceShell(props: {
   subNavigation: AppShellNavItem[];
   onCommand: () => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <AppShell
       actions={props.actions}
       brand="qitu"
-      commandLabel="Find source, job, user, or audit event"
+      commandLabel={t("command.findSourceJobUserAudit")}
       commandShortcutLabel="Cmd K"
       eyebrow={props.notice}
       navigation={props.navigation}
@@ -1080,35 +1134,47 @@ function WorkspaceShell(props: {
   );
 }
 
+function GuestActions() {
+  return (
+    <>
+      <LanguageSelector className="qitu-topbar-control" compact />
+      <ThemeToggleButton className="qitu-topbar-control" compact />
+    </>
+  );
+}
+
 function ShellActions(props: {
   disabled: boolean;
   onOpenUserPanel: () => void;
   onRefresh: () => void;
   user: ApiUser;
 }) {
+  const { t } = useI18n();
   const displayName = props.user.displayName ?? props.user.email;
   const initial = displayName.slice(0, 1).toUpperCase();
+  const userPanelTitle = t("user.openPanel", { name: displayName });
 
   return (
     <>
       <Button
-        aria-label="Refresh workspace"
+        aria-label={t("action.refreshWorkspace")}
         className="qitu-topbar-control"
         disabled={props.disabled}
         size="sm"
-        title="Refresh workspace data"
+        title={t("action.refreshWorkspace")}
         variant="ghost"
         onClick={props.onRefresh}
       >
         <RefreshCw size={15} />
-        <span className="sr-only">Refresh</span>
+        <span className="sr-only">{t("action.refresh")}</span>
       </Button>
+      <LanguageSelector className="qitu-topbar-control" compact />
       <ThemeToggleButton className="qitu-topbar-control" compact />
       <Button
-        aria-label={`Open user panel for ${displayName}`}
+        aria-label={userPanelTitle}
         className="qitu-account-trigger"
         size="sm"
-        title={`Open user panel for ${displayName}`}
+        title={userPanelTitle}
         variant="ghost"
         onClick={props.onOpenUserPanel}
       >
@@ -1123,11 +1189,15 @@ function ShellActions(props: {
 
 function buildSearchEntries(props: {
   auditEvents: AuditEvent[];
+  formatBytes: (value: number | null) => string;
+  formatStatus: (status: string) => string;
   importJobs: ImportJobListItem[];
   onNavigate: (path: string) => void;
   onSelectJob: (jobId: string) => void;
+  roleLabel: (role: string) => string;
   routeEntries: WorkspaceRouteEntry[];
   sourceFiles: SourceFile[];
+  t: Translate;
   user: ApiUser | null;
   users: ApiUser[];
 }): SearchEntry[] {
@@ -1141,8 +1211,10 @@ function buildSearchEntries(props: {
 
   if (props.user) {
     entries.push({
-      description: `Current ${props.user.role} session`,
-      group: "Account",
+      description: props.t("search.accountDescription", {
+        role: props.roleLabel(props.user.role),
+      }),
+      group: props.t("nav.account"),
       id: `account:${props.user.id}`,
       label: props.user.email,
       onSelect: () => props.onNavigate("/account"),
@@ -1151,8 +1223,11 @@ function buildSearchEntries(props: {
 
   for (const file of props.sourceFiles.slice(0, 8)) {
     entries.push({
-      description: file.size === null ? "Source file" : `Source file, ${file.size} bytes`,
-      group: "Sources",
+      description:
+        file.size === null
+          ? props.t("search.sourceDescription")
+          : props.t("search.sourceDescriptionWithSize", { size: props.formatBytes(file.size) }),
+      group: props.t("search.sourcesGroup"),
       id: `source:${file.id}`,
       label: file.filename,
       onSelect: () => props.onNavigate("/sources"),
@@ -1161,8 +1236,10 @@ function buildSearchEntries(props: {
 
   for (const job of props.importJobs.slice(0, 8)) {
     entries.push({
-      description: `${job.status} import job`,
-      group: "Imports",
+      description: props.t("search.importDescription", {
+        status: props.formatStatus(job.status),
+      }),
+      group: props.t("nav.imports"),
       id: `job:${job.id}`,
       label: job.sourceFile.filename,
       onSelect: () => {
@@ -1174,8 +1251,10 @@ function buildSearchEntries(props: {
 
   for (const apiUser of props.users.slice(0, 8)) {
     entries.push({
-      description: `${apiUser.role} user`,
-      group: "Users",
+      description: props.t("search.userDescription", {
+        role: props.roleLabel(apiUser.role),
+      }),
+      group: props.t("search.usersGroup"),
       id: `user:${apiUser.id}`,
       label: apiUser.email,
       onSelect: () => props.onNavigate("/users"),
@@ -1185,7 +1264,7 @@ function buildSearchEntries(props: {
   for (const event of props.auditEvents.slice(0, 8)) {
     entries.push({
       description: `${event.subject.kind}:${event.subject.id}`,
-      group: "Audit",
+      group: props.t("search.auditGroup"),
       id: `audit:${event.id}`,
       label: event.action,
       onSelect: () => props.onNavigate("/audit"),

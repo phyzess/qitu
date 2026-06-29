@@ -54,6 +54,7 @@ const exampleImportReview = text("examples/import-review/src/index.ts");
 const exampleJsonRecords = text("examples/json-records/src/index.ts");
 const authPackage = text("packages/auth/src/index.ts");
 const emailPackage = text("packages/email/src/index.ts");
+const i18nPackage = text("packages/i18n/src/index.ts");
 const rbacPackage = text("packages/rbac/src/index.ts");
 const workerSources = sourceTextUnder("apps/worker/src");
 const workerAiAdvisoryStore = text("apps/worker/src/ai-advisory-store.ts");
@@ -68,6 +69,7 @@ const webViteConfig = text("apps/web/vite.config.ts");
 const workerIntegration = text("scripts/worker-integration.mjs");
 const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
+const i18nCheck = text("scripts/i18n-check.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
 const workflow = text(".github/workflows/verify.yml");
@@ -170,6 +172,7 @@ assert(
   packageJson.scripts.smoke.includes("worker-integration.mjs"),
   "smoke script must run Worker integration.",
 );
+assert(packageJson.scripts.smoke.includes("i18n-check.mjs"), "smoke script must run i18n checks.");
 assert(
   packageJson.scripts.smoke.includes("package-interface-tests.mjs"),
   "smoke script must run package interface tests.",
@@ -197,6 +200,7 @@ assert(
   "root tsconfig must reference examples/json-records.",
 );
 assert(tsconfig.includes("./templates/feature"), "root tsconfig must reference templates/feature.");
+assert(tsconfig.includes("./packages/i18n"), "root tsconfig must reference packages/i18n.");
 assert(
   baseTsconfig.includes("@qitu/example-import-review"),
   "base tsconfig must expose the example import-review alias.",
@@ -345,7 +349,9 @@ assert(
     appTemplateManifest.copy.includes("apps/web") &&
     appTemplateManifest.copy.includes("apps/worker") &&
     appTemplateManifest.copy.includes("packages/auth") &&
+    appTemplateManifest.copy.includes("packages/i18n") &&
     appTemplateManifest.copy.includes("templates/feature") &&
+    appTemplateManifest.copy.includes("scripts/i18n-check.mjs") &&
     appTemplateManifest.copy.includes(".env.example"),
   "app template manifest must list the reusable app, package, feature template, and env entrypoints.",
 );
@@ -382,8 +388,18 @@ assert(
 assert(
   emailPackage.includes("EmailMessageSchema") &&
     emailPackage.includes("renderInvitationEmail") &&
-    emailPackage.includes("renderPasswordResetEmail"),
-  "email package must expose generic auth email message schemas and templates.",
+    emailPackage.includes("renderPasswordResetEmail") &&
+    emailPackage.includes("locale?: string") &&
+    emailPackage.includes("zhCnAuthEmailMessages"),
+  "email package must expose localized generic auth email message schemas and templates.",
+);
+assert(
+  i18nPackage.includes("createTranslator") &&
+    i18nPackage.includes("Intl.PluralRules") &&
+    i18nPackage.includes("Intl.RelativeTimeFormat") &&
+    i18nPackage.includes("localeCandidatesFromAcceptLanguage") &&
+    i18nPackage.includes("resolveLocale"),
+  "i18n package must expose reusable translator, plural, relative-time, and locale negotiation helpers.",
 );
 assert(
   workerPackage.dependencies["@qitu/ai-advisory"] === "workspace:*",
@@ -409,6 +425,10 @@ assert(
 assert(
   workerPackage.dependencies["@qitu/import-pipeline"] === "workspace:*",
   "worker must declare its @qitu/import-pipeline type contract dependency.",
+);
+assert(
+  workerPackage.dependencies["@qitu/i18n"] === "workspace:*",
+  "worker must depend on @qitu/i18n for locale negotiation.",
 );
 assert(
   workerPackage.devDependencies["@cloudflare/vitest-pool-workers"] === "0.16.18" &&
@@ -507,6 +527,7 @@ assert(
 );
 assert(
   workerSources.includes("deliverEmail") &&
+    workerSources.includes("localeFromRequest") &&
     workerEmailDelivery.includes("email_messages") &&
     workerEmailDelivery.includes("env.EMAIL.send") &&
     workerSources.includes("renderInvitationEmail") &&
@@ -595,6 +616,7 @@ assert(
 );
 assert(
   webApi.includes('credentials: "include"') &&
+    webApi.includes("x-qitu-locale") &&
     webApi.includes("health") &&
     webApi.includes("createLocalInvitation") &&
     webApi.includes("createInvitation") &&
@@ -694,8 +716,10 @@ assert(
   packageInterfaceTests.includes("createManualReviewIssue") &&
     packageInterfaceTests.includes("stagedRecordKeyForSourceRow") &&
     packageInterfaceTests.includes("passwordResetTokens") &&
-    packageInterfaceTests.includes("emailMessages"),
-  "package interface tests must exercise import-pipeline helpers and db schema exports.",
+    packageInterfaceTests.includes("emailMessages") &&
+    packageInterfaceTests.includes("formatPlural") &&
+    packageInterfaceTests.includes("localeCandidatesFromAcceptLanguage"),
+  "package interface tests must exercise import-pipeline helpers, db schema exports, and i18n helpers.",
 );
 assert(
   browserSmoke.includes('spawn(vp, ["run", "dev:all"]') &&
@@ -707,10 +731,17 @@ assert(
     browserSmoke.includes("setInputFiles") &&
     browserSmoke.includes("Process local queue") &&
     browserSmoke.includes("Commit approved") &&
+    browserSmoke.includes('getByRole("menu", { name: "Language" })') &&
     browserSmoke.includes('"rejected"') &&
     browserSmoke.includes("import_job.committed") &&
     browserSmoke.includes("import_review.record_rejected"),
   "Browser smoke must start dev:all and exercise emailed invite/reset links, upload, local queue drain, commit, reject, and audit in a real browser.",
+);
+assert(
+  i18nCheck.includes("packages/i18n must not depend on app/runtime concerns") &&
+    i18nCheck.includes("zh-CN dictionary is missing key") &&
+    i18nCheck.includes("visible English UI copy must come from the web dictionary"),
+  "i18n check must protect package boundaries, dictionary completeness, and hard-coded UI copy.",
 );
 assert(
   workerSources.includes("/api/dev/import-jobs/drain") &&

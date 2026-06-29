@@ -97,6 +97,7 @@ packages/
   files/
   jobs/
   import-pipeline/
+  i18n/
   audit/
   email/
   ai-advisory/
@@ -142,7 +143,7 @@ starter feature registration live there. Reusable state rules and contracts stil
 8. Audit events, security events, and alerts.
 9. Transactional and inbound email.
 10. AI advisory artifacts with human confirmation.
-11. React app shell and design system.
+11. Locale-aware React app shell and design system.
 12. Documentation and decision-log conventions.
 
 Not all capabilities are fully implemented yet. Use `docs/capability-matrix.md` as the source of truth for maturity.

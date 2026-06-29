@@ -75,14 +75,15 @@ Reusable packages:
 4. `jobs`
 5. `import-pipeline`
 6. `audit`
-7. `email`
-8. `ai-advisory`
-9. `ui`
-10. `design-system`
-11. `charts`
-12. `config`
-13. `db`
-14. `testing`
+7. `i18n`
+8. `email`
+9. `ai-advisory`
+10. `ui`
+11. `design-system`
+12. `charts`
+13. `config`
+14. `db`
+15. `testing`
 
 Security events and alerts are planned capabilities. Keep them in `audit` or app-owned code until repeated production features prove they need separate packages.
 

@@ -19,6 +19,7 @@ import {
   type AppRoute,
   type WorkspaceAppRoute,
 } from "./app-routes";
+import { useI18n, type MessageKey, type Translate } from "./i18n";
 
 export type WorkspaceRouteEntry = {
   description: string;
@@ -40,52 +41,52 @@ type NavigationGroup = {
   defaultRoute: WorkspaceAppRoute;
   icon: ReactNode;
   id: AppPrimaryRoute;
-  label: string;
+  labelKey: MessageKey;
   routes: WorkspaceAppRoute[];
 };
 
 const routeMeta: Record<
   WorkspaceAppRoute,
   {
-    description: string;
+    descriptionKey: MessageKey;
     icon: ReactNode;
-    label: string;
+    labelKey: MessageKey;
   }
 > = {
   overview: {
-    description: "Authenticated workspace summary.",
+    descriptionKey: "nav.overviewDescription",
     icon: <LayoutDashboard size={15} />,
-    label: "Overview",
+    labelKey: "nav.overview",
   },
   reviews: {
-    description: "Review staged records and advisory output.",
+    descriptionKey: "nav.reviewsDescription",
     icon: <ListChecks size={15} />,
-    label: "Reviews",
+    labelKey: "nav.reviews",
   },
   sources: {
-    description: "Upload source files and inspect intake state.",
+    descriptionKey: "nav.sourcesDescription",
     icon: <FileSpreadsheet size={15} />,
-    label: "Sources",
+    labelKey: "nav.sources",
   },
   imports: {
-    description: "Process import jobs and retry failures.",
+    descriptionKey: "nav.importsDescription",
     icon: <Database size={15} />,
-    label: "Imports",
+    labelKey: "nav.imports",
   },
   audit: {
-    description: "Read compliance and security audit events.",
+    descriptionKey: "nav.auditDescription",
     icon: <ShieldCheck size={15} />,
-    label: "Audit",
+    labelKey: "nav.audit",
   },
   users: {
-    description: "Manage users and local invitations.",
+    descriptionKey: "nav.usersDescription",
     icon: <UserCog size={15} />,
-    label: "Users",
+    labelKey: "nav.users",
   },
   account: {
-    description: "Review the current session and account profile.",
+    descriptionKey: "nav.accountDescription",
     icon: <UserRound size={15} />,
-    label: "Account",
+    labelKey: "nav.account",
   },
 };
 
@@ -94,28 +95,28 @@ const navigationGroups: NavigationGroup[] = [
     defaultRoute: "reviews",
     icon: <LayoutDashboard size={17} />,
     id: "workbench",
-    label: "Workbench",
+    labelKey: "nav.workbench",
     routes: ["overview", "reviews"],
   },
   {
     defaultRoute: "sources",
     icon: <FileSpreadsheet size={17} />,
     id: "intake",
-    label: "Intake",
+    labelKey: "nav.intake",
     routes: ["sources", "imports"],
   },
   {
     defaultRoute: "audit",
     icon: <ShieldCheck size={17} />,
     id: "governance",
-    label: "Governance",
+    labelKey: "nav.governance",
     routes: ["audit", "users"],
   },
   {
     defaultRoute: "account",
     icon: <UserRound size={17} />,
     id: "account",
-    label: "Account",
+    labelKey: "nav.account",
     routes: ["account"],
   },
 ];
@@ -130,15 +131,18 @@ export function buildNavigation(
       primaryRoute: AppPrimaryRoute,
       fallbackRoute: WorkspaceAppRoute,
     ) => WorkspaceAppRoute;
+    t: Translate;
   },
 ): AppNavigationModel {
+  const { t } = options;
+
   if (!options.authenticated) {
     return {
-      activePrimaryLabel: "Login",
-      activeRouteLabel: "Login",
+      activePrimaryLabel: t("nav.login"),
+      activeRouteLabel: t("nav.login"),
       primaryNavigation: [
         {
-          label: "Login",
+          label: t("nav.login"),
           icon: <LogIn size={17} />,
           active: route === "login",
           href: routePath("login"),
@@ -162,7 +166,7 @@ export function buildNavigation(
     const href = routePath(targetRoute);
 
     return {
-      label: group.label,
+      label: t(group.labelKey),
       icon: group.icon,
       href,
       active: activeGroup.id === group.id,
@@ -175,7 +179,7 @@ export function buildNavigation(
     const disabled = !routeAvailable(routeId, canManageUsers);
 
     const item: AppShellNavItem = {
-      label: meta.label,
+      label: t(meta.labelKey),
       icon: meta.icon,
       href,
       active: route === routeId,
@@ -194,9 +198,9 @@ export function buildNavigation(
       .map((routeId) => {
         const meta = routeMeta[routeId];
         return {
-          description: meta.description,
-          group: group.label,
-          label: meta.label,
+          description: t(meta.descriptionKey),
+          group: t(group.labelKey),
+          label: t(meta.labelKey),
           path: routePath(routeId),
           route: routeId,
         };
@@ -205,8 +209,8 @@ export function buildNavigation(
   const activeRoute = route !== "login" && route !== "not-found" ? routeMeta[route] : null;
 
   return {
-    activePrimaryLabel: activeGroup.label,
-    activeRouteLabel: activeRoute?.label ?? activeGroup.label,
+    activePrimaryLabel: t(activeGroup.labelKey),
+    activeRouteLabel: activeRoute ? t(activeRoute.labelKey) : t(activeGroup.labelKey),
     primaryNavigation,
     routeEntries,
     subNavigation,
@@ -232,6 +236,8 @@ export function AuthLinkLayout(props: {
   notice: string;
   title: string;
 }) {
+  const { t } = useI18n();
+
   return (
     <div className="mx-auto grid max-w-5xl gap-[var(--qitu-layout-gutter)] md:grid-cols-[1fr_0.8fr]">
       <Panel>
@@ -251,10 +257,10 @@ export function AuthLinkLayout(props: {
       </Panel>
 
       <Panel>
-        <SectionTitle icon={<Activity size={16} />} label="Runtime" />
+        <SectionTitle icon={<Activity size={16} />} label={t("common.runtime")} />
         <div className="mt-4 space-y-3">
-          <RuntimeRow label="Worker" value="/api" />
-          <RuntimeRow label="Session" value={props.notice} />
+          <RuntimeRow label={t("common.worker")} value="/api" />
+          <RuntimeRow label={t("common.session")} value={props.notice} />
         </div>
       </Panel>
     </div>

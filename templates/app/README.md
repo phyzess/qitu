@@ -15,6 +15,7 @@ packages/
   rbac/
   db/
   files/
+  i18n/
   jobs/
   import-pipeline/
   audit/
@@ -51,5 +52,6 @@ The copied app should include:
 8. Audit events.
 9. AI advisory artifact storage.
 10. Two app-owned starter import feature adapters that prove core boundaries.
+11. Locale primitives, app-owned dictionaries, and localized auth email rendering.
 
 No business-specific assumptions should be added to the template.

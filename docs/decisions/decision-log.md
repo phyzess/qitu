@@ -415,6 +415,65 @@ Reason:
 
 The startup kit needs a token system that can grow without leaking page-local values, non-qitu names, or unclear aliases. A qitu-owned namespace makes future extension explicit and keeps cloned applications on the latest contract.
 
+### 2026-06-29: Qitu Icon Mark
+
+Decision:
+
+Use a folded-path qitu mark:
+
+1. The mark is a folded route: one path bends back through a compact system instead of drifting into open-ended branches.
+2. The shape borrows from topology's habit of treating paths up to deformation: different app-owned routes still pass through the same reusable constraints.
+3. The mark avoids literal mythology, business workflow imagery, and text-shaped monograms.
+4. `packages/ui` owns the reusable React/SVG mark for shell usage.
+5. `apps/web` may expose a static SVG favicon derived from the same geometry.
+
+Reason:
+
+The project name carries both the 鵸鵌 reference and the 歧途 homophone, but the app shell needs a mark that reads as a serious internal-tool system rather than mythology artwork. A folded path keeps the "avoid the wrong route" idea without spelling it out, and it has a cleaner brand silhouette than a generic grid, monogram, or literal braid.
+
+### 2026-06-29: Shared Internationalization Foundation
+
+Decision:
+
+Split internationalization into a reusable mechanism package and app-owned dictionaries.
+
+Rules:
+
+1. `packages/i18n` owns locale metadata types, typed dictionary helpers, interpolation, fallback, locale negotiation, generic code-label helpers, and locale-aware number/date/time/byte/plural/relative-time formatting primitives.
+2. `apps/web` owns the React provider, persisted locale preference, document language updates, explicit language chooser, and qitu web shell dictionaries.
+3. The starter ships English and Simplified Chinese web dictionaries, with English as the stable default for existing smoke coverage.
+4. `packages/ui` remains language-neutral and receives display strings through props; it must not import app dictionaries or own product copy.
+5. Future languages are added by extending locale metadata and providing a complete dictionary that typechecks against the English key set.
+6. Worker routes may derive locale from request body, request headers, locale cookie, or `Accept-Language`, then pass the resolved locale to app-owned or package-owned renderers.
+7. Auth invite/reset email templates may be localized inside `packages/email` because they are generic transactional auth emails; business email copy remains app-owned.
+8. Server-provided domain or event codes may remain canonical machine values until a route returns stable display-code metadata.
+
+Reason:
+
+The React starter shell needs bilingual operation, and future Worker email, exports, CLI output, or templates may need the same locale primitives. A small dependency-free `@qitu/i18n` package avoids a heavy runtime and keeps reusable mechanics out of `apps/web`, while typed app dictionaries keep product copy local and preserve qitu's business-neutral package boundary.
+
+### 2026-06-29: Branch Slash Icon Direction
+
+Decision:
+
+Lock the qitu icon direction to the branch slash mark and stop exploring unrelated logo concepts.
+
+Rules:
+
+1. Treat `apps/web/public/brand/qitu-branch-slash-master.svg` as the maintainable source of truth.
+2. Keep `apps/web/public/brand/qitu-branch-slash-visual-master.png` as a rendered PNG preview of the same source geometry.
+3. Preserve the defining structure: three separated black forms, a Y-shaped negative route, one coral decision point, and the smooth notch beside that point.
+4. Size the coral point for the real 30-36px shell mark first, then verify it still feels restrained at larger brand-board sizes.
+5. Optimize only within this direction: proportions, spacing, curve quality, small-size clarity, and final production asset integration.
+6. Do not return to hexagon, cube, literal bird, mythology illustration, or broad monogram exploration unless this direction is explicitly rejected.
+7. This decision supersedes the earlier folded-path qitu mark direction for the final app icon.
+8. Keep the naked mark transparent for React shell and inline product use.
+9. Give favicon and app-icon assets their own rounded-square background: warm off-white in light mode, dark surface with light glyph forms in dark mode.
+
+Reason:
+
+The branch slash mark best balances the `qitu` name's 歧途 homophone with the project positioning: one reusable startup kit can branch into different app-owned products. The non-hex silhouette avoids generic cube/package reads, keeps the mark compact at favicon sizes, and has a stronger ownable shape than the previous broader explorations.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

@@ -27,6 +27,7 @@ const server = await createServer({
 try {
   const importPipeline = await server.ssrLoadModule("/packages/import-pipeline/src/index.ts");
   const db = await server.ssrLoadModule("/packages/db/src/index.ts");
+  const i18n = await server.ssrLoadModule("/packages/i18n/src/index.ts");
 
   assert(
     importPipeline.createManualReviewIssue().code === "manual_review_required",
@@ -54,6 +55,43 @@ try {
       typeof db.passwordResetTokens.tokenHash === "object" &&
       typeof db.emailMessages.providerMessageId === "object",
     "db package must expose the current auth/email migration baseline.",
+  );
+  const localeFormatters = i18n.createLocaleFormatters({
+    intlLocale: "en-GB",
+  });
+  assert(
+    localeFormatters.formatPlural(2, {
+      one: "{count} item",
+      other: "{count} items",
+    }) === "2 items",
+    "i18n package must format plural messages.",
+  );
+  assert(
+    localeFormatters.formatRelativeTime(-1, "day") === "yesterday",
+    "i18n package must format relative time.",
+  );
+  assert(
+    i18n.resolveLocale({
+      candidates: i18n.localeCandidatesFromAcceptLanguage("zh-CN, en;q=0.8"),
+      defaultLocale: "en",
+      localeOptions: [
+        {
+          id: "en",
+          label: "English",
+          shortLabel: "EN",
+          htmlLang: "en",
+          intlLocale: "en-GB",
+        },
+        {
+          id: "zh-CN",
+          label: "简体中文",
+          shortLabel: "中",
+          htmlLang: "zh-CN",
+          intlLocale: "zh-CN",
+        },
+      ],
+    }) === "zh-CN",
+    "i18n package must resolve locales from Accept-Language candidates.",
   );
 } finally {
   await server.close();

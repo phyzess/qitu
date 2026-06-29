@@ -11,6 +11,7 @@
   "dependencies": {
     "@qitu/charts": "workspace:*",
     "@qitu/design-system": "workspace:*",
+    "@qitu/i18n": "workspace:*",
     "@qitu/ui": "workspace:*",
     "lucide-react": "1.21.0",
     "react": "19.2.7",

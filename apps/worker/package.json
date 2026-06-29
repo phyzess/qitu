@@ -24,6 +24,7 @@
     "@qitu/config": "workspace:*",
     "@qitu/email": "workspace:*",
     "@qitu/files": "workspace:*",
+    "@qitu/i18n": "workspace:*",
     "@qitu/import-pipeline": "workspace:*",
     "@qitu/jobs": "workspace:*",
     "@qitu/rbac": "workspace:*",

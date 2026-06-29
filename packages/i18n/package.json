@@ -1,5 +1,5 @@
 {
-  "name": "@qitu/email",
+  "name": "@qitu/i18n",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "dependencies": {
-    "@qitu/i18n": "workspace:*",
-    "valibot": "1.4.1"
+  "devDependencies": {
+    "typescript": "7.0.1-rc"
   }
 }
