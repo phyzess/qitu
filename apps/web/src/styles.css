@@ -13,5 +13,5 @@ body {
 }
 
 ::selection {
-  background: var(--qitu-chroma-lime-soft);
+  background: var(--qitu-brand-accent-soft);
 }

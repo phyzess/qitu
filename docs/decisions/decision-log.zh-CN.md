@@ -273,12 +273,13 @@ Decision:
 
 提炼规则：
 
-1. 背景、surface、线条与文字使用 OKLCH 紫灰中性色。
+1. 背景、surface、线条与文字使用偏墨/纸感的冷中性色。
 2. 页面层优先使用 `--qitu-surface`、`--qitu-surface-glass`、`--qitu-surface-elevated`，不再散落 RGB 色值。
 3. 控件保持 28/32/36px 紧凑尺度，并共享 radius、focus、motion tokens。
-4. 状态色采用柔和 chroma lime/lilac/pink，而不是页面内一次性的高饱和 green/blue/amber。
-5. shadow 主要用于 overlay 与 active affordance；普通 panel 依靠 tone、细线和克制 inset highlight 表达层级。
-6. field、list action、icon chip、avatar trigger、overlay、table cell 等重复样式集中在 `packages/ui`。
+4. 品牌 accent 统一使用以中国色 `品红` 的 `oklch(0.633 0.222 6.9)` 为核心的品红色系，用于 logo、active affordance、链接与 focus treatment。
+5. 状态色只保留语义用途并降低饱和度：绿色用于 success/protected，蓝灰用于 warning/review/info，destructive 或 rejected 改用更低饱和的橘红，避免品牌品红同时承担错误语义。
+6. shadow 主要用于 overlay 与 active affordance；普通 panel 依靠 tone、细线和克制 inset highlight 表达层级。
+7. field、list action、icon chip、avatar trigger、overlay、table cell 等重复样式集中在 `packages/ui`。
 
 原因：
 
@@ -377,6 +378,27 @@ Decision:
 原因：
 
 Startup kit 需要一套可增长的 token system，避免继续泄漏页面级色值、non-qitu names 或含义不清的 alias。qitu-owned namespace 可以让未来扩展更明确，并让 clone 出来的应用默认保持最新 contract。
+
+### Vendored AnimateIcons Source Registry
+
+Decision:
+
+使用选中的 AnimateIcons Lucide SVG source 作为 app chrome 的 animated icon 来源，并 vendoring 到 `packages/ui` 内的小型 registry。
+
+规则：
+
+1. `packages/ui/src/animated-icon.tsx` 负责 `AnimatedIcon`、`AnimatedIconName`，以及从 qitu semantic icon names 到 vendored SVG source 的映射。
+2. App 页面不能直接 import icon runtime；统一使用 `@qitu/ui` 暴露的 `AnimatedIcon`。
+3. Shell navigation、command/search、theme/language、refresh、account panel actions 和 reusable section headers 使用 animated icons。
+4. 密集 table、timeline row、破坏性确认、一次性 secondary action 和 data-state fallback glyph 默认保持静态，除非重复使用证明 motion 能提升扫描效率。
+5. 优先使用 AnimateIcons/Lucide source geometry。若缺少精确语义匹配，选择最接近的现有 source shape，或保留静态 Lucide fallback，不再手画粗糙本地图标。
+6. 不为 app chrome 引入 Lottie、`@animateicons/react` 或第二套 animated icon runtime，除非先补充新的 dependency 与 bundle-size decision。
+7. Icons 必须继承 `currentColor`，避免页面级 accent overrides，并遵守 `prefers-reduced-motion`。
+8. 只要 repository 中仍保留 vendored source，就在 `docs/third-party-notices.md` 中保留 AnimateIcons MIT notice。
+
+原因：
+
+第一版本地手画 animated icons 在真实 15-17px shell 尺寸下显得过粗且不一致。AnimateIcons 提供更成熟的比例基线，但为 qitu 当前的小型精选集合引入它的 React runtime 会带来不成比例的 bundle 重量。Vendoring 选中 SVG source 可以保留 qitu 的稳定语义 API 和视觉基线，同时让 app chrome 保持轻量。
 
 ## Pending
 

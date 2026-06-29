@@ -48,6 +48,7 @@ packages/charts
 8. Review surfaces.
 9. Timeline components.
 10. Data-state components.
+11. Animated icon registry for product chrome.
 
 `packages/design-system` owns:
 
@@ -138,6 +139,7 @@ Visual extraction rules:
 4. Controls follow the 28/32/36px scale with `--qitu-radius-control` and shared focus rings.
 5. Shadows are reserved for overlays or active affordances. Most cards use tonal surface fill; visible lines are reserved for controls, overlays, focus, and table separators.
 6. Icon chips, avatar/initial triggers, form fields, list actions, table cells, and overlay backdrops should use shared `packages/ui` utilities instead of page-local Tailwind recipes.
+7. Animated icons are owned by `packages/ui` through `AnimatedIcon`; app pages must not define local animated SVG recipes for shell or reusable control chrome.
 
 Surface hierarchy rules:
 
@@ -158,6 +160,16 @@ Control refinement rules:
 4. The authenticated user trigger is a 36px identity control with a 32px avatar or initial and a chevron. User actions stay inside the panel.
 5. Form inputs and selects use the 32px control height, `--qitu-radius-control`, `--qitu-input-bg`, `--qitu-input-border`, compact control typography, and the shared focus ring.
 6. Read-only account/runtime rows use a shared label/value field grid, not ad hoc flex rows. Values must truncate, align consistently, and use tabular number styling when appropriate.
+
+Animated icon rules:
+
+1. `AnimatedIcon` is the canonical dynamic icon entry point for shell navigation, command/search, theme/language, refresh, account panel actions, and reusable section headers.
+2. `AnimatedIcon` vendors selected AnimateIcons Lucide SVG source inside `packages/ui` and applies qitu's lightweight local CSS motion; app pages must not import icon runtimes directly.
+3. The registry is intentionally small and semantic. Add a new `AnimatedIconName` only when the icon appears in reusable product chrome or a repeated page pattern.
+4. Prefer AnimateIcons/Lucide source geometry first. If a semantic match is missing, choose the closest existing source shape or keep a static Lucide fallback rather than hand-drawing a rough local icon.
+5. Dense data tables, timeline rows, destructive confirmations, and one-off page actions may keep static Lucide icons when motion would reduce scanability.
+6. Do not add Lottie, `@animateicons/react`, or a second animated icon runtime for app chrome without a dependency and bundle-size decision.
+7. Page code may pass `AnimatedIcon` as a React node but must not customize animation timing, keyframes, or accent color outside shared qitu tokens.
 
 Qitu token and visual-system rules:
 

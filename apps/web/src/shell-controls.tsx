@@ -1,19 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Button, cn, StatusBadge } from "@qitu/ui";
-import {
-  ArrowRight,
-  Check,
-  ChevronDown,
-  Languages,
-  Laptop,
-  LogOut,
-  Moon,
-  Search,
-  Settings,
-  Sun,
-  UserCog,
-  X,
-} from "lucide-react";
+import { AnimatedIcon, Button, cn, StatusBadge } from "@qitu/ui";
+import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import { localeOptions, useI18n } from "./i18n";
 import { useTheme } from "./theme";
 import type { ApiUser } from "./types";
@@ -38,7 +25,6 @@ export function ThemeToggleButton(props: {
       : theme.preference === "dark"
         ? t("theme.dark")
         : t("theme.light");
-  const Icon = theme.preference === "system" ? Laptop : theme.resolvedTheme === "dark" ? Moon : Sun;
   const title = t("theme.switchWithCurrent", { label });
 
   return (
@@ -50,7 +36,7 @@ export function ThemeToggleButton(props: {
       variant="ghost"
       onClick={theme.cyclePreference}
     >
-      <Icon size={15} />
+      <AnimatedIcon name="theme" size={15} />
       {props.compact ? null : <span>{t("theme.title")}</span>}
     </Button>
   );
@@ -100,7 +86,7 @@ export function LanguageSelector(props: {
         variant="ghost"
         onClick={() => setOpen((current) => !current)}
       >
-        <Languages size={15} />
+        <AnimatedIcon name="language" size={15} />
         <span className={props.compact ? "sr-only" : undefined}>
           {props.compact ? t("language.choose") : localeMeta.shortLabel}
         </span>
@@ -209,7 +195,7 @@ export function WorkspaceSearchDialog(props: {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-3 bg-[var(--qitu-surface-row)] px-[var(--qitu-space-s1)] py-[var(--qitu-space-s0)]">
-          <Search aria-hidden="true" className="shrink-0 text-[var(--qitu-dim)]" size={16} />
+          <AnimatedIcon className="shrink-0 text-[var(--qitu-dim)]" name="search" size={16} />
           <input
             ref={inputRef}
             className="h-10 min-w-0 flex-1 bg-transparent text-[length:var(--qitu-text-copy-14)] text-[var(--qitu-text)] outline-none placeholder:text-[var(--qitu-dim)]"
@@ -248,7 +234,7 @@ export function WorkspaceSearchDialog(props: {
                   }}
                 >
                   <span className="qitu-icon-chip size-8">
-                    <Search size={14} />
+                    <AnimatedIcon name="search" size={14} />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
@@ -318,22 +304,12 @@ export function UserPanel(props: {
               <StatusBadge tone="neutral">{formatStatus(props.runtimeEnvironment)}</StatusBadge>
             </div>
           </div>
-          <Button
-            aria-label={t("action.closeUserPanel")}
-            className="size-8 px-0"
-            size="sm"
-            title={t("action.closeUserPanel")}
-            variant="ghost"
-            onClick={props.onClose}
-          >
-            <X size={15} />
-          </Button>
         </div>
 
         <div className="grid gap-1 p-2">
           <PanelAction
             description={t("user.accountDescription")}
-            icon={<Settings size={15} />}
+            icon={<AnimatedIcon name="settings" size={15} />}
             label={t("user.accountSettings")}
             onClick={() => {
               props.onClose();
@@ -343,7 +319,7 @@ export function UserPanel(props: {
           {props.canManageUsers ? (
             <PanelAction
               description={t("user.managementDescription")}
-              icon={<UserCog size={15} />}
+              icon={<AnimatedIcon name="users" size={15} />}
               label={t("user.managementTitle")}
               onClick={() => {
                 props.onClose();
@@ -356,13 +332,14 @@ export function UserPanel(props: {
               {props.notice}
             </div>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-2 rounded-[var(--qitu-radius-md)] bg-[var(--qitu-surface-row)] px-2 py-2">
-            <div className="flex items-center gap-2">
-              <ThemeToggleButton />
-              <LanguageSelector />
-            </div>
-            <Button size="sm" variant="ghost" onClick={props.onLogout}>
-              <LogOut size={15} /> {t("action.logout")}
+          <div className="mt-1 rounded-[var(--qitu-radius-md)] bg-[var(--qitu-surface-row)] p-1">
+            <Button
+              className="w-full justify-start"
+              size="sm"
+              variant="ghost"
+              onClick={props.onLogout}
+            >
+              <AnimatedIcon name="logout" size={15} /> {t("action.logout")}
             </Button>
           </div>
         </div>

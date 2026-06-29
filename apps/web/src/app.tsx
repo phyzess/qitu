@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ChartDatum } from "@qitu/charts";
-import { AppShell, Button, StatusBadge, type AppShellNavItem } from "@qitu/ui";
-import { Activity, ChevronDown, LockKeyhole, RefreshCw, ShieldCheck } from "lucide-react";
+import { AnimatedIcon, AppShell, Button, StatusBadge, type AppShellNavItem } from "@qitu/ui";
+import { ChevronDown } from "lucide-react";
 import {
   acceptInvitation,
   bootstrapLocalAdmin,
@@ -809,7 +809,7 @@ export function App() {
             />
             {error ? <ErrorText>{error}</ErrorText> : null}
             <Button disabled={isBusy} type="submit">
-              <ShieldCheck size={15} /> {t("auth.acceptInvitation")}
+              <AnimatedIcon name="audit" size={15} /> {t("auth.acceptInvitation")}
             </Button>
           </form>
         </AuthLinkLayout>
@@ -841,7 +841,7 @@ export function App() {
             />
             {error ? <ErrorText>{error}</ErrorText> : null}
             <Button disabled={isBusy} type="submit">
-              <ShieldCheck size={15} /> {t("action.resetPassword")}
+              <AnimatedIcon name="audit" size={15} /> {t("action.resetPassword")}
             </Button>
           </form>
         </AuthLinkLayout>
@@ -867,7 +867,7 @@ export function App() {
                   {t("auth.reviewerAccess")}
                 </h1>
               </div>
-              <LockKeyhole size={18} className="text-[var(--qitu-green)]" />
+              <AnimatedIcon className="text-[var(--qitu-green)]" name="key" size={18} />
             </div>
 
             <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
@@ -955,7 +955,7 @@ export function App() {
               />
               {error ? <ErrorText>{error}</ErrorText> : null}
               <Button disabled={isBusy} type="submit">
-                <ShieldCheck size={15} />
+                <AnimatedIcon name="audit" size={15} />
                 {authMode === "setup"
                   ? setupRole === "admin"
                     ? t("action.useLocalDemoAdmin")
@@ -970,7 +970,10 @@ export function App() {
           </Panel>
 
           <Panel>
-            <SectionTitle icon={<Activity size={16} />} label={t("auth.protectedWorkspace")} />
+            <SectionTitle
+              icon={<AnimatedIcon name="activity" size={16} />}
+              label={t("auth.protectedWorkspace")}
+            />
             <div className="mt-4 space-y-3">
               <RuntimeRow label={t("auth.routes")} value={t("auth.routesValue")} />
               <RuntimeRow label={t("auth.reviewer")} value="reviewer@example.com" />
@@ -1094,10 +1097,13 @@ export function App() {
         ) : null}
         {route === "not-found" ? (
           <Panel>
-            <SectionTitle icon={<Activity size={16} />} label={t("route.notFound")} />
+            <SectionTitle
+              icon={<AnimatedIcon name="activity" size={16} />}
+              label={t("route.notFound")}
+            />
             <div className="mt-4">
               <Button onClick={() => navigate(defaultAuthenticatedPath)}>
-                <ShieldCheck size={15} /> {t("action.openReviews")}
+                <AnimatedIcon name="reviews" size={15} /> {t("action.openReviews")}
               </Button>
             </div>
           </Panel>
@@ -1165,7 +1171,7 @@ function ShellActions(props: {
         variant="ghost"
         onClick={props.onRefresh}
       >
-        <RefreshCw size={15} />
+        <AnimatedIcon name="refresh" size={15} />
         <span className="sr-only">{t("action.refresh")}</span>
       </Button>
       <LanguageSelector className="qitu-topbar-control" compact />

@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode, type RefObject } from "react";
 import { BarChart, TimeSeriesChart, type CategoryDatum, type ChartDatum } from "@qitu/charts";
 import {
+  AnimatedIcon,
   AppShell,
   Button,
   DataState,
@@ -14,21 +15,7 @@ import {
   type StatusBadgeTone,
   type TimelineItem,
 } from "@qitu/ui";
-import {
-  Activity,
-  ArrowRight,
-  Check,
-  Clock3,
-  Database,
-  FileSpreadsheet,
-  FileUp,
-  ListChecks,
-  LockKeyhole,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
 import { ErrorText } from "./app-ui";
 import { useI18n } from "./i18n";
 import type {
@@ -175,7 +162,11 @@ export function ReviewConsole(props: {
                   {props.notice}
                 </div>
               </div>
-              <LockKeyhole size={17} className="shrink-0 text-[var(--qitu-chroma-lime-ink)]" />
+              <AnimatedIcon
+                className="shrink-0 text-[var(--qitu-chroma-lime-ink)]"
+                name="key"
+                size={17}
+              />
             </div>
             {props.error ? <ErrorText>{props.error}</ErrorText> : null}
             <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
@@ -192,7 +183,7 @@ export function ReviewConsole(props: {
           <Surface className="p-[var(--qitu-space-s1)]">
             <SectionHeader
               description={t("sources.description")}
-              icon={<FileSpreadsheet size={16} />}
+              icon={<AnimatedIcon name="files" size={16} />}
               title={t("sources.title")}
             />
             <div className="mt-[var(--qitu-space-s1)] space-y-3">
@@ -245,11 +236,11 @@ export function ReviewConsole(props: {
                     variant="ghost"
                     onClick={props.onProcessLocalQueue}
                   >
-                    <RefreshCw size={14} /> {t("action.processLocalQueue")}
+                    <AnimatedIcon name="refresh" size={14} /> {t("action.processLocalQueue")}
                   </Button>
                 ) : null
               }
-              icon={<Activity size={16} />}
+              icon={<AnimatedIcon name="activity" size={16} />}
               title={t("imports.title")}
             />
             <div className="mt-[var(--qitu-space-s1)]">
@@ -281,7 +272,7 @@ export function ReviewConsole(props: {
                   ? props.selectedJob.sourceFile.filename
                   : t("review.noJobSelected")
               }
-              icon={<ListChecks size={16} />}
+              icon={<AnimatedIcon name="reviews" size={16} />}
               title={t("review.stagedRecords")}
             />
             <div className="flex flex-wrap gap-2">
@@ -292,7 +283,7 @@ export function ReviewConsole(props: {
                   variant="secondary"
                   onClick={props.onRetrySelectedJob}
                 >
-                  <RefreshCw size={14} /> {t("action.retryJob")}
+                  <AnimatedIcon name="refresh" size={14} /> {t("action.retryJob")}
                 </Button>
               ) : null}
               <Button
@@ -300,7 +291,7 @@ export function ReviewConsole(props: {
                 size="sm"
                 onClick={props.onCommitApproved}
               >
-                <Database size={14} /> {t("action.commitApproved")}
+                <AnimatedIcon name="database" size={14} /> {t("action.commitApproved")}
               </Button>
             </div>
           </div>
@@ -352,7 +343,10 @@ export function ReviewConsole(props: {
 
         <aside className="space-y-[var(--qitu-layout-gutter)]">
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<ShieldCheck size={16} />} title={t("intake.guardrails")} />
+            <SectionHeader
+              icon={<AnimatedIcon name="audit" size={16} />}
+              title={t("intake.guardrails")}
+            />
             <div className="mt-[var(--qitu-space-s1)] space-y-2">
               <Guardrail label={t("guardrail.reviewerIdentity")} state="active" />
               <Guardrail label={t("guardrail.rejectedRows")} state="active" />
@@ -370,10 +364,10 @@ export function ReviewConsole(props: {
                   variant="ghost"
                   onClick={props.onGenerateAdvisory}
                 >
-                  <Sparkles size={14} /> {t("action.generate")}
+                  <AnimatedIcon name="sparkles" size={14} /> {t("action.generate")}
                 </Button>
               }
-              icon={<Sparkles size={16} />}
+              icon={<AnimatedIcon name="sparkles" size={16} />}
               title={t("advisory.title")}
             />
             <div className="mt-[var(--qitu-space-s1)]">
@@ -398,7 +392,10 @@ export function ReviewConsole(props: {
           </Surface>
 
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<Activity size={16} />} title={t("review.eventStream")} />
+            <SectionHeader
+              icon={<AnimatedIcon name="activity" size={16} />}
+              title={t("review.eventStream")}
+            />
             <Timeline
               className="mt-[var(--qitu-space-s1)]"
               emptyLabel={t("review.eventEmpty")}
@@ -408,7 +405,10 @@ export function ReviewConsole(props: {
           </Surface>
 
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-            <SectionHeader icon={<ListChecks size={16} />} title={t("audit.title")} />
+            <SectionHeader
+              icon={<AnimatedIcon name="reviews" size={16} />}
+              title={t("audit.title")}
+            />
             <Timeline
               className="mt-[var(--qitu-space-s1)]"
               emptyLabel={t("audit.empty")}
@@ -617,6 +617,10 @@ function timelineTone(action: string): TimelineItem["tone"] {
 }
 
 function statusTone(status: string): StatusBadgeTone {
+  if (status === "active") {
+    return "active";
+  }
+
   if (
     status === "approved" ||
     status === "committed" ||
@@ -624,7 +628,7 @@ function statusTone(status: string): StatusBadgeTone {
     status === "done" ||
     status.includes("succeeded")
   ) {
-    return "active";
+    return "success";
   }
 
   if (

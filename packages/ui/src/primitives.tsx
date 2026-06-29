@@ -24,7 +24,7 @@ export function SectionHeader(props: {
     <div className={cn("flex min-w-0 items-start justify-between gap-3", props.className)}>
       <div className="flex min-w-0 items-start gap-2">
         {props.icon ? (
-          <span className="mt-0.5 text-[var(--qitu-chroma-lime-ink)]" aria-hidden="true">
+          <span className="mt-0.5 text-[var(--qitu-brand-accent)]" aria-hidden="true">
             {props.icon}
           </span>
         ) : null}

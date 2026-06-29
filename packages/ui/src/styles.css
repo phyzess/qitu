@@ -43,20 +43,31 @@
 
 .qitu-brand-mark {
   position: relative;
+  display: grid;
   width: 44px;
   height: 44px;
   flex: none;
+  place-items: center;
   border-radius: var(--qitu-radius-control);
-  background: var(--qitu-control-bg);
+  background: var(--qitu-brand-mark-bg);
+  color: var(--qitu-brand-mark-glyph);
   box-shadow: none;
 }
 
-.qitu-brand-mark::after {
-  position: absolute;
-  inset: 34%;
-  border-radius: inherit;
-  background: var(--qitu-text);
-  content: "";
+.qitu-mark {
+  display: block;
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+  shape-rendering: geometricprecision;
+}
+
+.qitu-mark-form {
+  fill: currentColor;
+}
+
+.qitu-mark-accent {
+  fill: var(--qitu-brand-mark-accent);
 }
 
 .qitu-brand-copy {
@@ -165,7 +176,7 @@
   left: calc(50% - 4px);
   height: 1px;
   border-radius: 999px;
-  background: var(--qitu-chroma-pink-ink);
+  background: var(--qitu-brand-accent);
   opacity: 0;
   content: "";
   transform: scaleX(0.42);
@@ -190,6 +201,479 @@
   width: 1.18em;
   place-items: center;
   flex: none;
+}
+
+.qitu-animated-icon {
+  display: inline-grid;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  place-items: center;
+  color: inherit;
+  line-height: 1;
+}
+
+.qitu-animated-icon-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  overflow: visible;
+  stroke-width: 1.65;
+}
+
+.qitu-icon-primary,
+.qitu-icon-secondary,
+.qitu-icon-tertiary,
+.qitu-icon-arrow,
+.qitu-icon-check,
+.qitu-icon-dot,
+.qitu-icon-equator,
+.qitu-icon-down,
+.qitu-icon-up,
+.qitu-icon-box,
+.qitu-icon-tile {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--qitu-motion-fast) var(--qitu-ease-standard),
+    transform 340ms var(--qitu-ease-enter);
+}
+
+.qitu-animated-icon[data-motion="search"] .qitu-icon-primary {
+  transform-origin: 52% 52%;
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="activity"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="activity"]
+  .qitu-icon-primary {
+  transform: translateY(-0.5px) scaleX(1.03);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="boxes"] .qitu-icon-box-left,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="boxes"]
+  .qitu-icon-box-left {
+  transform: translate(-0.5px, 0.6px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="boxes"] .qitu-icon-box-right,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="boxes"]
+  .qitu-icon-box-right {
+  transform: translate(0.5px, 0.6px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="boxes"] .qitu-icon-box-top,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="boxes"]
+  .qitu-icon-box-top {
+  transform: translateY(-0.8px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="checks"] .qitu-icon-check-one,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="checks"]
+  .qitu-icon-check-one {
+  transform: translate(-0.5px, 0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="checks"] .qitu-icon-check-two,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="checks"]
+  .qitu-icon-check-two {
+  transform: translate(0.5px, -0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="folder"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="folder"]
+  .qitu-icon-primary {
+  transform: translateY(-0.8px) rotate(-2deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="globe"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="globe"]
+  .qitu-icon-primary {
+  transform: rotate(-8deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="globe"] .qitu-icon-secondary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="globe"]
+  .qitu-icon-secondary {
+  transform: rotate(10deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="globe"] .qitu-icon-equator,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="globe"]
+  .qitu-icon-equator {
+  transform: scaleX(0.9);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="grid"] .qitu-icon-tile-one,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="grid"]
+  .qitu-icon-tile-one {
+  transform: translate(-0.4px, -0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="grid"] .qitu-icon-tile-two,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="grid"]
+  .qitu-icon-tile-two {
+  transform: translate(0.4px, -0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="grid"] .qitu-icon-tile-three,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="grid"]
+  .qitu-icon-tile-three {
+  transform: translate(0.4px, 0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="grid"] .qitu-icon-tile-four,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="grid"]
+  .qitu-icon-tile-four {
+  transform: translate(-0.4px, 0.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="key"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="key"]
+  .qitu-icon-primary {
+  transform: rotate(-6deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="key"] .qitu-icon-dot,
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="sparkles"] .qitu-icon-dot,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon:is([data-motion="key"], [data-motion="sparkles"])
+  .qitu-icon-dot {
+  transform: scale(1.18);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible):is([data-motion="login"], [data-motion="logout"])
+  .qitu-icon-arrow,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon:is([data-motion="login"], [data-motion="logout"])
+  .qitu-icon-arrow {
+  transform: translateX(1.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="moon"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="moon"]
+  .qitu-icon-primary {
+  transform: translate(-0.4px, 0.4px) rotate(-4deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="refresh"] .qitu-icon-down,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="refresh"]
+  .qitu-icon-down {
+  transform: translateY(1.2px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="refresh"] .qitu-icon-up,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="refresh"]
+  .qitu-icon-up {
+  transform: translateY(-1.2px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="search"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="search"]
+  .qitu-icon-primary {
+  transform: rotate(-8deg) scale(1.04);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="settings"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="settings"]
+  .qitu-icon-primary {
+  transform: rotate(24deg);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="shield"] .qitu-icon-check,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="shield"]
+  .qitu-icon-check {
+  transform: translateY(-0.5px) scale(1.08);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="sparkles"] .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="sparkles"]
+  .qitu-icon-primary {
+  transform: rotate(8deg) scale(1.04);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="sparkles"] .qitu-icon-secondary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="sparkles"]
+  .qitu-icon-secondary {
+  transform: scale(1.16);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible)[data-motion="upload"] .qitu-icon-arrow,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon[data-motion="upload"]
+  .qitu-icon-arrow {
+  transform: translateY(-1.4px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible):is([data-motion="user"], [data-motion="users"])
+  .qitu-icon-primary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon:is([data-motion="user"], [data-motion="users"])
+  .qitu-icon-primary {
+  transform: translateY(-0.8px);
+}
+
+.qitu-animated-icon:is(:hover, :focus-visible):is([data-motion="user"], [data-motion="users"])
+  .qitu-icon-secondary,
+:where(
+    button,
+    a,
+    [role="button"],
+    .qitu-panel-action,
+    .qitu-command,
+    .qitu-primary-button,
+    .qitu-topbar-control
+  ):is(:hover, :focus-visible)
+  .qitu-animated-icon:is([data-motion="user"], [data-motion="users"])
+  .qitu-icon-secondary {
+  transform: scaleX(1.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qitu-animated-icon :where(*) {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 .qitu-primary-label {
@@ -309,7 +793,7 @@ button.qitu-command {
 }
 
 .qitu-subnav-button[data-active="true"] {
-  box-shadow: inset 0 -1px 0 var(--qitu-chroma-pink-ink);
+  box-shadow: inset 0 -1px 0 var(--qitu-brand-accent);
 }
 
 .qitu-main {
@@ -402,8 +886,8 @@ button.qitu-command {
   place-items: center;
   flex: none;
   border-radius: var(--qitu-radius-md);
-  background: var(--qitu-surface-row-active);
-  color: var(--qitu-chroma-lime-ink);
+  background: var(--qitu-brand-accent-soft);
+  color: var(--qitu-brand-accent-ink);
   box-shadow: var(--qitu-shadow-inset);
 }
 
@@ -679,6 +1163,11 @@ button.qitu-command {
   .qitu-brand-mark {
     width: 36px;
     height: 36px;
+  }
+
+  .qitu-mark {
+    width: 30px;
+    height: 30px;
   }
 
   .qitu-brand-copy {

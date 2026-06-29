@@ -45,6 +45,7 @@ packages/charts
 7. Modals。
 8. Review surfaces。
 9. Timeline components。
+10. 面向产品 chrome 的 animated icon registry。
 
 `packages/design-system` 负责：
 
@@ -124,6 +125,7 @@ Shell 交互规则：
 4. 控件遵循 28/32/36px 尺度，使用 `--qitu-radius-control` 与共享 focus ring。
 5. shadow 主要留给 overlay 或 active affordance；普通 card 默认靠 tonal surface fill 表达层级，可见线条只保留给 control、overlay、focus 与 table separator。
 6. Icon chip、avatar/initial trigger、form field、list action、table cell、overlay backdrop 应使用 `packages/ui` 的共享 utility，而不是页面内临时 Tailwind recipe。
+7. Animated icons 由 `packages/ui` 的 `AnimatedIcon` 统一负责；app 页面不为 shell 或可复用控件 chrome 写局部 animated SVG recipe。
 
 Surface 层级规则：
 
@@ -144,6 +146,16 @@ Surface 层级规则：
 4. 登录后的 user trigger 是 36px 身份控件，包含 32px avatar/initial 与 chevron；具体用户动作留在 panel 内。
 5. Form input 和 select 使用 32px control height、`--qitu-radius-control`、`--qitu-input-bg`、`--qitu-input-border`、紧凑 control 字体和共享 focus ring。
 6. Account/runtime 的只读行使用共享 label/value field grid，而不是页面内临时 flex row。value 必须稳定截断、对齐，并在适合时使用 tabular number。
+
+Animated icon 规则：
+
+1. `AnimatedIcon` 是 shell navigation、command/search、theme/language、refresh、account panel actions 与 reusable section headers 的 canonical dynamic icon 入口。
+2. `AnimatedIcon` 在 `packages/ui` 内 vendoring 选中的 AnimateIcons Lucide SVG source，并用 qitu 本地轻量 CSS motion 实现动效；app 页面不能直接 import icon runtime。
+3. Registry 刻意保持小而语义化。只有当图标出现在 reusable product chrome 或重复页面模式里，才新增 `AnimatedIconName`。
+4. 优先使用 AnimateIcons/Lucide source geometry。若缺少精确语义匹配，选择最接近的现有 source shape，或保留静态 Lucide fallback，不再手画粗糙本地图标。
+5. 密集 data table、timeline row、破坏性确认和一次性页面动作可以继续使用静态 Lucide icon；如果动效降低扫描效率，就不应添加。
+6. 不为 app chrome 引入 Lottie、`@animateicons/react` 或第二套 animated icon runtime，除非先记录 dependency 与 bundle-size decision。
+7. 页面代码可以把 `AnimatedIcon` 作为 React node 传入，但不能在共享 qitu tokens 外自定义 animation timing、keyframes 或 accent color。
 
 Qitu token 与视觉系统规则：
 

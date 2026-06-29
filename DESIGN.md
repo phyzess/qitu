@@ -101,6 +101,20 @@ Every chart needs readable dark theme defaults and explicit loading, empty, erro
 7. Animations use transform/opacity only and honor `prefers-reduced-motion`.
 8. Avoid `transition: all`.
 
+## Animated Icons
+
+Animated icons are a product-chrome affordance, not a decorative layer.
+
+Rules:
+
+1. Use `AnimatedIcon` from `@qitu/ui` for shell navigation, command/search, theme/language, refresh, account panel actions, and section headers.
+2. Keep dense table cells, timeline rows, low-frequency secondary actions, and purely confirmational glyphs static unless repeated use proves the motion helps scanning.
+3. `AnimatedIcon` vendors selected AnimateIcons Lucide SVG source inside `packages/ui` and implements qitu's lightweight motion locally. App pages must not import icon runtimes directly.
+4. Add new animated icon names to `packages/ui/src/animated-icon.tsx`; do not define page-local animated SVGs.
+5. Prefer AnimateIcons/Lucide source geometry first. If a semantic match is missing, choose the closest existing source shape or keep a static Lucide fallback instead of hand-drawing a rough local icon.
+6. Do not introduce Lottie, `@animateicons/react`, or a second animated icon runtime for app chrome without a new decision entry and bundle review.
+7. Icons inherit `currentColor`, use qitu tokens for accent only, and every animated icon must have a calm static rendering and respect `prefers-reduced-motion`.
+
 ## Content
 
 1. Starter UI copy stays business-neutral.

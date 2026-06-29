@@ -12,7 +12,7 @@ export type StatusBadgeTone =
 
 const toneClass: Record<StatusBadgeTone, string> = {
   neutral: "bg-[var(--qitu-surface-row-active)] text-[var(--qitu-muted)]",
-  active: "bg-[var(--qitu-chroma-lime-soft)] text-[var(--qitu-chroma-lime-ink)]",
+  active: "bg-[var(--qitu-brand-accent-soft)] text-[var(--qitu-brand-accent-ink)]",
   success: "bg-[var(--qitu-chroma-lime-soft)] text-[var(--qitu-chroma-lime-ink)]",
   warning: "bg-[var(--qitu-chroma-pink-soft)] text-[var(--qitu-chroma-pink-ink)]",
   danger: "bg-[var(--qitu-danger-soft)] text-[var(--qitu-red)]",

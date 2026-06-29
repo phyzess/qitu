@@ -1,17 +1,5 @@
 import type { ReactNode } from "react";
-import { SectionHeader, StatusBadge, Surface, type AppShellNavItem } from "@qitu/ui";
-import {
-  Activity,
-  Database,
-  FileSpreadsheet,
-  LayoutDashboard,
-  ListChecks,
-  LogIn,
-  LockKeyhole,
-  ShieldCheck,
-  UserCog,
-  UserRound,
-} from "lucide-react";
+import { AnimatedIcon, SectionHeader, StatusBadge, Surface, type AppShellNavItem } from "@qitu/ui";
 import {
   type AppPrimaryRoute,
   primaryRouteFor,
@@ -55,37 +43,37 @@ const routeMeta: Record<
 > = {
   overview: {
     descriptionKey: "nav.overviewDescription",
-    icon: <LayoutDashboard size={15} />,
+    icon: <AnimatedIcon name="workbench" size={15} />,
     labelKey: "nav.overview",
   },
   reviews: {
     descriptionKey: "nav.reviewsDescription",
-    icon: <ListChecks size={15} />,
+    icon: <AnimatedIcon name="reviews" size={15} />,
     labelKey: "nav.reviews",
   },
   sources: {
     descriptionKey: "nav.sourcesDescription",
-    icon: <FileSpreadsheet size={15} />,
+    icon: <AnimatedIcon name="files" size={15} />,
     labelKey: "nav.sources",
   },
   imports: {
     descriptionKey: "nav.importsDescription",
-    icon: <Database size={15} />,
+    icon: <AnimatedIcon name="database" size={15} />,
     labelKey: "nav.imports",
   },
   audit: {
     descriptionKey: "nav.auditDescription",
-    icon: <ShieldCheck size={15} />,
+    icon: <AnimatedIcon name="audit" size={15} />,
     labelKey: "nav.audit",
   },
   users: {
     descriptionKey: "nav.usersDescription",
-    icon: <UserCog size={15} />,
+    icon: <AnimatedIcon name="users" size={15} />,
     labelKey: "nav.users",
   },
   account: {
     descriptionKey: "nav.accountDescription",
-    icon: <UserRound size={15} />,
+    icon: <AnimatedIcon name="account" size={15} />,
     labelKey: "nav.account",
   },
 };
@@ -93,28 +81,28 @@ const routeMeta: Record<
 const navigationGroups: NavigationGroup[] = [
   {
     defaultRoute: "reviews",
-    icon: <LayoutDashboard size={17} />,
+    icon: <AnimatedIcon name="workbench" size={17} />,
     id: "workbench",
     labelKey: "nav.workbench",
     routes: ["overview", "reviews"],
   },
   {
     defaultRoute: "sources",
-    icon: <FileSpreadsheet size={17} />,
+    icon: <AnimatedIcon name="intake" size={17} />,
     id: "intake",
     labelKey: "nav.intake",
     routes: ["sources", "imports"],
   },
   {
     defaultRoute: "audit",
-    icon: <ShieldCheck size={17} />,
+    icon: <AnimatedIcon name="governance" size={17} />,
     id: "governance",
     labelKey: "nav.governance",
     routes: ["audit", "users"],
   },
   {
     defaultRoute: "account",
-    icon: <UserRound size={17} />,
+    icon: <AnimatedIcon name="account" size={17} />,
     id: "account",
     labelKey: "nav.account",
     routes: ["account"],
@@ -143,7 +131,7 @@ export function buildNavigation(
       primaryNavigation: [
         {
           label: t("nav.login"),
-          icon: <LogIn size={17} />,
+          icon: <AnimatedIcon name="login" size={17} />,
           active: route === "login",
           href: routePath("login"),
           onSelect: () => options.onNavigate(routePath("login")),
@@ -251,13 +239,16 @@ export function AuthLinkLayout(props: {
               {props.description}
             </div>
           </div>
-          <LockKeyhole size={18} className="text-[var(--qitu-chroma-lime-ink)]" />
+          <AnimatedIcon className="text-[var(--qitu-chroma-lime-ink)]" name="key" size={18} />
         </div>
         {props.children}
       </Panel>
 
       <Panel>
-        <SectionTitle icon={<Activity size={16} />} label={t("common.runtime")} />
+        <SectionTitle
+          icon={<AnimatedIcon name="activity" size={16} />}
+          label={t("common.runtime")}
+        />
         <div className="mt-4 space-y-3">
           <RuntimeRow label={t("common.worker")} value="/api" />
           <RuntimeRow label={t("common.session")} value={props.notice} />

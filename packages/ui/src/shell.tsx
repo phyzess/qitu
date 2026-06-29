@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Activity, Search } from "lucide-react";
+import { AnimatedIcon } from "./animated-icon";
+import { QituMark } from "./qitu-mark";
 import { cn } from "./utils";
 
 export type AppShellNavItem = {
@@ -47,7 +48,7 @@ export function AppShell({
     subNavigation.find((item) => item.active) ?? targetPrimaryItem ?? navigation[0];
   const commandContent = (
     <>
-      <Search aria-hidden="true" size={15} />
+      <AnimatedIcon name="search" size={15} />
       <span className="qitu-command-label min-w-0 truncate">{commandLabel}</span>
       <kbd className="qitu-command-kbd">{commandShortcutLabel}</kbd>
     </>
@@ -58,7 +59,9 @@ export function AppShell({
       <header className="qitu-topbar">
         <div className="qitu-topbar-main">
           <div className="qitu-brand-lockup">
-            <div aria-hidden="true" className="qitu-brand-mark" />
+            <div aria-hidden="true" className="qitu-brand-mark">
+              <QituMark />
+            </div>
             <div className="qitu-brand-copy">
               <strong className="qitu-brand-name">{brand}</strong>
               <span className="qitu-brand-context">
@@ -223,5 +226,5 @@ function PrimaryNavButton(props: {
 }
 
 export function SystemActivityIcon() {
-  return <Activity aria-hidden="true" size={16} />;
+  return <AnimatedIcon name="activity" size={16} />;
 }

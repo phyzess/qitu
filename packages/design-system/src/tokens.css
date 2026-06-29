@@ -43,45 +43,61 @@
   --qitu-radius-pill: 9999px;
 
   /* Primitive color and chroma tokens. */
-  --qitu-color-background: oklch(0.972 0.008 292);
-  --qitu-color-foreground: oklch(0.18 0.016 292);
-  --qitu-color-card: oklch(0.988 0.004 292);
-  --qitu-color-card-foreground: oklch(0.18 0.016 292);
-  --qitu-color-popover: oklch(0.988 0.004 292 / 92%);
-  --qitu-color-popover-foreground: oklch(0.18 0.016 292);
-  --qitu-color-primary: oklch(0.16 0.016 292);
-  --qitu-color-primary-foreground: oklch(0.986 0.006 292);
-  --qitu-color-secondary: oklch(0.935 0.014 292);
-  --qitu-color-secondary-foreground: oklch(0.18 0.016 292);
-  --qitu-color-muted-surface: oklch(0.948 0.01 292);
-  --qitu-color-muted-foreground: oklch(0.42 0.018 292);
-  --qitu-color-accent: oklch(0.918 0.018 292);
-  --qitu-color-accent-foreground: oklch(0.18 0.016 292);
-  --qitu-color-border: oklch(0.42 0.018 292 / 13%);
-  --qitu-color-input: oklch(0.42 0.018 292 / 15%);
-  --qitu-color-destructive: oklch(0.59 0.2 27);
+  --qitu-color-background: oklch(0.976 0.004 250);
+  --qitu-color-foreground: oklch(0.18 0.012 250);
+  --qitu-color-card: oklch(0.992 0.002 250);
+  --qitu-color-card-foreground: oklch(0.18 0.012 250);
+  --qitu-color-popover: oklch(0.992 0.002 250 / 92%);
+  --qitu-color-popover-foreground: oklch(0.18 0.012 250);
+  --qitu-color-primary: oklch(0.16 0.012 250);
+  --qitu-color-primary-foreground: oklch(0.986 0.004 250);
+  --qitu-color-secondary: oklch(0.936 0.007 250);
+  --qitu-color-secondary-foreground: oklch(0.18 0.012 250);
+  --qitu-color-muted-surface: oklch(0.952 0.006 250);
+  --qitu-color-muted-foreground: oklch(0.42 0.012 250);
+  --qitu-color-accent: color-mix(in oklch, var(--qitu-brand-accent) 12%, var(--qitu-color-card));
+  --qitu-color-accent-foreground: oklch(0.18 0.012 250);
+  --qitu-color-border: oklch(0.42 0.012 250 / 13%);
+  --qitu-color-input: oklch(0.42 0.012 250 / 15%);
+  --qitu-color-destructive: oklch(0.56 0.145 28);
   --qitu-color-destructive-foreground: oklch(1 0 0);
 
-  --qitu-chroma-lime: oklch(0.86 0.145 126);
-  --qitu-chroma-lime-card: oklch(0.9 0.105 126);
-  --qitu-chroma-lime-soft: oklch(0.94 0.055 126);
-  --qitu-chroma-lime-ink: oklch(0.42 0.105 135);
-  --qitu-chroma-lilac: oklch(0.78 0.105 303);
-  --qitu-chroma-lilac-card: oklch(0.89 0.065 303);
-  --qitu-chroma-lilac-soft: oklch(0.93 0.052 303);
-  --qitu-chroma-lilac-ink: oklch(0.43 0.09 303);
-  --qitu-chroma-pink: oklch(0.82 0.13 333);
-  --qitu-chroma-pink-card: oklch(0.91 0.08 333);
-  --qitu-chroma-pink-soft: oklch(0.95 0.052 333);
-  --qitu-chroma-pink-ink: oklch(0.48 0.12 333);
+  --qitu-brand-accent: oklch(0.633 0.222 6.9);
+  --qitu-brand-accent-ink: oklch(0.44 0.16 6.9);
+  --qitu-brand-accent-soft: color-mix(
+    in oklch,
+    var(--qitu-brand-accent) 13%,
+    var(--qitu-color-card)
+  );
+
+  --qitu-chroma-lime: oklch(0.606 0.106 169.9);
+  --qitu-chroma-lime-card: color-mix(in oklch, var(--qitu-chroma-lime) 20%, var(--qitu-color-card));
+  --qitu-chroma-lime-soft: color-mix(in oklch, var(--qitu-chroma-lime) 14%, var(--qitu-color-card));
+  --qitu-chroma-lime-ink: oklch(0.5 0.086 171.4);
+  --qitu-chroma-lilac: oklch(0.56 0.038 230.8);
+  --qitu-chroma-lilac-card: color-mix(
+    in oklch,
+    var(--qitu-chroma-lilac) 18%,
+    var(--qitu-color-card)
+  );
+  --qitu-chroma-lilac-soft: color-mix(
+    in oklch,
+    var(--qitu-chroma-lilac) 12%,
+    var(--qitu-color-card)
+  );
+  --qitu-chroma-lilac-ink: oklch(0.469 0.041 232.2);
+  --qitu-chroma-pink: oklch(0.536 0.019 201.2);
+  --qitu-chroma-pink-card: color-mix(in oklch, var(--qitu-chroma-pink) 20%, var(--qitu-color-card));
+  --qitu-chroma-pink-soft: color-mix(in oklch, var(--qitu-chroma-pink) 13%, var(--qitu-color-card));
+  --qitu-chroma-pink-ink: oklch(0.457 0.021 200.8);
 
   /* Semantic state tokens. */
   --qitu-color-success: var(--qitu-chroma-lime-ink);
-  --qitu-color-success-foreground: oklch(0.986 0.006 292);
+  --qitu-color-success-foreground: oklch(0.986 0.006 250);
   --qitu-color-warning: var(--qitu-chroma-pink-ink);
-  --qitu-color-warning-foreground: oklch(0.18 0.016 292);
+  --qitu-color-warning-foreground: oklch(0.18 0.016 250);
   --qitu-color-info: var(--qitu-chroma-lilac-ink);
-  --qitu-color-info-foreground: oklch(0.986 0.006 292);
+  --qitu-color-info-foreground: oklch(0.986 0.006 250);
 
   /* Semantic surface and text tokens. */
   --qitu-bg: var(--qitu-color-background);
@@ -89,8 +105,8 @@
   --qitu-surface: var(--qitu-color-card);
   --qitu-surface-2: var(--qitu-surface-row);
   --qitu-surface-3: var(--qitu-surface-elevated);
-  --qitu-surface-glass: oklch(0.956 0.008 292 / 78%);
-  --qitu-surface-elevated: oklch(0.934 0.012 292);
+  --qitu-surface-glass: oklch(0.958 0.006 250 / 78%);
+  --qitu-surface-elevated: oklch(0.936 0.008 250);
   --qitu-surface-panel: color-mix(in oklch, var(--qitu-color-card) 72%, var(--qitu-bg));
   --qitu-surface-panel-border: transparent;
   --qitu-surface-panel-highlight: none;
@@ -113,20 +129,20 @@
   --qitu-line-strong: color-mix(in oklch, var(--qitu-color-foreground) 18%, transparent);
   --qitu-text: var(--qitu-color-foreground);
   --qitu-muted: var(--qitu-color-muted-foreground);
-  --qitu-dim: oklch(0.56 0.018 292);
-  --qitu-focus: oklch(0.77 0.12 310);
+  --qitu-dim: oklch(0.56 0.014 250);
+  --qitu-focus: var(--qitu-brand-accent);
   --qitu-green: var(--qitu-chroma-lime-ink);
   --qitu-red: var(--qitu-color-destructive);
-  --qitu-amber: oklch(0.77 0.145 80);
+  --qitu-amber: var(--qitu-chroma-pink-ink);
   --qitu-blue: var(--qitu-chroma-lilac-ink);
-  --qitu-danger-soft: oklch(0.94 0.04 27);
-  --qitu-overlay-backdrop: oklch(0.16 0.012 292 / 38%);
+  --qitu-danger-soft: oklch(0.94 0.032 28);
+  --qitu-overlay-backdrop: oklch(0.16 0.012 250 / 38%);
   --qitu-color-ring: var(--qitu-focus);
 
   /* Semantic shadow tokens. */
   --qitu-shadow-low: none;
   --qitu-shadow-mid: none;
-  --qitu-shadow-overlay: 0 24px 72px oklch(0.13 0.018 292 / 14%);
+  --qitu-shadow-overlay: 0 24px 72px oklch(0.13 0.018 250 / 14%);
   --qitu-shadow-card: none;
   --qitu-shadow-inset: none;
   --qitu-shadow-active-ring: 0 0 0 1px
@@ -193,49 +209,55 @@
   --qitu-control-active-bg: var(--qitu-color-accent);
   --qitu-input-bg: var(--qitu-surface-field);
   --qitu-input-border: var(--qitu-surface-field-border);
+  --qitu-brand-mark-bg: transparent;
+  --qitu-brand-mark-glyph: var(--qitu-text);
+  --qitu-brand-mark-accent: var(--qitu-brand-accent);
 }
 
 :root[data-theme="dark"],
 .dark {
   color-scheme: dark;
 
-  --qitu-color-background: oklch(0.11 0.012 292);
-  --qitu-color-foreground: oklch(0.952 0.006 292);
+  --qitu-color-background: oklch(0.105 0.012 250);
+  --qitu-color-foreground: oklch(0.94 0.006 250);
   --qitu-color-card: oklch(1 0 0 / 7.2%);
-  --qitu-color-card-foreground: oklch(0.952 0.006 292);
-  --qitu-color-popover: oklch(0.13 0.012 292 / 92%);
-  --qitu-color-popover-foreground: oklch(0.952 0.006 292);
-  --qitu-color-primary: oklch(0.22 0.018 292);
-  --qitu-color-primary-foreground: oklch(0.986 0.006 292);
+  --qitu-color-card-foreground: oklch(0.94 0.006 250);
+  --qitu-color-popover: oklch(0.13 0.012 250 / 92%);
+  --qitu-color-popover-foreground: oklch(0.94 0.006 250);
+  --qitu-color-primary: oklch(0.22 0.012 250);
+  --qitu-color-primary-foreground: oklch(0.986 0.004 250);
   --qitu-color-secondary: oklch(1 0 0 / 10%);
-  --qitu-color-secondary-foreground: oklch(0.952 0.006 292);
+  --qitu-color-secondary-foreground: oklch(0.94 0.006 250);
   --qitu-color-muted-surface: oklch(1 0 0 / 10%);
-  --qitu-color-muted-foreground: oklch(0.75 0.012 292);
-  --qitu-color-accent: oklch(1 0 0 / 13%);
-  --qitu-color-accent-foreground: oklch(0.952 0.006 292);
-  --qitu-color-destructive: oklch(0.64 0.19 25);
+  --qitu-color-muted-foreground: oklch(0.74 0.012 250);
+  --qitu-color-accent: color-mix(in oklch, var(--qitu-brand-accent) 24%, transparent);
+  --qitu-color-accent-foreground: oklch(0.94 0.006 250);
+  --qitu-color-destructive: oklch(0.66 0.15 28);
   --qitu-color-destructive-foreground: oklch(1 0 0);
   --qitu-color-border: oklch(1 0 0 / 11.2%);
   --qitu-color-input: oklch(1 0 0 / 14%);
-  --qitu-chroma-lime: oklch(0.88 0.15 126);
-  --qitu-chroma-lime-card: oklch(0.34 0.125 132);
-  --qitu-chroma-lime-soft: oklch(0.88 0.15 126 / 0.24);
-  --qitu-chroma-lime-ink: oklch(0.88 0.15 126);
-  --qitu-chroma-lilac: oklch(0.82 0.105 303);
-  --qitu-chroma-lilac-card: oklch(0.36 0.095 303);
-  --qitu-chroma-lilac-soft: oklch(0.82 0.105 303 / 0.24);
-  --qitu-chroma-lilac-ink: oklch(0.84 0.105 303);
-  --qitu-chroma-pink: oklch(0.86 0.13 333);
-  --qitu-chroma-pink-card: oklch(0.38 0.115 333);
-  --qitu-chroma-pink-soft: oklch(0.86 0.13 333 / 0.24);
-  --qitu-chroma-pink-ink: oklch(0.88 0.13 333);
+  --qitu-brand-accent: oklch(0.701 0.151 4.4);
+  --qitu-brand-accent-ink: oklch(0.82 0.09 4);
+  --qitu-brand-accent-soft: color-mix(in oklch, var(--qitu-brand-accent) 22%, transparent);
+  --qitu-chroma-lime: oklch(0.694 0.055 153.4);
+  --qitu-chroma-lime-card: color-mix(in oklch, var(--qitu-chroma-lime) 24%, transparent);
+  --qitu-chroma-lime-soft: color-mix(in oklch, var(--qitu-chroma-lime) 18%, transparent);
+  --qitu-chroma-lime-ink: oklch(0.694 0.055 153.4);
+  --qitu-chroma-lilac: oklch(0.71 0.051 205.9);
+  --qitu-chroma-lilac-card: color-mix(in oklch, var(--qitu-chroma-lilac) 24%, transparent);
+  --qitu-chroma-lilac-soft: color-mix(in oklch, var(--qitu-chroma-lilac) 18%, transparent);
+  --qitu-chroma-lilac-ink: oklch(0.788 0.037 207.3);
+  --qitu-chroma-pink: oklch(0.678 0.026 196.6);
+  --qitu-chroma-pink-card: color-mix(in oklch, var(--qitu-chroma-pink) 22%, transparent);
+  --qitu-chroma-pink-soft: color-mix(in oklch, var(--qitu-chroma-pink) 16%, transparent);
+  --qitu-chroma-pink-ink: oklch(0.751 0.023 196.7);
   --qitu-color-success: var(--qitu-chroma-lime);
   --qitu-color-success-foreground: oklch(0 0 0);
   --qitu-color-warning: var(--qitu-chroma-pink);
   --qitu-color-warning-foreground: oklch(0 0 0);
   --qitu-color-info: var(--qitu-chroma-lilac);
   --qitu-color-info-foreground: oklch(0 0 0);
-  --qitu-bg-elevated: oklch(0.13 0.012 292);
+  --qitu-bg-elevated: oklch(0.13 0.012 250);
   --qitu-surface: oklch(1 0 0 / 5%);
   --qitu-surface-glass: oklch(1 0 0 / 6%);
   --qitu-surface-elevated: oklch(1 0 0 / 9%);
@@ -250,14 +272,14 @@
   --qitu-surface-field-border: var(--qitu-color-input);
   --qitu-line-strong: oklch(1 0 0 / 17%);
   --qitu-dim: oklch(1 0 0 / 42%);
-  --qitu-focus: oklch(0.84 0.12 310);
-  --qitu-amber: oklch(0.82 0.145 84);
-  --qitu-danger-soft: oklch(0.64 0.19 25 / 0.22);
+  --qitu-focus: var(--qitu-brand-accent);
+  --qitu-amber: var(--qitu-chroma-pink-ink);
+  --qitu-danger-soft: oklch(0.66 0.15 28 / 0.22);
   --qitu-overlay-backdrop: oklch(0 0 0 / 46%);
   --qitu-shadow-overlay: 0 24px 72px oklch(0 0 0 / 55%);
   --qitu-shadow-active-ring: 0 0 0 1px
     color-mix(in oklch, var(--qitu-color-foreground) 11%, transparent);
-  --qitu-app-bg-gradient: linear-gradient(180deg, oklch(0.105 0.012 292) 0%, var(--qitu-bg) 100%);
+  --qitu-app-bg-gradient: linear-gradient(180deg, oklch(0.098 0.014 250) 0%, var(--qitu-bg) 100%);
 }
 
 body {

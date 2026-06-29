@@ -310,12 +310,13 @@ Define qitu's non-business visual layer through semantic token names and reusabl
 
 Extracted style rules:
 
-1. Use OKLCH purple-gray neutrals for background, surfaces, lines, and text.
+1. Use cool ink/paper neutrals for background, surfaces, lines, and text.
 2. Prefer `--qitu-surface`, `--qitu-surface-glass`, and `--qitu-surface-elevated` over page-local RGB colors.
 3. Keep controls compact on a 28/32/36px scale with shared radius, focus, and motion tokens.
-4. Use soft chroma lime/lilac/pink status colors rather than saturated one-off greens, blues, and ambers.
-5. Reserve meaningful shadow for overlays and active affordances; most panels rely on tone, fine lines, and subtle inset highlights.
-6. Centralize recurring field, list action, icon chip, avatar trigger, overlay, and table-cell styling in `packages/ui`.
+4. Use one brand accent family, led by 中国色 `品红` as `oklch(0.633 0.222 6.9)`, for logo, active affordances, links, and focus treatment.
+5. Keep status colors semantic and low saturation: green for success/protected, blue-gray for warning/review/info, and a muted orange-red for destructive or rejected states so brand pink does not double as error.
+6. Reserve meaningful shadow for overlays and active affordances; most panels rely on tone, fine lines, and subtle inset highlights.
+7. Centralize recurring field, list action, icon chip, avatar trigger, overlay, and table-cell styling in `packages/ui`.
 
 Reason:
 
@@ -462,17 +463,39 @@ Rules:
 
 1. Treat `apps/web/public/brand/qitu-branch-slash-master.svg` as the maintainable source of truth.
 2. Keep `apps/web/public/brand/qitu-branch-slash-visual-master.png` as a rendered PNG preview of the same source geometry.
-3. Preserve the defining structure: three separated black forms, a Y-shaped negative route, one coral decision point, and the smooth notch beside that point.
-4. Size the coral point for the real 30-36px shell mark first, then verify it still feels restrained at larger brand-board sizes.
-5. Optimize only within this direction: proportions, spacing, curve quality, small-size clarity, and final production asset integration.
-6. Do not return to hexagon, cube, literal bird, mythology illustration, or broad monogram exploration unless this direction is explicitly rejected.
-7. This decision supersedes the earlier folded-path qitu mark direction for the final app icon.
-8. Keep the naked mark transparent for React shell and inline product use.
-9. Give favicon and app-icon assets their own rounded-square background: warm off-white in light mode, dark surface with light glyph forms in dark mode.
+3. Preserve the defining structure: three separated black forms, a Y-shaped negative route, one blue decision point, and the smooth notch beside that point.
+4. Size the decision point for the real 30-36px shell mark first, then verify it still feels restrained at larger brand-board sizes.
+5. Use 中国色 `品红` as `oklch(0.633 0.222 6.9)` for the static decision point, with a softer `凤仙花红`-leaning dark-mode token for app-level active affordances.
+6. Optimize only within this direction: proportions, spacing, curve quality, small-size clarity, and final production asset integration.
+7. Do not return to hexagon, cube, literal bird, mythology illustration, or broad monogram exploration unless this direction is explicitly rejected.
+8. This decision supersedes the earlier folded-path qitu mark direction for the final app icon.
+9. Keep the naked mark transparent for React shell and inline product use.
+10. Give favicon and app-icon assets their own rounded-square background: cool off-white in light mode, steel-blue ink with light glyph forms in dark mode.
 
 Reason:
 
 The branch slash mark best balances the `qitu` name's 歧途 homophone with the project positioning: one reusable startup kit can branch into different app-owned products. The non-hex silhouette avoids generic cube/package reads, keeps the mark compact at favicon sizes, and has a stronger ownable shape than the previous broader explorations.
+
+### 2026-06-29: Vendored AnimateIcons Source Registry
+
+Decision:
+
+Use selected AnimateIcons Lucide SVG source for app chrome, vendored inside a small `packages/ui` registry.
+
+Rules:
+
+1. `packages/ui/src/animated-icon.tsx` owns `AnimatedIcon`, `AnimatedIconName`, and the mapping from qitu semantic icon names to the vendored SVG source.
+2. App pages may not import icon runtimes directly; they use `AnimatedIcon` from `@qitu/ui`.
+3. Use animated icons for shell navigation, command/search, theme/language, refresh, account panel actions, and reusable section headers.
+4. Keep dense tables, timeline rows, destructive confirmations, one-off secondary actions, and data-state fallback glyphs static unless repeated use proves motion improves scanning.
+5. Prefer AnimateIcons/Lucide source geometry first. If a semantic match is missing, choose the closest existing source shape or keep a static Lucide fallback rather than drawing a rough local icon.
+6. Do not introduce Lottie, `@animateicons/react`, or a second animated icon runtime for app chrome without a new dependency and bundle-size decision.
+7. Icons must inherit `currentColor`, avoid page-local accent overrides, and respect `prefers-reduced-motion`.
+8. Keep the AnimateIcons MIT notice in `docs/third-party-notices.md` while vendored source remains in the repository.
+
+Reason:
+
+The first local hand-drawn animated icon set looked too heavy and inconsistent at the real 15-17px shell size. AnimateIcons provides a more polished proportion baseline, but importing its React runtime adds disproportionate bundle weight for qitu's small selected set. Vendoring selected SVG source preserves the semantic qitu API and visual baseline while keeping app chrome lightweight.
 
 ## Pending
 

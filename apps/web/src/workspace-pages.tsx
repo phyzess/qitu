@@ -1,5 +1,6 @@
 import { type ReactNode, type RefObject } from "react";
 import {
+  AnimatedIcon,
   Button,
   DataState,
   MetricStrip,
@@ -11,21 +12,7 @@ import {
   type StatusBadgeTone,
   type TimelineItem,
 } from "@qitu/ui";
-import {
-  Activity,
-  ArrowRight,
-  Check,
-  Clock3,
-  Database,
-  FileSpreadsheet,
-  FileUp,
-  KeyRound,
-  ListChecks,
-  RefreshCw,
-  ShieldCheck,
-  UserCog,
-  X,
-} from "lucide-react";
+import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
 import { ErrorText, Field, RuntimeRow, SelectField } from "./app-ui";
 import { useI18n, type Translate } from "./i18n";
 import type {
@@ -96,32 +83,35 @@ export function OverviewPage(props: {
         <Surface className="p-[var(--qitu-space-s1)]">
           <SectionHeader
             description={t("overview.description")}
-            icon={<Activity size={16} />}
+            icon={<AnimatedIcon name="activity" size={16} />}
             title={t("overview.title")}
           />
           <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
         </Surface>
 
         <Surface className="p-[var(--qitu-space-s1)]">
-          <SectionHeader icon={<ListChecks size={16} />} title={t("overview.workflowTitle")} />
+          <SectionHeader
+            icon={<AnimatedIcon name="reviews" size={16} />}
+            title={t("overview.workflowTitle")}
+          />
           <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-3">
             <WorkflowTarget
               description={t("overview.workflowSourcesDescription")}
-              icon={<FileSpreadsheet size={16} />}
+              icon={<AnimatedIcon name="files" size={16} />}
               label={t("nav.sources")}
               onClick={() => props.onNavigate("/sources")}
               status={t("overview.workflowSourcesStatus", { count: props.sourceFiles.length })}
             />
             <WorkflowTarget
               description={t("overview.workflowImportsDescription")}
-              icon={<Database size={16} />}
+              icon={<AnimatedIcon name="database" size={16} />}
               label={t("nav.imports")}
               onClick={() => props.onNavigate("/imports")}
               status={t("overview.workflowImportsStatus", { count: props.importJobs.length })}
             />
             <WorkflowTarget
               description={t("overview.workflowReviewsDescription")}
-              icon={<ListChecks size={16} />}
+              icon={<AnimatedIcon name="reviews" size={16} />}
               label={t("nav.reviews")}
               onClick={() => props.onNavigate("/reviews")}
               status={t("overview.workflowReviewsStatus", { count: props.counts.pending })}
@@ -131,7 +121,7 @@ export function OverviewPage(props: {
       </section>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<ShieldCheck size={16} />} title={t("audit.recent")} />
+        <SectionHeader icon={<AnimatedIcon name="audit" size={16} />} title={t("audit.recent")} />
         <Timeline
           className="mt-[var(--qitu-space-s1)]"
           emptyLabel={t("audit.empty")}
@@ -161,7 +151,7 @@ export function SourcesPage(props: {
       <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           description={t("sources.description")}
-          icon={<FileSpreadsheet size={16} />}
+          icon={<AnimatedIcon name="files" size={16} />}
           title={t("sources.title")}
         />
         <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
@@ -201,7 +191,10 @@ export function SourcesPage(props: {
       </Surface>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<ShieldCheck size={16} />} title={t("intake.guardrails")} />
+        <SectionHeader
+          icon={<AnimatedIcon name="audit" size={16} />}
+          title={t("intake.guardrails")}
+        />
         <div className="mt-[var(--qitu-space-s1)] space-y-2">
           <Guardrail label={t("guardrail.loginRequired")} />
           <Guardrail label={t("guardrail.contentHash")} />
@@ -239,7 +232,7 @@ export function ImportsPage(props: {
                   variant="ghost"
                   onClick={props.onProcessLocalQueue}
                 >
-                  <RefreshCw size={14} /> {t("action.processLocalQueue")}
+                  <AnimatedIcon name="refresh" size={14} /> {t("action.processLocalQueue")}
                 </Button>
               ) : null}
               {props.canRetry ? (
@@ -249,12 +242,12 @@ export function ImportsPage(props: {
                   variant="secondary"
                   onClick={props.onRetrySelectedJob}
                 >
-                  <RefreshCw size={14} /> {t("action.retryJob")}
+                  <AnimatedIcon name="refresh" size={14} /> {t("action.retryJob")}
                 </Button>
               ) : null}
             </div>
           }
-          icon={<Database size={16} />}
+          icon={<AnimatedIcon name="database" size={16} />}
           title={t("imports.title")}
         />
         <div className="mt-[var(--qitu-space-s1)]">
@@ -279,7 +272,10 @@ export function ImportsPage(props: {
       </Surface>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<Activity size={16} />} title={t("common.runtime")} />
+        <SectionHeader
+          icon={<AnimatedIcon name="activity" size={16} />}
+          title={t("common.runtime")}
+        />
         <div className="mt-[var(--qitu-space-s1)] space-y-3">
           <RuntimeRow label={t("common.worker")} value="/api" />
           <RuntimeRow label={t("common.environment")} value={props.runtimeEnvironment} />
@@ -300,7 +296,7 @@ export function AuditPage(props: { auditEvents: AuditEvent[] }) {
     <Surface className="p-[var(--qitu-space-s1)]">
       <SectionHeader
         description={t("audit.description")}
-        icon={<ShieldCheck size={16} />}
+        icon={<AnimatedIcon name="audit" size={16} />}
         title={t("audit.title")}
       />
       <Timeline
@@ -324,7 +320,7 @@ export function AccountPage(props: {
   return (
     <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
       <Surface className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<KeyRound size={16} />} title={t("account.title")} />
+        <SectionHeader icon={<AnimatedIcon name="key" size={16} />} title={t("account.title")} />
         <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-2">
           <RuntimeRow label={t("account.email")} value={props.user.email} />
           <RuntimeRow
@@ -342,7 +338,10 @@ export function AccountPage(props: {
       </Surface>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<Activity size={16} />} title={t("account.session")} />
+        <SectionHeader
+          icon={<AnimatedIcon name="activity" size={16} />}
+          title={t("account.session")}
+        />
         <div className="mt-[var(--qitu-space-s1)] space-y-3">
           <RuntimeRow label={t("account.runtime")} value={props.runtimeEnvironment} />
           <RuntimeRow label={t("account.status")} value={props.notice} />
@@ -377,7 +376,7 @@ export function UsersPage(props: {
   if (!canManage) {
     return (
       <Surface className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<UserCog size={16} />} title={t("users.title")} />
+        <SectionHeader icon={<AnimatedIcon name="users" size={16} />} title={t("users.title")} />
         <div className="mt-[var(--qitu-space-s1)]">
           <DataState
             description={t("error.adminOnlyDescription")}
@@ -401,10 +400,10 @@ export function UsersPage(props: {
                 variant="ghost"
                 onClick={props.onRefreshUsers}
               >
-                <RefreshCw size={14} /> {t("action.refresh")}
+                <AnimatedIcon name="refresh" size={14} /> {t("action.refresh")}
               </Button>
             }
-            icon={<UserCog size={16} />}
+            icon={<AnimatedIcon name="users" size={16} />}
             title={t("users.title")}
           />
           {props.adminError ? <ErrorText>{props.adminError}</ErrorText> : null}
@@ -424,7 +423,10 @@ export function UsersPage(props: {
         </Surface>
 
         <Surface className="p-[var(--qitu-space-s1)]">
-          <SectionHeader icon={<ShieldCheck size={16} />} title={t("invitation.title")} />
+          <SectionHeader
+            icon={<AnimatedIcon name="audit" size={16} />}
+            title={t("invitation.title")}
+          />
           <div className="mt-[var(--qitu-space-s1)]">
             <DataState
               description={t("invitation.pendingDescription")}
@@ -442,7 +444,10 @@ export function UsersPage(props: {
       </section>
 
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<KeyRound size={16} />} title={t("invitation.createTitle")} />
+        <SectionHeader
+          icon={<AnimatedIcon name="key" size={16} />}
+          title={t("invitation.createTitle")}
+        />
         <div className="mt-[var(--qitu-space-s1)] space-y-4">
           <Field
             label={t("field.email")}
@@ -467,11 +472,11 @@ export function UsersPage(props: {
             value={props.invitationForm.role}
           />
           <Button disabled={props.isBusy} onClick={props.onCreateInvitation}>
-            <KeyRound size={15} /> {t("action.createInvitation")}
+            <AnimatedIcon name="key" size={15} /> {t("action.createInvitation")}
           </Button>
           {props.createdInvitationUrl ? (
             <a
-              className="block break-all text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-chroma-lime-ink)]"
+              className="block break-all text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-brand-accent-ink)]"
               href={props.createdInvitationUrl}
             >
               {props.createdInvitationUrl}
@@ -497,7 +502,7 @@ function WorkflowTarget(props: {
       type="button"
     >
       <div className="flex items-start justify-between gap-3">
-        <span className="text-[var(--qitu-chroma-lime-ink)]">{props.icon}</span>
+        <span className="text-[var(--qitu-brand-accent)]">{props.icon}</span>
         <StatusBadge tone="neutral">{props.status}</StatusBadge>
       </div>
       <div className="mt-4 text-[length:var(--qitu-text-heading-16)] font-semibold leading-[var(--qitu-leading-heading-16)]">
@@ -670,8 +675,11 @@ function timelineTone(action: string): TimelineItem["tone"] {
 }
 
 function statusTone(status: string): StatusBadgeTone {
+  if (status === "active") {
+    return "active";
+  }
+
   if (
-    status === "active" ||
     status === "accepted" ||
     status === "approved" ||
     status === "committed" ||
@@ -679,7 +687,7 @@ function statusTone(status: string): StatusBadgeTone {
     status === "done" ||
     status.includes("succeeded")
   ) {
-    return "active";
+    return "success";
   }
 
   if (
