@@ -95,7 +95,7 @@ export function WorkspaceSearchDialog(props: {
         role="dialog"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b border-[var(--line)] px-[var(--s1)] py-[var(--s0)]">
+        <div className="flex items-center gap-3 bg-[var(--surface-row)] px-[var(--s1)] py-[var(--s0)]">
           <Search aria-hidden="true" className="shrink-0 text-[var(--dim)]" size={16} />
           <input
             ref={inputRef}
@@ -184,7 +184,7 @@ export function UserPanel(props: {
         className="qitu-surface qitu-overlay-surface fixed right-[var(--gutter)] top-[calc(var(--bar)+var(--s2))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
         role="dialog"
       >
-        <div className="flex items-start gap-3 border-b border-[var(--line)] p-[var(--s1)]">
+        <div className="flex items-start gap-3 bg-[var(--surface-row)] p-[var(--s1)]">
           <div className="qitu-avatar-mark size-10 shrink-0 text-[length:var(--text-label-14)] font-semibold">
             {initial}
           </div>
@@ -238,7 +238,7 @@ export function UserPanel(props: {
               {props.notice}
             </div>
           </div>
-          <div className="mt-1 flex items-center justify-between gap-2 border-t border-[var(--line)] px-2 py-2">
+          <div className="mt-1 flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-row)] px-2 py-2">
             <ThemeToggleButton />
             <Button size="sm" variant="ghost" onClick={props.onLogout}>
               <LogOut size={15} /> Logout

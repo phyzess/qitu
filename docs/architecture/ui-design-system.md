@@ -115,16 +115,16 @@ Visual extraction rules:
 2. oodon is the reference for the non-business visual layer: OKLCH purple-gray neutrals, compact controls, soft chroma status colors, thin lines, and restrained shadows.
 3. Primary surfaces use the shared hierarchy tokens: `--surface-panel`, `--surface-row`, `--surface-row-hover`, `--surface-row-active`, `--surface-field`, and `--popover`; app pages should not hard-code RGB overlays or one-off surface colors.
 4. Controls follow the 28/32/36px scale with `--radius-control` and shared focus rings.
-5. Shadows are reserved for overlays or active affordances. Most cards use surface tone plus a single subtle line.
+5. Shadows are reserved for overlays or active affordances. Most cards use tonal surface fill; visible lines are reserved for controls, overlays, focus, and table separators.
 6. Icon chips, avatar/initial triggers, form fields, list actions, table cells, and overlay backdrops should use shared `packages/ui` utilities instead of page-local Tailwind recipes.
 
 Surface hierarchy rules:
 
-1. App background uses `--bg` plus `--app-bg-gradient`; topbar uses `--topbar-bg` and does not add a divider or shadow.
-2. Ordinary page panels use `.qitu-surface`: `--surface-panel`, `--surface-panel-border`, and a subtle inset highlight only.
-3. Nested metrics, list rows, guardrails, timeline items, and data states use `.qitu-surface-subtle`: `--surface-row` with `--surface-row-border`.
+1. App background uses a uniform `--bg` family through `--app-bg-gradient`; topbar uses the same tonal family and does not add a divider or shadow.
+2. Ordinary page panels use `.qitu-surface`: `--surface-panel` and transparent structural borders by default.
+3. Nested metrics, list rows, guardrails, timeline items, and data states use `.qitu-surface-subtle`: `--surface-row` and transparent structural borders by default.
 4. Hover moves nested rows to `--surface-row-hover`; selected or active rows move to `--surface-row-active` plus `--shadow-active-ring`.
-5. Form controls and read-only fields use `--input-bg`, `--input-border`, `--surface-row`, and `--shadow-focus-ring`; do not invent page-local field backgrounds.
+5. Form controls use `--input-bg`, `--input-border`, and `--shadow-focus-ring`; read-only fields use row fill without visible borders unless they are focused or active.
 6. Review table cells use the same row surface as list rows. Table structure may use spacing and radius, not separate local shadows.
 7. Search dialogs, popovers, and user panels add `.qitu-overlay-surface`, using `--popover` and `--shadow-overlay`; ordinary page panels must not use overlay shadows.
 8. Layering uses `--z-shell`, `--z-shell-front`, `--z-overlay-backdrop`, and `--z-overlay` rather than page-local z-index numbers.
@@ -158,7 +158,7 @@ Responsive rules:
 1. Do not create a landing page for internal tools.
 2. Start with the actual working interface.
 3. Use compact page headers.
-4. Prefer tonal separation and fine lines over heavy borders or page-local shadows.
+4. Prefer tonal separation over visible borders; use fine lines only where they carry interaction or table structure.
 5. Keep cards shallow and purposeful.
 6. Do not nest cards inside cards.
 7. Use fixed dimensions for toolbars, grids, counters, tiles, and chart shells.

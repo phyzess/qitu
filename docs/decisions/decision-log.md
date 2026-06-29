@@ -377,6 +377,24 @@ Reason:
 
 The first oodon-parity pass aligned topbar structure but still left visual drift across cards, rows, fields, shadows, and overlays. A startup kit needs reusable UI semantics that can be scanned and enforced across pages, not page-by-page visual approximations.
 
+### 2026-06-29: Tonal-First Surface Flattening
+
+Decision:
+
+Refine the qitu surface contract so ordinary page hierarchy is expressed through tonal fill, not visible borders.
+
+Rules:
+
+1. Light mode uses one unified purple-gray background family across app background, topbar, panels, and rows; avoid white-to-background page gradients.
+2. `.qitu-surface` and `.qitu-surface-subtle` keep structural borders for stable sizing, but those borders are transparent by default.
+3. Visible lines are reserved for inputs, focus states, overlays, and table separators where they carry interaction or scan structure.
+4. Overlay panels may still use a faint border plus overlay shadow because they float above the workbench.
+5. Page code should not add local panel borders to compensate for weak color contrast; adjust shared surface tokens instead.
+
+Reason:
+
+The first light/dark parity pass still produced too many visible outlines, especially in light mode where panel, row, and page backgrounds were too close to white. A business-neutral startup kit should make the flat oodon-style layer model the default, so new app-owned pages inherit the same calm hierarchy without page-by-page border tuning.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

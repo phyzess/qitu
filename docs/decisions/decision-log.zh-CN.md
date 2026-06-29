@@ -340,6 +340,24 @@ Decision:
 
 第一轮 oodon parity 修正了 topbar 结构，但 card、row、field、shadow 和 overlay 仍然存在视觉漂移。Startup kit 需要可扫描、可复用、可执行的 UI 语义，而不是逐页近似同一套视觉效果。
 
+### Tonal-First Surface Flattening
+
+Decision:
+
+收敛 qitu 的 surface contract：普通页面层级优先靠 tonal fill，而不是可见 border。
+
+规则：
+
+1. Light mode 在 app background、topbar、panel 和 row 之间使用统一的紫灰背景色系；避免 white 到 background 的页面渐变。
+2. `.qitu-surface` 与 `.qitu-surface-subtle` 可以保留结构性 border 以稳定尺寸，但默认应为透明。
+3. 可见线条只保留给 input、focus state、overlay 与 table separator 等真正承担交互或扫描结构的位置。
+4. Overlay panel 因为浮在 workbench 上，可以保留很淡的 border 与 overlay shadow。
+5. 页面代码不应通过新增局部 panel border 来补救对比不足；应调整共享 surface tokens。
+
+原因：
+
+第一轮 light/dark parity 之后仍然有过多可见描边，尤其在 light mode 中，panel、row 与 page background 都过于接近白色。业务中立 startup kit 应默认继承 oodon 式扁平层级模型，让后续 app-owned 页面自然复用同一套安静的层级，而不是逐页调 border。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

@@ -112,16 +112,16 @@ Shell 交互规则：
 2. oodon 作为非业务视觉层参考：OKLCH 紫灰中性色、紧凑控件、柔和 chroma 状态色、细线与克制阴影。
 3. 主表面使用共享层级 tokens：`--surface-panel`、`--surface-row`、`--surface-row-hover`、`--surface-row-active`、`--surface-field` 与 `--popover`；app 页面不应硬编码 RGB overlay 或一次性 surface 色值。
 4. 控件遵循 28/32/36px 尺度，使用 `--radius-control` 与共享 focus ring。
-5. shadow 主要留给 overlay 或 active affordance；普通 card 用 surface tone + 单条细线表达层级。
+5. shadow 主要留给 overlay 或 active affordance；普通 card 默认靠 tonal surface fill 表达层级，可见线条只保留给 control、overlay、focus 与 table separator。
 6. Icon chip、avatar/initial trigger、form field、list action、table cell、overlay backdrop 应使用 `packages/ui` 的共享 utility，而不是页面内临时 Tailwind recipe。
 
 Surface 层级规则：
 
-1. App background 使用 `--bg` 与 `--app-bg-gradient`；topbar 使用 `--topbar-bg`，不添加底部分割线或阴影。
-2. 普通页面 panel 使用 `.qitu-surface`：`--surface-panel`、`--surface-panel-border` 与轻微 inset highlight。
-3. 内嵌 metric、list row、guardrail、timeline item、data state 使用 `.qitu-surface-subtle`：`--surface-row` 与 `--surface-row-border`。
+1. App background 通过 `--app-bg-gradient` 使用统一的 `--bg` 色系；topbar 使用同一 tonal family，不添加底部分割线或阴影。
+2. 普通页面 panel 使用 `.qitu-surface`：默认只使用 `--surface-panel` 与透明结构边界。
+3. 内嵌 metric、list row、guardrail、timeline item、data state 使用 `.qitu-surface-subtle`：默认只使用 `--surface-row` 与透明结构边界。
 4. Hover 的内嵌 row 升到 `--surface-row-hover`；选中或 active row 升到 `--surface-row-active` 并使用 `--shadow-active-ring`。
-5. Form control 与只读 field 使用 `--input-bg`、`--input-border`、`--surface-row` 与 `--shadow-focus-ring`；不要在页面内临时发明 field 背景。
+5. Form control 使用 `--input-bg`、`--input-border` 与 `--shadow-focus-ring`；只读 field 使用 row fill，除 focus 或 active 状态外不画可见边框。
 6. Review table cell 与 list row 使用同一 row surface。表格结构靠 spacing 和 radius，不使用局部 shadow。
 7. Search dialog、popover、user panel 额外加 `.qitu-overlay-surface`，使用 `--popover` 与 `--shadow-overlay`；普通页面 panel 不使用 overlay shadow。
 8. 层级使用 `--z-shell`、`--z-shell-front`、`--z-overlay-backdrop` 与 `--z-overlay`，不使用页面级 z-index 数字。
