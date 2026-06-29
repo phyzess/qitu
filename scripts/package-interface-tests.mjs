@@ -41,14 +41,25 @@ try {
     "import-pipeline must own staged record key conventions.",
   );
   assert(
-    importPipeline.jobStatusAfterRecordDecision("approve") === "approved" &&
-      importPipeline.jobStatusAfterRecordDecision("reject") === "needs_review",
-    "import-pipeline must own record decision to job status transitions.",
-  );
-  assert(
     importPipeline.summarizeReviewStatuses(["pending", "approved", "approved", "unknown"])
       .approved === 2,
     "import-pipeline must summarize known review statuses while ignoring unknown values.",
+  );
+  assert(
+    importPipeline.jobStatusForReviewSummary({
+      pending: 1,
+      approved: 0,
+      committed: 1,
+    }) === "needs_review",
+    "import-pipeline must keep partially committed jobs in review when pending records remain.",
+  );
+  assert(
+    importPipeline.jobStatusForReviewSummary({
+      pending: 0,
+      approved: 1,
+      committed: 1,
+    }) === "approved",
+    "import-pipeline must surface jobs with approved uncommitted records.",
   );
   assert(
     typeof db.users.role === "object" &&

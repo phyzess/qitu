@@ -43,7 +43,12 @@ admin@example.com
 correct horse battery staple
 ```
 
-未登录时 web app 会进入 `/login`；登录后使用 `/overview`、`/sources`、`/imports`、`/reviews`、`/audit`、`/users`、`/account` 这些受保护路由。
+未登录时 web app 会进入 `/login`；登录后默认进入 `/workspace`，并把受保护路由收进两个业务中立的 roots：
+
+```text
+Workspace：/workspace、/workspace/sources、/workspace/imports、/workspace/reviews
+Settings：/settings、/settings/members、/settings/audit
+```
 
 公司网络可能会在 `vp install` 从 `registry.npmjs.org` 拉取 package manager 时阻断。排查方式见 `docs/troubleshooting.md`。
 

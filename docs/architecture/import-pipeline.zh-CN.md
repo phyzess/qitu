@@ -44,7 +44,7 @@ uploaded source file
 -> processing
 -> needs_review
 -> approved / rejected records
--> committed job
+-> committed approved records
 ```
 
 失败路径：
@@ -71,6 +71,13 @@ queued / processing
 5. committed record id。
 
 即使 adapter validation 发现错误，记录也会进入 review，而不是静默丢弃。比如 starter text adapter 中非法数字会留下 `invalid_number` issue，并阻止直接 commit。
+
+Job status 由 staged record 状态汇总推导：
+
+1. 只要还有 approved 且未 committed 的 staged record，job 保持 `approved`，表示有可提交工作。
+2. 没有 approved work 但仍有 pending staged records 时，job 保持 `needs_review`，包括 partial commit 之后。
+3. approved rows 已提交且没有 pending/approved staged records 时，job 才进入 `committed`。
+4. 全部 rejected 的 job 在中立 starter 中仍保持 `needs_review`，因为当前没有单独的 job-level rejected 状态。
 
 ## AI Advisory
 

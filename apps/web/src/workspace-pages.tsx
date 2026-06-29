@@ -13,7 +13,7 @@ import {
   type TimelineItem,
 } from "@qitu/ui";
 import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
-import type { AppNavigationPath } from "./app-routes";
+import { routePath, type AppNavigationPath } from "./app-routes";
 import { ErrorText, Field, RuntimeRow, SelectField } from "./app-ui";
 import { useI18n, type Translate } from "./i18n";
 import type {
@@ -113,21 +113,21 @@ export function OverviewPage(props: {
               description={t("overview.workflowSourcesDescription")}
               icon={<AnimatedIcon name="files" size={16} />}
               label={t("nav.sources")}
-              onClick={() => props.onNavigate("/sources")}
+              onClick={() => props.onNavigate(routePath("sources"))}
               status={t("overview.workflowSourcesStatus", { count: props.sourceFiles.length })}
             />
             <WorkflowTarget
               description={t("overview.workflowImportsDescription")}
               icon={<AnimatedIcon name="database" size={16} />}
               label={t("nav.imports")}
-              onClick={() => props.onNavigate("/imports")}
+              onClick={() => props.onNavigate(routePath("imports"))}
               status={t("overview.workflowImportsStatus", { count: props.importJobs.length })}
             />
             <WorkflowTarget
               description={t("overview.workflowReviewsDescription")}
               icon={<AnimatedIcon name="reviews" size={16} />}
               label={t("nav.reviews")}
-              onClick={() => props.onNavigate("/reviews")}
+              onClick={() => props.onNavigate(routePath("reviews"))}
               status={t("overview.workflowReviewsStatus", {
                 count: props.workspaceReviewCounts.reviewQueue,
               })}
@@ -220,7 +220,7 @@ export function SourcesPage(props: {
       <Surface as="aside" className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           icon={<AnimatedIcon name="audit" size={16} />}
-          title={t("intake.guardrails")}
+          title={t("review.guardrails")}
         />
         <div className="mt-[var(--qitu-space-s1)] space-y-2">
           <Guardrail label={t("guardrail.loginRequired")} />

@@ -45,7 +45,7 @@ admin 创建邀请
 
 ## 2.1 Local Demo Users
 
-本地开发提供 local-only user bootstrap，让全新 checkout 不需要手改数据库也有可用登录和用户管理路径：
+本地开发提供 local-only user bootstrap，让全新 checkout 不需要手改数据库也有可用登录和成员/邀请管理路径：
 
 ```text
 email: reviewer@example.com
@@ -55,9 +55,9 @@ password: correct horse battery staple
 
 这些 bootstrap route 只在 `APP_ENV=local` 时创建或重置用户，并立即创建 session。reviewer 账号用于体验 review workflow；admin 账号用于体验 user/invitation management。部署环境必须继续使用 invitation-only onboarding。
 
-## 2.2 用户管理
+## 2.2 成员与邀请管理
 
-登录后的 app shell 包含账号控制与 admin-only 用户管理路由。
+登录后的 app shell 包含账号控制与 admin-only 成员与邀请设置路由。
 
 基线路由：
 
@@ -68,7 +68,7 @@ POST /api/invitations
 POST /api/invitations/:invitationId/revoke
 ```
 
-这些路由要求当前 session，并要求 `invitation:create` 权限。starter RBAC 中 `owner` 与 `admin` 可以列出用户、列出邀请、创建邀请并撤销待接受邀请；`reviewer` 与 `viewer` 可以继续使用登录后的工作台，但用户管理页会显示 admin-only 状态。
+这些路由要求当前 session，并要求 `invitation:create` 权限。starter RBAC 中 `owner` 与 `admin` 可以列出用户、列出邀请、创建邀请并撤销待接受邀请；`reviewer` 与 `viewer` 可以继续使用登录后的工作区，但成员与邀请设置保持 admin-only。
 
 本地开发环境中，authenticated invitation creation 可以返回生成的 invite URL；非本地环境应依赖邮件投递，不应在 API response 中暴露明文 invite token。
 
@@ -140,10 +140,12 @@ permissionsForRole(role);
 4. 密码重置请求/成功。
 5. 角色变化。
 6. 用户禁用/恢复。
-7. 文件上传/下载。
+7. 文件上传。
 8. 导入审批、拒绝、作废。
 9. AI advisory 生成或确认。
 10. 权限拒绝。
+
+如果后续 app-owned feature 增加 source download，下载访问也必须在 app layer 做权限校验并写审计。
 
 禁止记录：
 

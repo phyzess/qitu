@@ -55,9 +55,9 @@ password: correct horse battery staple
 
 The bootstrap routes create or reset these users only when `APP_ENV=local` and immediately create a session. The reviewer account exercises the review workflow; the admin account exercises user and invitation management. Deployed environments must use invitation-only onboarding.
 
-## 2.2 User Management
+## 2.2 Member and Invitation Management
 
-The authenticated app shell includes user-facing account controls and an admin-only user management route.
+The authenticated app shell includes user-facing account controls and an admin-only member and invitation settings route.
 
 Baseline routes:
 
@@ -68,7 +68,7 @@ POST /api/invitations
 POST /api/invitations/:invitationId/revoke
 ```
 
-These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, and revoke pending invitations. `reviewer` and `viewer` can still use the authenticated workbench, but they see an admin-only state for user management.
+These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, and revoke pending invitations. `reviewer` and `viewer` can still use the authenticated workbench, but member and invitation settings stay admin-only.
 
 Local development may return the generated invite URL for authenticated invitation creation. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
 
@@ -143,10 +143,11 @@ Always audit:
 5. Role changes.
 6. User disabled/restored.
 7. Source file upload.
-8. Source file download.
-9. Import approved/rejected/voided.
-10. AI advisory triggered.
-11. Permission denied.
+8. Import approved/rejected/voided.
+9. AI advisory triggered.
+10. Permission denied.
+
+If an app-owned feature adds source downloads later, download access must be permission checked and audited in the app layer.
 
 Never log:
 

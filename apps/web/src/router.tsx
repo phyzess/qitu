@@ -24,37 +24,37 @@ const loginRoute = createRoute({
 
 const overviewRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "overview",
+  path: "workspace",
 });
 
 const sourcesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "sources",
+  path: "workspace/sources",
 });
 
 const importsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "imports",
+  path: "workspace/imports",
 });
 
 const reviewsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "reviews",
+  path: "workspace/reviews",
 });
 
 const auditRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "audit",
+  path: "settings/audit",
 });
 
 const usersRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "users",
+  path: "settings/members",
 });
 
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "account",
+  path: "settings",
 });
 
 const inviteRoute = createRoute({

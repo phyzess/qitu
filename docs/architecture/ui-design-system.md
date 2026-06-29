@@ -95,18 +95,18 @@ Authenticated apps must expose the shell as real routes, not a single stateful d
 
 ```text
 /login
-/overview
-/sources
-/imports
-/reviews
-/audit
-/users
-/account
+/workspace
+/workspace/sources
+/workspace/imports
+/workspace/reviews
+/settings
+/settings/members
+/settings/audit
 ```
 
 `apps/web` owns the route tree, route matching, and navigation lifecycle through TanStack Router. Reusable UI packages stay router-agnostic: they may expose `href` values and callbacks, but they must not import app router APIs.
 
-The shell must keep unauthenticated, authenticated, admin-only, not-found, loading, empty, and error states visually consistent. The account entry belongs in the authenticated topbar, logout belongs in the user panel opened from that entry, and user management belongs behind RBAC rather than being hidden as a code-only capability.
+The shell must keep unauthenticated, authenticated, admin-only, not-found, loading, empty, and error states visually consistent. The account entry belongs in the authenticated topbar, logout belongs in the user panel opened from that entry, and member/invitation management belongs behind RBAC in Settings rather than being hidden as a code-only capability.
 
 Shell interaction rules:
 
@@ -114,7 +114,7 @@ Shell interaction rules:
 2. The active primary section exposes its subroutes in a topbar secondary navigation row.
 3. Primary navigation may remember the last visited subroute for each section in session storage, but only route ids are stored.
 4. Topbar command search is a real `Cmd/Ctrl+K` control over route and app-owned data projections.
-5. Authenticated account controls open a user panel with profile, RBAC role, user management entry when permitted, theme switching, and logout.
+5. Authenticated account controls open a user panel with profile, RBAC role, member/invitation settings when permitted, theme switching, and logout.
 6. Language switching is app-owned, persisted client-side, and available before login; the starter supports English and Simplified Chinese while keeping room for more locale dictionaries.
 7. Theme switching is token-driven and supports light, dark, and system preferences without changing reusable package semantics.
 8. Desktop route navigation must not use a side rail or sidebar. A drawer may exist only as a compact/mobile disclosure pattern.
@@ -123,6 +123,15 @@ Shell interaction rules:
 11. Secondary route tabs are text-only with an active underline.
 12. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
 13. Theme remains a compact icon control; language uses a compact icon trigger that opens explicit locale choices. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+
+Current starter grouping:
+
+```text
+Workspace: /workspace, /workspace/sources, /workspace/imports, /workspace/reviews
+Settings: /settings, /settings/members, /settings/audit
+```
+
+Settings routes remain authenticated app routes because they are part of the reusable starter surface, but they should not be framed as business workflow modules. Member/invitation management and audit visibility are exposed through Settings, with member/invitation management disabled for non-admin route navigation.
 
 Internationalization rules:
 
@@ -231,11 +240,9 @@ Recommended defaults:
 Baseline exported chart components:
 
 1. `TimeSeriesChart`
-2. `DrawdownChart`
-3. `PerformancePanelChart`
-4. `BarChart`
-5. `DonutChart`
-6. `ComparisonScatterChart`
+2. `BarChart`
+3. `DonutChart`
+4. `ComparisonScatterChart`
 
 Each chart must support:
 

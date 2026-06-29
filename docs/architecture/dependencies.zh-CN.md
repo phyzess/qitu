@@ -50,6 +50,8 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 | `@visx/scale`               |      `4.0.0` | Scales                       |
 | `@visx/tooltip`             |      `4.0.0` | Tooltips                     |
 
+`@qitu/charts` 是 starter 唯一的 chart abstraction。当前基线导出 visx-backed `TimeSeriesChart`、`BarChart`、`DonutChart` 和 `ComparisonScatterChart` primitives，并已接入 React console。后续 chart type 应继续加在这里，不要引入第二套 chart stack。
+
 ## 说明
 
 1. `vite-plus` 是本地开发、build、check、lint、format 和 workspace task orchestration 的命令入口。

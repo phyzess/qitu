@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import process from "node:process";
 
@@ -48,21 +48,51 @@ const query = `
   .replace(/\s+/g, " ");
 
 const wrangler = process.platform === "win32" ? "wrangler.cmd" : "wrangler";
-const result = spawnSync(
+const child = spawn(
   wrangler,
   ["d1", "execute", config.database, ...config.args, "--command", query],
   {
     cwd: join(root, "apps", "worker"),
-    stdio: "inherit",
+    env: {
+      ...process.env,
+      CI: process.env.CI ?? "1",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
   },
 );
+const successMarkers = ['"success": true'];
+const timeoutMs = Number(process.env.WRANGLER_D1_EXECUTE_TIMEOUT_MS ?? 180_000);
 
-if (result.error) {
-  console.error(result.error.message);
-  process.exit(1);
-}
+let sawSuccess = false;
+let settled = false;
 
-process.exit(result.status ?? 1);
+const timeout = setTimeout(() => {
+  finish(1, `Wrangler D1 query did not finish within ${timeoutMs}ms.`);
+}, timeoutMs);
+
+child.stdout.on("data", (chunk) => {
+  process.stdout.write(chunk);
+  observe(String(chunk));
+});
+
+child.stderr.on("data", (chunk) => {
+  process.stderr.write(chunk);
+  observe(String(chunk));
+});
+
+child.on("error", (error) => {
+  finish(1, error.message);
+});
+
+child.on("close", (code, signal) => {
+  if (settled) return;
+  if (code === 0 || sawSuccess) {
+    finish(0);
+    return;
+  }
+
+  finish(1, `Wrangler D1 query exited with code ${code ?? "none"} signal ${signal ?? "none"}.`);
+});
 
 function parseArgs(args) {
   let target = "local";
@@ -101,4 +131,29 @@ function parseLimit(value) {
   }
 
   return Math.min(parsed, 100);
+}
+
+function observe(output) {
+  if (successMarkers.some((marker) => output.includes(marker))) {
+    sawSuccess = true;
+    setTimeout(() => finish(0), 250);
+  }
+}
+
+function finish(code, message) {
+  if (settled) return;
+  settled = true;
+  clearTimeout(timeout);
+
+  if (message) {
+    console.error(message);
+  }
+
+  if (child.exitCode === null && !child.killed) {
+    child.kill("SIGTERM");
+  }
+
+  setTimeout(() => {
+    process.exit(code);
+  }, 25);
 }

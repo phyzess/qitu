@@ -44,15 +44,12 @@ import {
 } from "./api";
 import {
   type AppNavigationPath,
-  type AppPrimaryRoute,
   appRouteFromPath,
   defaultAuthenticatedPath,
-  isWorkspaceAppRoute,
   isProtectedRoute,
   loginPath,
-  primaryRouteFor,
+  routePath,
   type AppRoute,
-  type WorkspaceAppRoute,
 } from "./app-routes";
 import { authRouteFromPath } from "./auth-route";
 import {
@@ -113,7 +110,6 @@ const defaultAuditFilters = {
   subjectKind: "",
 };
 
-type RouteMemory = Partial<Record<AppPrimaryRoute, WorkspaceAppRoute>>;
 type AuditFilters = typeof defaultAuditFilters;
 type NoticeDescriptor = {
   key: MessageKey;
@@ -138,7 +134,6 @@ type WebPermissions = {
   canWriteAiAdvisories: boolean;
 };
 
-const routeMemoryStorageKey = "qitu.route-memory";
 let sessionBootstrapCache: SessionBootstrap | null = null;
 let sessionBootstrapPromise: Promise<SessionBootstrap> | null = null;
 
@@ -205,7 +200,6 @@ export function App() {
   const [setupRole, setSetupRole] = useState<"admin" | "reviewer">("reviewer");
   const authRoute = useMemo(() => authRouteFromPath(location.pathname), [location.pathname]);
   const route = useMemo(() => appRouteFromPath(location.pathname), [location.pathname]);
-  const [routeMemory, setRouteMemory] = useState<RouteMemory>(() => readRouteMemory());
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [userPanelOpen, setUserPanelOpen] = useState(false);
@@ -298,25 +292,6 @@ export function App() {
   }, [route]);
 
   useEffect(() => {
-    if (!user || !isWorkspaceAppRoute(route)) return;
-    if (route === "users" && !permissions.canManageUsers) return;
-
-    const primaryRoute = primaryRouteFor(route);
-    if (!primaryRoute) return;
-
-    setRouteMemory((current) => {
-      if (current[primaryRoute] === route) return current;
-
-      const next = {
-        ...current,
-        [primaryRoute]: route,
-      };
-      writeRouteMemory(next);
-      return next;
-    });
-  }, [permissions.canManageUsers, route, user]);
-
-  useEffect(() => {
     if (isLoadingSession || authRoute.kind !== "home") return;
 
     if (!user && isProtectedRoute(route)) {
@@ -324,10 +299,15 @@ export function App() {
       return;
     }
 
+    if (user && location.pathname === "/") {
+      navigate(defaultAuthenticatedPath, { replace: true });
+      return;
+    }
+
     if (user && route === "login") {
       navigate(defaultAuthenticatedPath, { replace: true });
     }
-  }, [authRoute.kind, isLoadingSession, route, user]);
+  }, [authRoute.kind, isLoadingSession, location.pathname, route, user]);
 
   useEffect(() => {
     if (route !== "users" || !user || !permissions.canManageUsers) return;
@@ -401,11 +381,9 @@ export function App() {
         authenticated: Boolean(user),
         canManageUsers: permissions.canManageUsers,
         onNavigate: (path) => navigate(path),
-        resolvePrimaryRoute: (primaryRoute, fallbackRoute) =>
-          routeMemory[primaryRoute] ?? fallbackRoute,
         t,
       }),
-    [permissions.canManageUsers, route, routeMemory, t, user],
+    [permissions.canManageUsers, route, t, user],
   );
   const searchEntries = useMemo(
     () =>
@@ -904,7 +882,7 @@ export function App() {
 
   async function openReviewForJob(jobId: string) {
     setSelectedJobId(jobId);
-    navigate("/reviews");
+    navigate(routePath("reviews"));
     await runAction(async () => {
       await loadReview(jobId);
     });
@@ -1340,7 +1318,7 @@ export function App() {
             />
             <div className="mt-4">
               <Button onClick={() => navigate(defaultAuthenticatedPath)}>
-                <AnimatedIcon name="reviews" size={15} /> {t("action.openReviews")}
+                <AnimatedIcon name="workbench" size={15} /> {t("action.openWorkspace")}
               </Button>
             </div>
           </Panel>
@@ -1612,7 +1590,7 @@ function buildSearchEntries(props: {
       group: props.t("nav.account"),
       id: `account:${props.user.id}`,
       label: props.user.email,
-      onSelect: () => props.onNavigate("/account"),
+      onSelect: () => props.onNavigate(routePath("account")),
     });
   }
 
@@ -1625,7 +1603,7 @@ function buildSearchEntries(props: {
       group: props.t("search.sourcesGroup"),
       id: `source:${file.id}`,
       label: file.filename,
-      onSelect: () => props.onNavigate("/sources"),
+      onSelect: () => props.onNavigate(routePath("sources")),
     });
   }
 
@@ -1638,7 +1616,7 @@ function buildSearchEntries(props: {
       id: `job:${job.id}`,
       label: job.sourceFile.filename,
       onSelect: () => {
-        props.onNavigate("/imports");
+        props.onNavigate(routePath("imports"));
         props.onSelectJob(job.id);
       },
     });
@@ -1652,7 +1630,7 @@ function buildSearchEntries(props: {
       group: props.t("search.usersGroup"),
       id: `user:${apiUser.id}`,
       label: apiUser.email,
-      onSelect: () => props.onNavigate("/users"),
+      onSelect: () => props.onNavigate(routePath("users")),
     });
   }
 
@@ -1662,50 +1640,11 @@ function buildSearchEntries(props: {
       group: props.t("search.auditGroup"),
       id: `audit:${event.id}`,
       label: event.action,
-      onSelect: () => props.onNavigate("/audit"),
+      onSelect: () => props.onNavigate(routePath("audit")),
     });
   }
 
   return entries;
-}
-
-function readRouteMemory(): RouteMemory {
-  try {
-    const raw = window.sessionStorage.getItem(routeMemoryStorageKey);
-    if (!raw) return {};
-
-    const parsed = JSON.parse(raw) as Partial<Record<AppPrimaryRoute, string>>;
-    const memory: RouteMemory = {};
-    for (const primaryRoute of primaryRoutes) {
-      const route = parsed[primaryRoute];
-      if (route && isWorkspaceRouteName(route)) {
-        memory[primaryRoute] = route;
-      }
-    }
-
-    return memory;
-  } catch {
-    return {};
-  }
-}
-
-function writeRouteMemory(memory: RouteMemory) {
-  window.sessionStorage.setItem(routeMemoryStorageKey, JSON.stringify(memory));
-}
-
-const primaryRoutes: AppPrimaryRoute[] = ["workbench", "intake", "governance", "account"];
-const workspaceRouteNames: WorkspaceAppRoute[] = [
-  "overview",
-  "sources",
-  "imports",
-  "reviews",
-  "audit",
-  "users",
-  "account",
-];
-
-function isWorkspaceRouteName(route: string): route is WorkspaceAppRoute {
-  return workspaceRouteNames.includes(route as WorkspaceAppRoute);
 }
 
 function hasAuditFilters(filters: AuditFilters): boolean {

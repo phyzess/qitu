@@ -32,13 +32,13 @@ Do not add:
 
 The final kit must include:
 
-1. App-managed auth with invite, accept, login, protected routing, account/logout, admin user management, current user, password reset, session revocation, and audit events.
+1. App-managed auth with invite, accept, login, protected routing, account/logout, admin member and invitation management, current user, password reset, session revocation, and audit events.
 2. Minimal RBAC with invitation-assigned roles, guarded write routes, read-only viewer behavior, and audited denials.
 3. Source file intake with authenticated upload, R2 storage, D1 metadata, import job creation, and audit events.
 4. Queue-backed import processing with idempotent job state transitions, visible failures, retry classification, and audit events.
 5. A generic import/review/commit workflow based on `ImportFeatureAdapter`.
 6. One complete example feature that exercises parse, stage, review, approve, commit, and audit.
-7. React app shell with login, account, user management, source files, import jobs, review table, and audit timeline screens.
+7. React app shell with login, account, member and invitation settings, source files, import jobs, review table, and audit timeline screens.
 8. Business-neutral UI, design tokens, and chart primitives sufficient for data-heavy internal tools.
 9. Email abstraction with a Cloudflare-compatible invite/reset delivery path.
 10. AI advisory abstraction that stores advisory output and requires human confirmation before commit.
@@ -63,7 +63,7 @@ The final kit must include:
 
 ## Last Verified
 
-Date: 2026-06-27
+Date: 2026-06-29
 
 Workspace: local filesystem baseline; no git metadata is required for this evidence.
 
@@ -84,9 +84,12 @@ Verified coverage added in this pass:
 3. The Worker uses app-owned starter adapters and no longer depends on optional `examples/*` packages.
 4. RBAC baseline covers owner/admin/reviewer/viewer roles, invitation-assigned user roles, viewer write denial, and `rbac.denied` audit evidence.
 5. Release and upgrade notes document the current baseline and safe adoption path for cloned apps.
-6. DLQ remediation is documented and `ops:failed-jobs` provides a read-only D1 recovery snapshot.
-7. Audit filtering, selected-event details, invitation revocation, source/job diagnostics, recovery guidance, and import-to-review route memory are covered by integration or browser smoke checks.
+6. DLQ remediation is documented and `ops:failed-jobs` provides a read-only D1 recovery snapshot that exits cleanly after Wrangler reports success.
+7. Audit filtering, selected-event details, invitation revocation, source/job diagnostics, recovery guidance, and import-to-review selected job context are covered by integration or browser smoke checks.
 8. Browser smoke generates and confirms a deterministic AI advisory before approval/commit, then verifies `ai_advisory.confirmed` in the job event stream.
+9. The app information architecture exposes only Workspace and Settings as primary navigation, with source/import/review routes under Workspace and account/members/audit under Settings.
+10. Worker integration covers count-derived import job status after partial JSON commits, so pending rows keep the job in review until all approved rows are committed.
+11. Deploy dry-run commands verify local, preview, and production Worker bindings and exit cleanly through the Wrangler dry-run wrapper after Wrangler reports `--dry-run: exiting now.`.
 
 ## Deliberately Out of Scope
 

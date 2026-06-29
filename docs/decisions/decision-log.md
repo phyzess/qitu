@@ -260,13 +260,13 @@ Baseline routes:
 
 ```text
 /login
-/overview
-/sources
-/imports
-/reviews
-/audit
-/users
-/account
+/workspace
+/workspace/sources
+/workspace/imports
+/workspace/reviews
+/settings
+/settings/members
+/settings/audit
 ```
 
 Rules:
@@ -274,12 +274,12 @@ Rules:
 1. Protected routes require a current session and redirect signed-out users to `/login`.
 2. Login, invite acceptance, and local reviewer bootstrap land in the authenticated workbench.
 3. The account entry is visible in the authenticated topbar and exposes logout through its user panel.
-4. User and invitation management are real app routes backed by Worker APIs and RBAC, not hidden test-only capabilities.
+4. Member and invitation management are real app routes backed by Worker APIs and RBAC, not hidden test-only capabilities.
 5. The route shell stays business-neutral; app-owned feature routes may add business meaning outside reusable packages.
 
 Reason:
 
-A startup kit for logged-in internal applications needs a credible post-login shell before business features are added. This preserves the qitu workbench UI baseline while keeping user management in auth/RBAC infrastructure instead of smuggling business workflow into core packages.
+A startup kit for logged-in internal applications needs a credible post-login shell before business features are added. This preserves the qitu workbench UI baseline while keeping member and invitation management in auth/RBAC infrastructure instead of smuggling business workflow into core packages.
 
 ### 2026-06-28: Qitu Shell Interaction Contract
 
@@ -292,9 +292,9 @@ Extracted rules:
 1. Keep primary navigation to a few business-neutral sections.
 2. Show the active section's existing routes as secondary navigation.
 3. Provide a real command search entry with `Cmd/Ctrl+K`.
-4. Put profile, RBAC role, permitted user management, theme switching, and logout in an authenticated user panel.
+4. Put profile, RBAC role, permitted member management, theme switching, and logout in an authenticated user panel.
 5. Support light, dark, and system theme preferences through design tokens.
-6. Keep route memory session-local and route-id-only.
+6. Keep primary route links stable; preserve workflow context through selected app state such as the selected import job, not through primary-route memory.
 7. Do not use a desktop side rail for route navigation.
 8. Use qitu icon-only main route buttons with an adjacent live label on desktop, text-only subroute tabs, pure icon compact search/theme controls, wide search as icon + text + shortcut, and avatar/initial + chevron for the user trigger.
 
@@ -505,11 +505,11 @@ Treat protected-route refresh as a workspace bootstrap state, not an auth-page f
 
 Rules:
 
-1. Direct entry into `/overview`, `/sources`, `/imports`, `/reviews`, `/audit`, `/users`, or `/account` must keep the user inside the workbench shell while session status is unresolved.
+1. Direct entry into `/workspace`, `/workspace/sources`, `/workspace/imports`, `/workspace/reviews`, `/settings`, `/settings/members`, or `/settings/audit` must keep the user inside the workbench shell while session status is unresolved.
 2. The static HTML entrypoint resolves the persisted/system theme before module loading and paints a neutral preboot workbench skeleton with the same light/dark tone family as the app.
 3. React theme state must apply to `document.documentElement` before first paint, so route-loading shells do not render in the wrong theme for a frame.
 4. Session bootstrap owns only health and current-user resolution; workspace list data and route-specific companion data load after the session snapshot is known.
-5. Route-specific companion data should only load where it is needed. User management and audit routes must not trigger review-record/advisory/event loading merely because a selected job exists.
+5. Route-specific companion data should only load where it is needed. Settings routes must not trigger review-record/advisory/event loading merely because a selected job exists.
 6. Protected-route loading actions should preserve the final workbench topbar shape with disabled or skeletal controls rather than switching to a guest/auth action model.
 
 Reason:
@@ -534,6 +534,49 @@ Rules:
 Reason:
 
 The hand-written History API router made route transitions depend on scattered link handlers and browser default behavior. That allowed a disabled navigation item to fall through to a full document request and made protected-route refresh flashes harder to reason about. A mature app-owned router gives qitu a single navigation contract while preserving the core package boundary.
+
+### 2026-06-29: Business-Neutral Starter Information Architecture
+
+Decision:
+
+Keep qitu's shipped web routes as real authenticated routes, but present them through starter-capability groups instead of product-domain modules.
+
+Rules:
+
+1. Authenticated login lands on `/workspace`, not directly on a review workflow.
+2. Primary navigation exposes only Workspace and Settings.
+3. Workspace contains `/workspace`, `/workspace/sources`, `/workspace/imports`, and `/workspace/reviews`.
+4. Settings contains `/settings`, `/settings/members`, and `/settings/audit`.
+5. Source intake and import jobs remain real workflow surfaces, but they are Workspace subroutes rather than a top-level Intake module.
+6. Audit remains a real visibility surface, but it is a Settings subroute rather than a top-level Operations module until repeated operational workflows justify a separate root.
+7. Member and invitation management stays a real RBAC-protected route, but it is framed as Settings and disabled for non-admin route navigation.
+8. Account and member management remain reachable from the authenticated user panel.
+9. Reusable chart package exports must stay business-neutral; remove finance-specific component names such as drawdown or performance panels from `packages/charts`.
+10. App-owned examples may still use business-specific labels, but reusable docs and packages must describe capabilities by infrastructure responsibility.
+11. Because qitu has not shipped a stable public route contract, flat pre-release paths such as `/overview`, `/sources`, `/imports`, `/reviews`, `/audit`, `/users`, and `/account` are not retained as compatibility redirects.
+
+Reason:
+
+The starter should prove reusable foundations without making the shell feel like a finished business app. Source intake, import jobs, review, audit, account, and member management are necessary startup-kit capabilities, but the top-level product story should be the reusable workspace and settings surface, not a collection of pseudo-product modules. Removing finance-coded chart names closes a core-package vocabulary leak while preserving generic chart primitives.
+
+### 2026-06-29: Import Job Status Comes From Review Counts
+
+Decision:
+
+Derive import job status from staged-record status counts after review and commit actions.
+
+Rules:
+
+1. `approved` means the job currently has approved, uncommitted staged records ready to commit.
+2. `needs_review` means there is still review work and no approved work currently ready to commit.
+3. `committed` means approved work has been committed and there are no pending or approved staged records left.
+4. Partial commits must not mark the whole job `committed` while pending rows remain.
+5. A single approve/reject click must not decide the job status by itself; the Worker must recompute from staged-record counts.
+6. Rejected-only jobs remain `needs_review` in the neutral starter until a real app proves it needs a job-level rejected/voided terminal status.
+
+Reason:
+
+The starter supports partial commit of approved rows, but the previous job status helper treated the last record decision as the whole job state. That made multi-record imports read as fully approved or committed even while pending records remained. Count-derived status keeps the workflow truthful without adding speculative terminal states.
 
 ## Pending
 

@@ -45,7 +45,12 @@ admin@example.com
 correct horse battery staple
 ```
 
-The web app opens at `/login` when signed out and uses protected routes for `/overview`, `/sources`, `/imports`, `/reviews`, `/audit`, `/users`, and `/account` after login.
+The web app opens at `/login` when signed out. After login it lands on `/workspace` and keeps protected routes under two business-neutral roots:
+
+```text
+Workspace: /workspace, /workspace/sources, /workspace/imports, /workspace/reviews
+Settings: /settings, /settings/members, /settings/audit
+```
 
 ## Core Idea
 

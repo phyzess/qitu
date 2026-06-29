@@ -1,9 +1,12 @@
 import { createAuditEvent } from "@qitu/audit";
 import {
-  jobStatusAfterRecordDecision,
+  jobStatusForReviewSummary,
   stagedStatusForReviewAction,
   type CommitApprovedContext,
+  type ImportJobStatus,
   type ReviewRecordDecisionAction,
+  type ReviewStatusSummary,
+  type StagedRecordStatus,
 } from "@qitu/import-pipeline";
 import type { Hono } from "hono";
 import * as v from "valibot";
@@ -66,6 +69,11 @@ type ImportReviewIssueRow = {
   severity: string;
   status: string;
   created_at: string;
+};
+
+type ReviewStatusCountRow = {
+  review_status: string;
+  count: number;
 };
 
 export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
@@ -207,7 +215,7 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
       if (committedResult.results.length > 0) {
         return context.json({
           importJobId: jobId,
-          status: "committed",
+          status: job.status,
           duplicate: true,
           committedRecords: committedResult.results.map(publicExampleCommittedRecord),
         });
@@ -247,6 +255,11 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
       record,
       payloadJson: JSON.stringify(committedPayloads[index]),
     }));
+    const jobStatusAfterCommit = await readImportJobStatusAfterCommit(
+      context.env,
+      jobId,
+      committedRecords.length,
+    );
 
     await context.env.DB.batch([
       ...committedRecords.flatMap(({ id, record, payloadJson }) => [
@@ -303,21 +316,22 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
       context.env.DB.prepare(
         `
           UPDATE import_jobs
-          SET status = 'committed', completed_at = ?, updated_at = ?
+          SET status = ?, completed_at = ?, updated_at = ?
           WHERE id = ?
         `,
-      ).bind(now, now, jobId),
+      ).bind(jobStatusAfterCommit, now, now, jobId),
       prepareImportJobEventInsert(context.env, {
         importJobId: jobId,
         sourceFileId: job.source_file_id,
         eventType: "import_job.committed",
-        statusTo: "committed",
+        statusTo: jobStatusAfterCommit,
         actorUserId: current.user.id,
         message: "Approved staged records committed.",
         createdAt: now,
         metadata: {
           committedCount: committedRecords.length,
           adapterId: adapter.id,
+          jobStatusAfterCommit,
         },
       }),
       prepareAuditInsert(
@@ -343,7 +357,7 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
 
     return context.json({
       importJobId: jobId,
-      status: "committed",
+      status: jobStatusAfterCommit,
       committedRecords: committedRecords.map(({ id, record, payloadJson }) =>
         publicExampleCommittedRecord({
           id,
@@ -425,7 +439,11 @@ async function recordReviewDecisionResponse(
   const decisionId = crypto.randomUUID();
   const recordDecisionId = crypto.randomUUID();
   const note = input.value.note ?? null;
-  const jobStatus = jobStatusAfterRecordDecision(action);
+  const jobStatus = await readImportJobStatusAfterRecordDecision(context.env, {
+    importJobId: jobId,
+    currentStatus: record.review_status,
+    targetStatus,
+  });
 
   await context.env.DB.batch([
     context.env.DB.prepare(
@@ -533,6 +551,73 @@ export async function readImportJobReview(
   )
     .bind(jobId)
     .first<ImportJobReviewRow>();
+}
+
+async function readImportJobStatusAfterRecordDecision(
+  env: Env,
+  input: {
+    importJobId: string;
+    currentStatus: string;
+    targetStatus: Extract<StagedRecordStatus, "approved" | "rejected">;
+  },
+): Promise<ImportJobStatus> {
+  const summary = await readReviewStatusSummary(env, input.importJobId);
+  adjustReviewStatus(summary, input.currentStatus, -1);
+  adjustReviewStatus(summary, input.targetStatus, 1);
+
+  return jobStatusForReviewSummary(summary);
+}
+
+async function readImportJobStatusAfterCommit(
+  env: Env,
+  importJobId: string,
+  committedCount: number,
+): Promise<ImportJobStatus> {
+  const summary = await readReviewStatusSummary(env, importJobId);
+  summary.approved = Math.max(0, summary.approved - committedCount);
+  summary.committed += committedCount;
+
+  return jobStatusForReviewSummary(summary);
+}
+
+async function readReviewStatusSummary(
+  env: Env,
+  importJobId: string,
+): Promise<ReviewStatusSummary> {
+  const rows = await env.DB.prepare(
+    `
+      SELECT review_status, COUNT(*) AS count
+      FROM example_staged_records
+      WHERE import_job_id = ?
+      GROUP BY review_status
+    `,
+  )
+    .bind(importJobId)
+    .all<ReviewStatusCountRow>();
+  const summary: ReviewStatusSummary = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    committed: 0,
+  };
+
+  for (const row of rows.results) {
+    adjustReviewStatus(summary, row.review_status, row.count);
+  }
+
+  return summary;
+}
+
+function adjustReviewStatus(summary: ReviewStatusSummary, status: string, delta: number): void {
+  if (isReviewStatus(status)) {
+    summary[status] = Math.max(0, summary[status] + delta);
+  }
+}
+
+function isReviewStatus(status: string): status is keyof ReviewStatusSummary {
+  return (
+    status === "pending" || status === "approved" || status === "rejected" || status === "committed"
+  );
 }
 
 function publicImportJobReview(row: ImportJobReviewRow): Record<string, unknown> {

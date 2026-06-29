@@ -170,7 +170,7 @@ for (const phrase of [
   "Source files",
   "Process local queue",
   "Commit approved",
-  "User management",
+  "Members and invitations",
   "Audit timeline",
   "AI advisory",
   "Review console",

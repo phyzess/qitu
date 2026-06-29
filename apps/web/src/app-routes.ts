@@ -10,34 +10,45 @@ export type AppRoute =
   | "not-found";
 
 export type WorkspaceAppRoute = Exclude<AppRoute, "login" | "not-found">;
-export type AppPrimaryRoute = "workbench" | "intake" | "governance" | "account";
+export type AppPrimaryRoute = "workbench" | "settings";
 
-export const defaultAuthenticatedPath = "/reviews";
+export const defaultAuthenticatedPath = "/workspace";
 export const loginPath = "/login";
 export const appNavigationPaths = [
   "/",
-  "/overview",
-  "/sources",
-  "/imports",
-  "/reviews",
-  "/audit",
-  "/users",
-  "/account",
+  "/workspace",
+  "/workspace/sources",
+  "/workspace/imports",
+  "/workspace/reviews",
+  "/settings",
+  "/settings/members",
+  "/settings/audit",
   "/login",
 ] as const;
 export type AppNavigationPath = (typeof appNavigationPaths)[number];
 
 const routeByPath = new Map<string, AppRoute>([
-  ["/", "reviews"],
-  ["/overview", "overview"],
-  ["/sources", "sources"],
-  ["/imports", "imports"],
-  ["/reviews", "reviews"],
-  ["/audit", "audit"],
-  ["/users", "users"],
-  ["/account", "account"],
+  ["/", "overview"],
+  ["/workspace", "overview"],
+  ["/workspace/sources", "sources"],
+  ["/workspace/imports", "imports"],
+  ["/workspace/reviews", "reviews"],
+  ["/settings", "account"],
+  ["/settings/members", "users"],
+  ["/settings/audit", "audit"],
   [loginPath, "login"],
 ]);
+
+const pathByRoute = {
+  overview: "/workspace",
+  sources: "/workspace/sources",
+  imports: "/workspace/imports",
+  reviews: "/workspace/reviews",
+  audit: "/settings/audit",
+  users: "/settings/members",
+  account: "/settings",
+  login: loginPath,
+} satisfies Record<Exclude<AppRoute, "not-found">, AppNavigationPath>;
 
 export function appRouteFromPath(pathname: string): AppRoute {
   const path = normalizePath(pathname);
@@ -55,16 +66,14 @@ export function isWorkspaceAppRoute(route: AppRoute): route is WorkspaceAppRoute
 export function primaryRouteFor(route: AppRoute): AppPrimaryRoute | null {
   switch (route) {
     case "overview":
-    case "reviews":
-      return "workbench";
     case "sources":
     case "imports":
-      return "intake";
+    case "reviews":
+      return "workbench";
     case "audit":
     case "users":
-      return "governance";
     case "account":
-      return "account";
+      return "settings";
     case "login":
     case "not-found":
       return null;
@@ -72,9 +81,7 @@ export function primaryRouteFor(route: AppRoute): AppPrimaryRoute | null {
 }
 
 export function routePath(route: Exclude<AppRoute, "not-found">): AppNavigationPath {
-  if (route === "reviews") return defaultAuthenticatedPath;
-  if (route === "login") return loginPath;
-  return `/${route}` as AppNavigationPath;
+  return pathByRoute[route];
 }
 
 export function isAppNavigationPath(path: string): path is AppNavigationPath {

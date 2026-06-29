@@ -40,6 +40,7 @@ function assert(condition, message) {
 }
 
 const packageJson = JSON.parse(text("package.json"));
+const workerPackageJson = JSON.parse(text("apps/worker/package.json"));
 const appTemplateManifest = JSON.parse(text("templates/app/manifest.json"));
 const workspace = text("pnpm-workspace.yaml");
 const tsconfig = text("tsconfig.json");
@@ -67,10 +68,10 @@ const webApi = text("apps/web/src/api.ts");
 const webTypes = text("apps/web/src/types.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
 const workerIntegration = text("scripts/worker-integration.mjs");
+const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
 const i18nCheck = text("scripts/i18n-check.mjs");
-const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const wranglerTypesScript = text("scripts/wrangler-types.mjs");
 const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
@@ -183,6 +184,13 @@ assert(
   packageJson.scripts["deploy:preview:dry-run"].includes("vp run -r build") &&
     packageJson.scripts["deploy:production:dry-run"].includes("vp run -r build"),
   "remote dry-run scripts must build web assets before Worker deploy dry-run.",
+);
+assert(
+  exists("scripts/wrangler-deploy-dry-run.mjs") &&
+    workerPackageJson.scripts["deploy:dry-run"].includes("wrangler-deploy-dry-run.mjs") &&
+    workerPackageJson.scripts["deploy:preview:dry-run"].includes("wrangler-deploy-dry-run.mjs") &&
+    workerPackageJson.scripts["deploy:production:dry-run"].includes("wrangler-deploy-dry-run.mjs"),
+  "worker dry-run scripts must use the Wrangler dry-run wrapper so successful dry-runs exit cleanly.",
 );
 assert(
   workflow.includes("pnpm exec vp run verify:kit") &&
@@ -673,7 +681,7 @@ assert(
     webSources.includes("Process local queue") &&
     webSources.includes("Accept invitation") &&
     webSources.includes("Reset password") &&
-    webSources.includes("User management") &&
+    webSources.includes("Members and invitations") &&
     webSources.includes("Account") &&
     webSources.includes("buildNavigation") &&
     webSources.includes("authRouteFromPath") &&
@@ -722,7 +730,7 @@ assert(
     workerIntegration.includes("/commit") &&
     workerIntegration.includes("admin can list invitations") &&
     workerIntegration.includes("/api/audit-events"),
-  "Worker integration must exercise invite, user management, login, password reset, text adapter, JSON adapter, AI advisory, retry, review, approve, commit, and audit visibility.",
+  "Worker integration must exercise invite, member and invitation management, login, password reset, text adapter, JSON adapter, AI advisory, retry, review, approve, commit, and audit visibility.",
 );
 assert(
   workerIntegration.includes("DatabaseSync") &&
@@ -791,6 +799,12 @@ assert(
     dlqRunbook.includes("Do not update `import_jobs.status` manually") &&
     dlqRunbook.includes("qitu-import-jobs-production-dlq"),
   "DLQ remediation runbook must document triage, retry permissions, no direct SQL updates, and queue names.",
+);
+assert(
+  opsFailedJobs.includes("spawn(") &&
+    !opsFailedJobs.includes("spawnSync") &&
+    opsFailedJobs.includes('"success": true'),
+  "ops:failed-jobs must release Wrangler D1 execute after the success marker.",
 );
 assert(
   text("apps/worker/vitest.config.ts").includes("cloudflareTest") &&

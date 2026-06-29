@@ -57,9 +57,10 @@ Owns:
 
 1. R2 object key conventions.
 2. Source file metadata.
-3. Secure file downloads.
-4. Hashing.
-5. File validation.
+3. Content hashing.
+4. File validation helpers.
+
+Can support later app-owned download routes, but the reusable package does not own a download API in the current starter baseline.
 
 Does not own:
 

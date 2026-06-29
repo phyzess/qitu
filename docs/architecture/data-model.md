@@ -233,7 +233,7 @@ import_jobs (
   parsed_at TEXT,
   reviewed_at TEXT,
   approved_at TEXT,
-  imported_at TEXT,
+  committed_at TEXT,
   rejected_at TEXT,
   failed_at TEXT,
   created_at TEXT NOT NULL,

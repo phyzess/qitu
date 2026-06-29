@@ -49,10 +49,10 @@ Exit criteria:
 3. One command prepares Cloudflare bindings.
 4. The app can render a protected shell after login.
 
-Current gap:
+Current baseline:
 
 1. The app shell renders and the local reviewer setup/login UI is wired to the Worker API.
-2. Deployment preparation includes local, preview, and production binding stubs, same-origin Worker Static Assets, and Queue DLQ configuration; production hardening remains tracked below with owner paths.
+2. Deployment preparation includes local, preview, and production binding stubs, same-origin Worker Static Assets, and Queue DLQ configuration; provisioning a real Cloudflare account remains an environment-specific deployment step.
 
 ## Phase 2: First Vertical Slice
 
@@ -101,9 +101,9 @@ Current P0 baseline completed:
 14. Adapter validation edge-case coverage for invalid numeric source data staying in review and blocked from commit.
 15. DLQ and failed-job remediation runbook with a read-only D1 failed-job snapshot command.
 
-Remaining P1 follow-up:
+P1 follow-up status:
 
-None. Future production hardening can add an automatic DLQ consumer only after real queue operations prove manual recovery is insufficient.
+None. An automatic DLQ consumer is intentionally out of scope until real queue operations prove manual recovery is insufficient.
 
 Current verification:
 
@@ -165,7 +165,7 @@ Current verification:
 Status:
 
 ```text
-in progress
+baseline complete
 ```
 
 Goal:
@@ -176,15 +176,15 @@ Boundary:
 
 Keep this hardening business-neutral. Improvements should live in the app-owned shell, Worker routes, reusable qitu UI primitives, documentation, or verification scripts. They must not add business metrics, business parser fields, business workflows, or business reports to `packages/*`.
 
-Near-term requirements:
+Completed requirements:
 
 1. Page metrics and labels must describe the real data scope they show.
 2. Cross-page actions must preserve workflow context, especially the selected import job between imports and reviews.
 3. The React shell must project RBAC clearly: viewers should see read-only affordances before a guarded route returns `403`.
 4. Each route should expose useful empty, error, and blocked states rather than relying on a hidden top-level error.
 5. Review pages should distinguish selected-job review state from workspace-wide state.
-6. Governance pages should become useful operational tools through filtering, details, and clear actor/subject context.
-7. User management should cover the invitation lifecycle expected of an internal app starter.
+6. The audit settings page should become a useful visibility tool through filtering, details, and clear actor/subject context.
+7. Member and invitation settings should cover the invitation lifecycle expected of an internal app starter.
 8. Browser smoke or integration checks should cover the workflow invariants that users can break from the UI.
 
 First hardening increment:
@@ -196,7 +196,7 @@ First hardening increment:
 
 Second hardening increment:
 
-1. Make the audit route an operational governance page, not only a passive timeline.
+1. Make the audit route a useful settings visibility page, not only a passive timeline.
 2. Add server-backed audit filters for action, actor, subject kind, and subject id.
 3. Show selected audit-event details, including actor, subject, timestamp, and metadata.
 4. Cover audit filtering in Worker integration and browser smoke.
@@ -228,6 +228,14 @@ Sixth hardening increment:
 2. Generate a local deterministic advisory from the Review route.
 3. Confirm the advisory through the UI before record approval and commit.
 4. Assert the import job event stream shows `ai_advisory.confirmed`.
+
+Seventh hardening increment:
+
+1. Consolidate primary navigation to only Workspace and Settings.
+2. Keep source upload, import diagnostics, and review workflows under `/workspace`.
+3. Keep account, member/invitation management, and audit visibility under `/settings`.
+4. Drop pre-release compatibility redirects for old flat route paths.
+5. Derive import job status from staged-record counts so partial commits keep jobs in review while pending rows remain.
 
 ## Completion Gate
 

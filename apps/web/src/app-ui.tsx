@@ -81,32 +81,18 @@ const routeMeta: Record<
 
 const navigationGroups: NavigationGroup[] = [
   {
-    defaultRoute: "reviews",
+    defaultRoute: "overview",
     icon: <AnimatedIcon name="workbench" size={17} />,
     id: "workbench",
     labelKey: "nav.workbench",
-    routes: ["overview", "reviews"],
-  },
-  {
-    defaultRoute: "sources",
-    icon: <AnimatedIcon name="intake" size={17} />,
-    id: "intake",
-    labelKey: "nav.intake",
-    routes: ["sources", "imports"],
-  },
-  {
-    defaultRoute: "audit",
-    icon: <AnimatedIcon name="governance" size={17} />,
-    id: "governance",
-    labelKey: "nav.governance",
-    routes: ["audit", "users"],
+    routes: ["overview", "sources", "imports", "reviews"],
   },
   {
     defaultRoute: "account",
     icon: <AnimatedIcon name="account" size={17} />,
-    id: "account",
-    labelKey: "nav.account",
-    routes: ["account"],
+    id: "settings",
+    labelKey: "nav.settings",
+    routes: ["account", "users", "audit"],
   },
 ];
 
@@ -116,10 +102,6 @@ export function buildNavigation(
     authenticated: boolean;
     canManageUsers?: boolean;
     onNavigate: (path: AppNavigationPath) => void;
-    resolvePrimaryRoute?: (
-      primaryRoute: AppPrimaryRoute,
-      fallbackRoute: WorkspaceAppRoute,
-    ) => WorkspaceAppRoute;
     t: Translate;
   },
 ): AppNavigationModel {
@@ -147,12 +129,7 @@ export function buildNavigation(
   const activeGroup =
     navigationGroups.find((group) => group.id === primaryRouteFor(route)) ?? navigationGroups[0]!;
   const primaryNavigation = navigationGroups.map((group) => {
-    const rememberedRoute =
-      options.resolvePrimaryRoute?.(group.id, group.defaultRoute) ?? group.defaultRoute;
-    const targetRoute = routeAvailable(rememberedRoute, canManageUsers)
-      ? rememberedRoute
-      : group.defaultRoute;
-    const href = routePath(targetRoute);
+    const href = routePath(group.defaultRoute);
 
     return {
       label: t(group.labelKey),
@@ -207,9 +184,7 @@ export function buildNavigation(
 }
 
 function routeAvailable(route: WorkspaceAppRoute, canManageUsers: boolean): boolean {
-  void route;
-  void canManageUsers;
-  return true;
+  return route !== "users" || canManageUsers;
 }
 
 export function Panel(props: { children: ReactNode }) {

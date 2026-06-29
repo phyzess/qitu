@@ -149,7 +149,7 @@ baseline complete; future extraction hardening tracked
 状态：
 
 ```text
-in progress
+baseline complete
 ```
 
 目标：
@@ -160,15 +160,15 @@ in progress
 
 这轮 hardening 必须保持 business-neutral。改动应位于 app-owned shell、Worker routes、可复用 qitu UI primitives、文档或验证脚本中；不能把 business metrics、business parser fields、business workflows 或 business reports 加进 `packages/*`。
 
-近期要求：
+已完成要求：
 
 1. 页面指标和标签必须说明真实数据范围。
 2. 跨页面动作必须保留 workflow context，尤其是 Imports 与 Reviews 之间的 selected import job。
 3. React shell 必须清楚呈现 RBAC：viewer 在遇到后端 `403` 前就应看到 read-only affordance。
 4. 每个 route 应显示有用的 empty、error、blocked states，而不是依赖隐藏的顶层 error。
 5. Review 页面应区分 selected-job review state 与 workspace-wide state。
-6. Governance 页面应通过 filtering、details、清楚的 actor/subject context 变成可用运维工具。
-7. User management 应覆盖 internal app starter 预期的 invitation lifecycle。
+6. Audit settings 页面应通过 filtering、details、清楚的 actor/subject context 变成可用 visibility tool。
+7. Member/invitation settings 应覆盖 internal app starter 预期的 invitation lifecycle。
 8. Browser smoke 或 integration checks 应覆盖用户能从 UI 打断的 workflow invariants。
 
 第一轮 hardening increment：
@@ -180,7 +180,7 @@ in progress
 
 第二轮 hardening increment：
 
-1. 让 audit route 成为 operational governance page，而不只是 passive timeline。
+1. 让 audit route 成为有用的 settings visibility page，而不只是 passive timeline。
 2. 增加 action、actor、subject kind、subject id 的 server-backed audit filters。
 3. 显示选中 audit event 的 actor、subject、timestamp 和 metadata。
 4. 在 Worker integration 和 browser smoke 中覆盖 audit filtering。
@@ -212,6 +212,14 @@ in progress
 2. 从 Review route 生成 local deterministic advisory。
 3. 通过 UI confirm advisory，再 approve 和 commit record。
 4. 断言 import job event stream 显示 `ai_advisory.confirmed`。
+
+第七轮 hardening increment：
+
+1. 主导航只保留 Workspace 和 Settings。
+2. Source upload、import diagnostics 与 review workflows 收到 `/workspace` 下。
+3. Account、members/invitations 与 audit visibility 收到 `/settings` 下。
+4. 不保留 pre-release flat route paths 的兼容 redirect。
+5. Import job status 从 staged-record counts 推导，partial commit 后仍有 pending rows 时保持 review 语义。
 
 ## Completion Gate
 

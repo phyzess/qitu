@@ -94,8 +94,7 @@ async function runBrowserSmoke() {
     await page.getByLabel("Password", { exact: true }).fill(initialPassword);
     await page.getByRole("button", { name: "Accept invitation" }).click();
 
-    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
-    await expect(page.getByText(email, { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
 
     const reset = await postWorkerJson("/api/auth/password-reset/request", {
       email,
@@ -110,6 +109,11 @@ async function runBrowserSmoke() {
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(resetPassword);
     await page.locator("form").getByRole("button", { name: "Login" }).click();
+    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
+
+    await page.goto(`${webUrl}/workspace/reviews`, {
+      waitUntil: "domcontentloaded",
+    });
     await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
 
     await page.locator('input[type="file"]').setInputFiles({
@@ -159,7 +163,7 @@ async function runBrowserSmoke() {
       page.getByText("import_review.record_committed", { exact: true }).first(),
     ).toBeVisible();
 
-    await page.goto(`${webUrl}/audit`, {
+    await page.goto(`${webUrl}/settings/audit`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByRole("heading", { name: "Audit timeline" })).toBeVisible();
@@ -168,7 +172,7 @@ async function runBrowserSmoke() {
     await expect(page.getByText("import_job.committed", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "Event details" })).toBeVisible();
 
-    await page.goto(`${webUrl}/reviews`, {
+    await page.goto(`${webUrl}/workspace/reviews`, {
       waitUntil: "domcontentloaded",
     });
     await page.locator('input[type="file"]').setInputFiles({
@@ -181,7 +185,7 @@ async function runBrowserSmoke() {
       page.getByRole("button", { name: new RegExp(escapeRegExp(rejectedFilename)) }),
     ).toBeVisible();
 
-    await page.goto(`${webUrl}/imports`, {
+    await page.goto(`${webUrl}/workspace/imports`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByRole("heading", { name: "Job diagnostics" })).toBeVisible();
@@ -231,7 +235,7 @@ async function runBrowserSmoke() {
       page.getByRole("button", { name: new RegExp(escapeRegExp(failedFilename)) }),
     ).toBeVisible();
     await drainButton.click();
-    await page.goto(`${webUrl}/imports`, {
+    await page.goto(`${webUrl}/workspace/imports`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByRole("heading", { name: "Job diagnostics" })).toBeVisible();
@@ -258,12 +262,12 @@ async function runBrowserSmoke() {
     await page.getByLabel("Email", { exact: true }).fill(adminEmail);
     await page.getByLabel("Password", { exact: true }).fill(initialPassword);
     await page.locator("form").getByRole("button", { name: "Login" }).click();
-    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
 
-    await page.goto(`${webUrl}/users`, {
+    await page.goto(`${webUrl}/settings/members`, {
       waitUntil: "domcontentloaded",
     });
-    await expect(page.getByRole("heading", { name: "User management" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Members and invitations" })).toBeVisible();
     await page.getByLabel("Email", { exact: true }).fill(managedEmail);
     await page.getByRole("button", { name: "Create invitation" }).click();
     const managedInvitationRow = page

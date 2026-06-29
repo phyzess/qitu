@@ -92,8 +92,8 @@ invite -> register -> login -> upload -> import job -> queue -> staging -> revie
 5. local deterministic AI advisory。
 6. browser smoke 覆盖本地 setup、upload、queue drain、AI advisory 生成与确认、review approval、commit、review rejection、failed JSON diagnostics、audit。
 
-仍需增强：
+当前边界：
 
-1. download route。
-2. 更多 failure classes。
-3. production 前 DLQ 和自动 retry policy。
+1. Source download 不属于 starter completion contract；如果具体 app 后续新增下载路由，必须在 app-owned route 中做权限校验并写审计。
+2. 更多 adapter-specific failure classes 应随真实 feature adapter 增加，不在中立 starter 中预造。
+3. `apps/worker/wrangler.jsonc` 已声明 Queue `max_retries` 和 DLQ 名称；生产前仍需在真实 Cloudflare 账号中 provision 对应资源。

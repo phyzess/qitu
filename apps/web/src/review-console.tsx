@@ -371,7 +371,7 @@ export function ReviewConsole(props: {
           <Surface as="aside" className="p-[var(--qitu-space-s1)]">
             <SectionHeader
               icon={<AnimatedIcon name="audit" size={16} />}
-              title={t("intake.guardrails")}
+              title={t("review.guardrails")}
             />
             <div className="mt-[var(--qitu-space-s1)] space-y-2">
               <Guardrail label={t("guardrail.reviewerIdentity")} state="active" />

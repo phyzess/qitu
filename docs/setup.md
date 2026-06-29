@@ -143,7 +143,7 @@ email: admin@example.com
 password: correct horse battery staple
 ```
 
-On a fresh local D1 database, use the `Setup` tab to create or reset a local-only reviewer or admin account and sign in. After that, the same credentials work through the `Login` tab. The reviewer account exercises the review workflow, and the admin account exercises user management. The bootstrap routes are disabled outside `APP_ENV=local`.
+On a fresh local D1 database, use the `Setup` tab to create or reset a local-only reviewer or admin account and sign in. After that, the same credentials work through the `Login` tab. The reviewer account exercises the review workflow, and the admin account exercises member and invitation settings. The bootstrap routes are disabled outside `APP_ENV=local`.
 
 ## 7. Validation
 

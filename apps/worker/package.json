@@ -10,9 +10,9 @@
     "db:migrate:remote": "vp run db:migrate:preview",
     "db:migrate:preview": "wrangler d1 migrations apply qitu-preview --env preview --remote",
     "db:migrate:production": "wrangler d1 migrations apply qitu-production --env production --remote",
-    "deploy:dry-run": "wrangler deploy --env=\"\" --dry-run --outdir ../../.tmp/worker-dry-run",
-    "deploy:preview:dry-run": "wrangler deploy --env preview --dry-run --outdir ../../.tmp/worker-preview-dry-run",
-    "deploy:production:dry-run": "wrangler deploy --env production --dry-run --outdir ../../.tmp/worker-production-dry-run",
+    "deploy:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env=\"\" --outdir ../../.tmp/worker-dry-run",
+    "deploy:preview:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env preview --outdir ../../.tmp/worker-preview-dry-run",
+    "deploy:production:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env production --outdir ../../.tmp/worker-production-dry-run",
     "build": "vp run typecheck",
     "test:runtime": "vitest run --config vitest.config.ts",
     "typecheck": "vp run cf:typegen && tsc --noEmit -p tsconfig.json"

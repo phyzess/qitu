@@ -242,58 +242,6 @@ export function TimeSeriesChart({
   );
 }
 
-export function DrawdownChart(props: Omit<TimeSeriesChartProps, "color" | "label">) {
-  return (
-    <TimeSeriesChart
-      {...props}
-      color={chartTheme.colors.negative}
-      label="Drawdown"
-      state={props.state}
-    />
-  );
-}
-
-export type PerformancePanelChartProps = {
-  series: ChartDatum[];
-  drawdown?: ChartDatum[] | undefined;
-  width?: number | undefined;
-  height?: number | undefined;
-  state?: ChartState | undefined;
-};
-
-export function PerformancePanelChart({
-  drawdown = [],
-  height = 300,
-  series,
-  state,
-  width = 620,
-}: PerformancePanelChartProps) {
-  const nextState = state ?? (series.length === 0 ? "empty" : "ready");
-  if (nextState !== "ready") {
-    return <ChartFrame height={height} state={nextState} title="Performance" />;
-  }
-
-  return (
-    <div style={{ display: "grid", gap: "var(--qitu-space-s0)" }}>
-      <TimeSeriesChart
-        data={series}
-        height={Math.round(height * 0.62)}
-        label="Performance"
-        width={width}
-      />
-      <DrawdownChart
-        data={
-          drawdown.length > 0
-            ? drawdown
-            : series.map((datum) => ({ ...datum, y: Math.min(0, datum.y) }))
-        }
-        height={Math.round(height * 0.38)}
-        width={width}
-      />
-    </div>
-  );
-}
-
 export type BarChartProps = {
   data: CategoryDatum[];
   width?: number | undefined;

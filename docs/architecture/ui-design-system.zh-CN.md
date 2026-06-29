@@ -92,18 +92,18 @@ Token family 按三层组织：
 
 ```text
 /login
-/overview
-/sources
-/imports
-/reviews
-/audit
-/users
-/account
+/workspace
+/workspace/sources
+/workspace/imports
+/workspace/reviews
+/settings
+/settings/members
+/settings/audit
 ```
 
 `apps/web` 通过 TanStack Router 负责 route tree、route matching 和 navigation lifecycle。可复用 UI packages 保持路由无关：可以暴露 `href` 和 callback，但不能 import app router API。
 
-未登录、已登录、admin-only、not-found、loading、empty、error 状态要保持同一套视觉语言。账号入口属于 authenticated topbar，退出登录属于从该入口打开的 user panel；用户管理应该由 RBAC 保护，而不是只存在于测试代码里。
+未登录、已登录、admin-only、not-found、loading、empty、error 状态要保持同一套视觉语言。账号入口属于 authenticated topbar，退出登录属于从该入口打开的 user panel；成员与邀请管理属于 Settings，并由 RBAC 保护，而不是只存在于测试代码里。
 
 Shell 交互规则：
 
@@ -111,7 +111,7 @@ Shell 交互规则：
 2. 当前一级分组的子路由显示在 topbar 的二级导航行。
 3. 一级导航可以在 session storage 中记住每个分组最近访问的子 route，但只存 route id。
 4. Topbar command search 必须是可用的 `Cmd/Ctrl+K` 控件，可搜索 route 与 app-owned 数据投影。
-5. 登录后的账号入口打开 user panel，包含 profile、RBAC role、允许时的 user management 入口、theme 切换与 logout。
+5. 登录后的账号入口打开 user panel，包含 profile、RBAC role、允许时的成员与邀请入口、theme 切换与 logout。
 6. Theme 切换由 tokens 驱动，支持 light、dark、system，不改变 reusable package 的业务语义。
 7. 桌面端 route navigation 不使用侧边栏或 side rail；drawer 只作为紧凑或移动端 disclosure pattern。
 8. 桌面端一级导航采用 qitu route-control shape：纯 icon main route buttons、克制 active underline，然后是 divider 与相邻 active/hover live label。
@@ -119,6 +119,15 @@ Shell 交互规则：
 10. 二级 route tab 使用 text-only，并通过 active underline 表达当前页。
 11. 搜索入口放在 topbar action cluster：紧凑宽度用纯 icon，宽屏用 icon + text + shortcut。
 12. Theme 使用纯 icon 控件。人员 trigger 是身份入口，例如 avatar/initial + chevron；具体用户动作属于 panel 内。
+
+当前 starter 分组：
+
+```text
+Workspace：/workspace、/workspace/sources、/workspace/imports、/workspace/reviews
+Settings：/settings、/settings/members、/settings/audit
+```
+
+Settings 路由仍然是已认证 app route，因为它们属于可复用 starter surface；但它们不应被表达成业务 workflow module。成员与邀请管理和审计可见性通过 Settings 暴露，其中成员与邀请管理在非管理员的 route navigation 中禁用。
 
 视觉提取规则：
 

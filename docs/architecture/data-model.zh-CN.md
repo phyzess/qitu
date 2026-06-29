@@ -121,10 +121,14 @@ core 只知道“文件是什么物理对象”。业务功能决定“这个文
 推荐状态流：
 
 ```text
-queued -> processing -> needs_review -> approved -> imported
+queued -> processing -> needs_review
+needs_review -> approved
+approved -> committed
+approved -> needs_review (partial commit 后仍有 pending records)
 queued -> processing -> failed
-needs_review -> rejected
 ```
+
+`rejected` 是 staged record status，不是当前基线的 job-level status。
 
 导入相关表的职责：
 

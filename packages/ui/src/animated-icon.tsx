@@ -7,12 +7,12 @@ export type AnimatedIconName =
   | "audit"
   | "database"
   | "files"
-  | "governance"
   | "intake"
   | "key"
   | "language"
   | "login"
   | "logout"
+  | "operations"
   | "refresh"
   | "reviews"
   | "search"
@@ -121,7 +121,7 @@ const iconRegistry = {
       />
     ),
   },
-  governance: {
+  operations: {
     motion: "shield",
     element: (
       <>

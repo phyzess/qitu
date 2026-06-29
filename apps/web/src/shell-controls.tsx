@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatedIcon, Button, cn, StatusBadge } from "@qitu/ui";
 import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
-import type { AppNavigationPath } from "./app-routes";
+import { routePath, type AppNavigationPath } from "./app-routes";
 import { localeOptions, useI18n } from "./i18n";
 import { useTheme } from "./theme";
 import type { ApiUser } from "./types";
@@ -314,7 +314,7 @@ export function UserPanel(props: {
             label={t("user.accountSettings")}
             onClick={() => {
               props.onClose();
-              props.onNavigate("/account");
+              props.onNavigate(routePath("account"));
             }}
           />
           {props.canManageUsers ? (
@@ -324,7 +324,7 @@ export function UserPanel(props: {
               label={t("user.managementTitle")}
               onClick={() => {
                 props.onClose();
-                props.onNavigate("/users");
+                props.onNavigate(routePath("users"));
               }}
             />
           ) : null}

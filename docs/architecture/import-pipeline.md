@@ -90,6 +90,13 @@ type ReviewDecision = {
 };
 ```
 
+Job status is derived from staged-record status counts after review and commit actions:
+
+1. Any approved, uncommitted staged record keeps the job `approved`, because there is work ready to commit.
+2. Pending staged records without approved work keep the job `needs_review`, including after a partial commit.
+3. A job becomes `committed` only after approved rows have been committed and no staged records remain pending or approved.
+4. Rejected-only jobs stay `needs_review` in the neutral starter because there is no separate job-level rejected status.
+
 ## 7. Idempotency Requirements
 
 Import work must be safe to retry:

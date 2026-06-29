@@ -530,12 +530,69 @@ async function main() {
     const jsonCommit = await client.json(`/api/import-jobs/${jsonUpload.importJobId}/commit`, {
       method: "POST",
     });
-    assert(jsonCommit.status === "committed", "json commit returns committed status");
+    assert(
+      jsonCommit.status === "needs_review",
+      "partial json commit keeps job in review while pending records remain",
+    );
     assert(jsonCommit.committedRecords.length === 1, "json commit writes approved record only");
     assert(
       typeof jsonCommit.committedRecords[0]?.payload?.commitKey === "string",
       "json commit payload comes from JSON adapter commitApproved handler",
     );
+    const jsonReviewAfterPartialCommit = await client.json(
+      `/api/import-jobs/${jsonUpload.importJobId}/review`,
+    );
+    assert(
+      jsonReviewAfterPartialCommit.job.status === "needs_review",
+      "partial json commit persists needs_review status",
+    );
+    assert(
+      jsonReviewAfterPartialCommit.records.some((record) => record.reviewStatus === "committed"),
+      "partial json commit marks the approved record committed",
+    );
+    assert(
+      jsonReviewAfterPartialCommit.records.some((record) => record.reviewStatus === "pending"),
+      "partial json commit leaves undecided records pending",
+    );
+    const jsonCommitAgainWhilePending = await client.json(
+      `/api/import-jobs/${jsonUpload.importJobId}/commit`,
+      {
+        method: "POST",
+      },
+    );
+    assert(
+      jsonCommitAgainWhilePending.duplicate === true &&
+        jsonCommitAgainWhilePending.status === "needs_review",
+      "duplicate partial json commit preserves derived job status",
+    );
+    const remainingJsonRecord = jsonReviewAfterPartialCommit.records.find(
+      (record) => record.reviewStatus === "pending",
+    );
+    assert(Boolean(remainingJsonRecord), "json partial commit leaves one record to review");
+    await client.json(
+      `/api/import-jobs/${jsonUpload.importJobId}/staged-records/${remainingJsonRecord.id}/approve`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          note: "Finish JSON adapter path.",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+    );
+    const jsonReviewAfterFinalApprove = await client.json(
+      `/api/import-jobs/${jsonUpload.importJobId}/review`,
+    );
+    assert(
+      jsonReviewAfterFinalApprove.job.status === "approved",
+      "approving the remaining json record exposes approved rows for commit",
+    );
+    const finalJsonCommit = await client.json(`/api/import-jobs/${jsonUpload.importJobId}/commit`, {
+      method: "POST",
+    });
+    assert(finalJsonCommit.status === "committed", "json job is committed after all rows finish");
+    assert(finalJsonCommit.committedRecords.length === 1, "final json commit writes remaining row");
 
     const retryUploadBody = "label,value\nRetry NAV,2.001\n";
     const retryUpload = await client.json("/api/source-files", {

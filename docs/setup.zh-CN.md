@@ -120,7 +120,7 @@ email: admin@example.com
 password: correct horse battery staple
 ```
 
-在全新的本地 D1 数据库上，可通过 `Setup` tab 创建或重置 local-only reviewer/admin 账号并登录。之后同一组凭据可通过 `Login` tab 登录。reviewer 账号用于体验 review workflow，admin 账号用于体验用户管理。bootstrap routes 在 `APP_ENV=local` 之外会禁用。
+在全新的本地 D1 数据库上，可通过 `Setup` tab 创建或重置 local-only reviewer/admin 账号并登录。之后同一组凭据可通过 `Login` tab 登录。reviewer 账号用于体验 review workflow，admin 账号用于体验成员与邀请设置。bootstrap routes 在 `APP_ENV=local` 之外会禁用。
 
 ## 7. 验证
 

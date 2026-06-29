@@ -126,13 +126,12 @@ Validation:
 
 1. Duplicate uploads are idempotent by content hash or explicit source key.
 2. Raw file content is not written to logs.
-3. Download access is permission checked.
 
-Current gap:
+Current verification:
 
-1. Download route is not implemented yet.
-2. Browser smoke covers upload UI against local Worker dev.
-3. Integration tests cover authenticated upload, R2 write, D1 metadata, queue dispatch, idempotency, and audit.
+1. Browser smoke covers upload UI against local Worker dev.
+2. Integration tests cover authenticated upload, R2 write, D1 metadata, queue dispatch, idempotency, and audit.
+3. Source download is outside the starter completion contract; apps that add it later must permission-check and audit it in app-owned routes.
 
 ### 3. Import Job
 
@@ -156,12 +155,12 @@ Validation:
 2. Failed jobs are visible.
 3. Job timeline can explain what happened.
 
-Current gap:
+Current verification:
 
 1. Queue processing uses registered text and JSON starter adapters for parse, stage, validate, and commit.
 2. Demo staging and commit tables exist for the examples; real apps still replace them with feature-owned tables.
 3. Failed jobs store failure class/reason and can be manually retried.
-4. DLQ and automatic retry policy are not configured yet.
+4. Queue consumers declare `max_retries` and DLQ names in `apps/worker/wrangler.jsonc`; recovery remains manual through the app/API retry path and DLQ runbook.
 5. Integration tests cover queue -> adapter staging -> review -> adapter commit for both starter adapters and source-missing retry.
 6. Browser flow can use the local-only drain route while Wrangler local Queue consumer behavior is verified separately.
 
@@ -204,7 +203,7 @@ Validation:
 3. Commit is idempotent.
 4. AI advisory output cannot commit without reviewer confirmation.
 
-Current gap:
+Current verification:
 
 1. Worker routes exist for review, approve, reject, commit, and retry.
 2. React review table, source file panel, job list, AI advisory panel, commit action, retry action, and audit timeline load through the API client.
@@ -213,7 +212,7 @@ Current gap:
 5. The demo commit table is intentionally example-owned; real apps must provide their own commit target.
 6. Handler integration covers invite, login, password reset, upload, queue, adapter staging, AI advisory, review approval, adapter commit, duplicate upload, duplicate commit, source-missing retry, and audit visibility.
 7. Browser smoke covers the AI advisory panel by generating a local deterministic advisory, confirming it, and checking the import job event stream.
-8. Additional tests still need to cover more failure classes beyond the current invalid JSON browser path and source-missing integration path.
+8. Additional adapter-specific failure classes should be added with real feature adapters rather than invented in the neutral starter.
 
 ## Initial Issues
 

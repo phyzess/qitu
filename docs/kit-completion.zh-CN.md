@@ -32,13 +32,13 @@ Date: 2026-06-29
 
 最终 kit 必须包括：
 
-1. App-managed auth：invite、accept、login、protected routing、account/logout、admin user management、current user、password reset、session revocation 和 audit events。
+1. App-managed auth：invite、accept、login、protected routing、account/logout、admin member/invitation management、current user、password reset、session revocation 和 audit events。
 2. 最小 RBAC：邀请时分配角色、写路由守卫、只读 viewer、拒绝访问写 audit。
 3. Source file intake：鉴权上传、R2 存储、D1 元数据、import job 创建、audit。
 4. Queue-backed import processing：幂等 job 状态、可见失败、失败分类、retry、audit。
 5. 基于 `ImportFeatureAdapter` 的通用 import/review/commit workflow。
 6. 一条完整 example feature，覆盖 parse、stage、review、approve、commit、audit。
-7. React app shell：login、account、user management、source files、import jobs、review table、audit timeline。
+7. React app shell：login、account、member/invitation settings、source files、import jobs、review table、audit timeline。
 8. 面向数据密集内部工具的业务中立 UI、design tokens 和 chart primitives。
 9. Email abstraction，兼容 Cloudflare invite/reset delivery path。
 10. AI advisory abstraction，存储 advisory output，commit 前需要人工确认。
@@ -63,7 +63,7 @@ Date: 2026-06-29
 
 ## 最近验证
 
-Date: 2026-06-27
+Date: 2026-06-29
 
 Workspace: local filesystem baseline；此证据不依赖 git metadata。
 
@@ -84,9 +84,12 @@ Workspace: local filesystem baseline；此证据不依赖 git metadata。
 3. Worker 使用 app-owned starter adapters，不再依赖可选 `examples/*` package。
 4. RBAC baseline 覆盖 owner/admin/reviewer/viewer、邀请角色、viewer 写拒绝和 `rbac.denied` audit。
 5. Release/upgrade notes 记录当前 baseline 和 cloned app 的安全采用路径。
-6. DLQ remediation 已记录，`ops:failed-jobs` 提供只读 D1 恢复快照。
-7. Audit filtering、selected-event details、invitation revocation、source/job diagnostics、recovery guidance 和 import-to-review route memory 已由 integration 或 browser smoke 覆盖。
+6. DLQ remediation 已记录，`ops:failed-jobs` 提供只读 D1 恢复快照，并在 Wrangler 报告成功后干净退出。
+7. Audit filtering、selected-event details、invitation revocation、source/job diagnostics、recovery guidance 和 import-to-review selected job context 已由 integration 或 browser smoke 覆盖。
 8. Browser smoke 会在 approve/commit 前生成并确认 deterministic AI advisory，然后验证 job event stream 中的 `ai_advisory.confirmed`。
+9. App information architecture 只把 Workspace 和 Settings 暴露为 primary navigation；source/import/review routes 归入 Workspace，account/members/audit 归入 Settings。
+10. Worker integration 覆盖 partial JSON commit 后由 counts 推导 import job status：仍有 pending rows 时 job 保持 review 语义，直到 approved rows 全部 committed。
+11. Deploy dry-run commands 验证 local、preview、production Worker bindings，并通过 Wrangler dry-run wrapper 在 Wrangler 输出 `--dry-run: exiting now.` 后干净退出。
 
 ## 明确不在范围内
 

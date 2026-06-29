@@ -126,10 +126,6 @@ export function stagedStatusForReviewAction(
   return action === "approve" ? "approved" : "rejected";
 }
 
-export function jobStatusAfterRecordDecision(action: ReviewRecordDecisionAction): ImportJobStatus {
-  return action === "approve" ? "approved" : "needs_review";
-}
-
 export function summarizeReviewStatuses(statuses: Iterable<string>): ReviewStatusSummary {
   const summary: ReviewStatusSummary = {
     pending: 0,
@@ -146,6 +142,24 @@ export function summarizeReviewStatuses(statuses: Iterable<string>): ReviewStatu
   }
 
   return summary;
+}
+
+export function jobStatusForReviewSummary(
+  summary: Pick<ReviewStatusSummary, "pending" | "approved" | "committed">,
+): ImportJobStatus {
+  if (summary.approved > 0) {
+    return "approved";
+  }
+
+  if (summary.pending > 0) {
+    return "needs_review";
+  }
+
+  if (summary.committed > 0) {
+    return "committed";
+  }
+
+  return "needs_review";
 }
 
 function assertPositiveRowIndex(rowIndex: number): void {

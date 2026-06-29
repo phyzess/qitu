@@ -59,7 +59,7 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 | `@visx/scale`       |  `4.0.0` | Scales                            |
 | `@visx/tooltip`     |  `4.0.0` | Tooltips                          |
 
-`@qitu/charts` is the single chart abstraction for the starter. The current baseline exports one visx-backed `TimeSeriesChart` primitive and wires it into the React console; future chart types should be added there instead of introducing a second charting stack.
+`@qitu/charts` is the single chart abstraction for the starter. The current baseline exports visx-backed `TimeSeriesChart`, `BarChart`, `DonutChart`, and `ComparisonScatterChart` primitives and wires them into the React console. Future chart types should be added there instead of introducing a second charting stack.
 
 ## Notes
 
@@ -86,4 +86,4 @@ The root `smoke` script runs two layers:
 
 `test:worker-runtime` runs `apps/worker/test/worker-runtime.test.ts` with `@cloudflare/vitest-pool-workers`. The baseline intentionally covers only `/health` and unauthenticated upload rejection so it verifies Workers runtime wiring without duplicating the broader Worker integration script.
 
-`test:unit` is reserved for future package-level unit tests.
+The root `test:unit` command is available for package-level unit tests when a package needs narrower coverage than the current smoke, Worker integration, browser smoke, and Worker runtime checks.
