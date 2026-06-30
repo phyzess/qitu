@@ -918,6 +918,44 @@ button.qitu-command {
   box-shadow: var(--qitu-shadow-overlay);
 }
 
+.qitu-transparent-backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.qitu-overlay-positioner {
+  z-index: var(--qitu-z-overlay);
+}
+
+.qitu-dialog-content,
+.qitu-menu-content,
+.qitu-select-popup {
+  color: var(--qitu-text);
+}
+
+.qitu-command-input {
+  height: 2.5rem;
+  min-height: 2.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  border-color: transparent;
+  padding-inline: 0;
+  background: transparent;
+  font-size: var(--qitu-text-copy-14);
+  line-height: var(--qitu-leading-copy-14);
+  outline: none;
+}
+
+.qitu-command-input:focus {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.qitu-command-input::placeholder {
+  color: var(--qitu-dim);
+}
+
 .qitu-field-control {
   display: block;
   width: 100%;
@@ -934,6 +972,43 @@ button.qitu-command {
     background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
     border-color var(--qitu-motion-fast) var(--qitu-ease-standard),
     box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard);
+}
+
+.qitu-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--qitu-space-o2);
+  text-align: left;
+}
+
+.qitu-select-icon {
+  display: inline-flex;
+  color: var(--qitu-dim);
+}
+
+.qitu-select-popup {
+  z-index: var(--qitu-z-overlay);
+  min-width: var(--anchor-width);
+  max-height: min(18rem, var(--available-height));
+  overflow: auto;
+  padding: var(--qitu-space-o1);
+}
+
+.qitu-select-list {
+  display: grid;
+  gap: var(--qitu-space-o1);
+}
+
+.qitu-select-item {
+  min-height: 2rem;
+  justify-content: space-between;
+  padding: var(--qitu-space-o2) var(--qitu-space-o3);
+}
+
+.qitu-select-item-indicator {
+  display: inline-flex;
+  color: var(--qitu-chroma-active);
 }
 
 .qitu-field-control::placeholder {
@@ -1085,11 +1160,14 @@ button.qitu-command {
 
 .qitu-panel-action:hover,
 .qitu-panel-action:focus-visible,
+.qitu-panel-action[data-highlighted],
 .qitu-panel-action[data-active="true"] {
   background: var(--qitu-surface-row-hover);
   outline: none;
 }
 
+.qitu-panel-action[data-checked],
+.qitu-panel-action[data-selected],
 .qitu-panel-action[data-active="true"],
 .qitu-row-card-active {
   border-color: transparent;

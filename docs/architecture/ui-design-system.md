@@ -23,11 +23,16 @@ The UI should feel:
 ```text
 React
 TanStack Router for app-owned web routes
-shadcn/ui Base UI
+shadcn/ui Base UI through the `base-nova` preset
 Tailwind
 Extend UI inspiration for file/import/review surfaces
 visx-only chart primitives
 ```
+
+The root `components.json` is the executable shadcn contract. It uses
+`style: "base-nova"` and resolves registry output into `packages/ui/src`.
+Interactive qitu primitives are wrappers around `@base-ui/react`; app-owned pages
+must consume `@qitu/ui` and must not import Base UI directly.
 
 ## 3. Package Split
 

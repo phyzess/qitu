@@ -21,11 +21,16 @@ UI 气质：
 ```text
 React
 TanStack Router 用于应用自有 Web 路由
-shadcn/ui Base UI
+shadcn/ui Base UI through the `base-nova` preset
 Tailwind
 Extend UI for file/import/review surfaces
 visx-only chart primitives
 ```
+
+根目录 `components.json` 是可执行的 shadcn contract。它使用
+`style: "base-nova"`，并将 registry 输出解析到 `packages/ui/src`。
+qitu 的交互 primitives 封装 `@base-ui/react`；app-owned 页面必须消费
+`@qitu/ui`，不能直接 import Base UI。
 
 ## 3. Package 分层
 

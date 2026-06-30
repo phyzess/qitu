@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { AnimatedIcon, SectionHeader, StatusBadge, Surface, type AppShellNavItem } from "@qitu/ui";
+import {
+  AnimatedIcon,
+  SectionHeader,
+  SelectField as QituSelectField,
+  StatusBadge,
+  Surface,
+  TextField,
+  type AppShellNavItem,
+} from "@qitu/ui";
 import {
   type AppNavigationPath,
   type AppPrimaryRoute,
@@ -251,17 +259,7 @@ export function Field(props: {
   type?: string;
   value: string;
 }) {
-  return (
-    <label className="qitu-form-field">
-      <span className="qitu-form-label">{props.label}</span>
-      <input
-        className="qitu-field-control"
-        onChange={(event) => props.onChange(event.target.value)}
-        type={props.type ?? "text"}
-        value={props.value}
-      />
-    </label>
-  );
+  return <TextField {...props} />;
 }
 
 export function SelectField(props: {
@@ -270,22 +268,7 @@ export function SelectField(props: {
   options: Array<{ label: string; value: string }>;
   value: string;
 }) {
-  return (
-    <label className="qitu-form-field">
-      <span className="qitu-form-label">{props.label}</span>
-      <select
-        className="qitu-field-control"
-        onChange={(event) => props.onChange(event.target.value)}
-        value={props.value}
-      >
-        {props.options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+  return <QituSelectField {...props} />;
 }
 
 export function ErrorText(props: { children: ReactNode }) {

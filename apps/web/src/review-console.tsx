@@ -5,6 +5,7 @@ import {
   AppShell,
   Button,
   DataState,
+  Input,
   MetricStrip,
   SectionHeader,
   StatusBadge,
@@ -192,7 +193,7 @@ export function ReviewConsole(props: {
               title={t("sources.title")}
             />
             <div className="mt-[var(--qitu-space-s1)] space-y-3">
-              <input ref={props.uploadInputRef} className="qitu-field-control" type="file" />
+              <Input ref={props.uploadInputRef} type="file" />
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={props.isBusy || !props.canUploadSources}

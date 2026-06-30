@@ -1,8 +1,9 @@
+import { Button as BaseButton, type ButtonProps as BaseButtonProps } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "./utils";
 
-const buttonStyles = cva(
+export const buttonStyles = cva(
   "qitu-button-press inline-flex cursor-pointer items-center justify-center gap-[var(--qitu-space-o2)] whitespace-nowrap rounded-[var(--qitu-radius-control)] text-[length:var(--qitu-text-button-12)] font-medium leading-[var(--qitu-leading-button)] transition-[background-color,color,opacity,transform,box-shadow] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qitu-color-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qitu-bg)] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 [&>svg]:-translate-y-px [&>svg]:shrink-0",
   {
     variants: {
@@ -28,12 +29,20 @@ const buttonStyles = cva(
 );
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  VariantProps<typeof buttonStyles>;
+  VariantProps<typeof buttonStyles> & {
+    focusableWhenDisabled?: boolean | undefined;
+    nativeButton?: true | undefined;
+    render?: BaseButtonProps["render"] | undefined;
+  };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+export const Button = forwardRef<HTMLElement, ButtonProps>(
   ({ className, size, variant, ...props }, ref) => {
     return (
-      <button ref={ref} className={cn(buttonStyles({ size, variant }), className)} {...props} />
+      <BaseButton
+        ref={ref}
+        className={cn(buttonStyles({ size, variant }), className)}
+        {...(props as BaseButtonProps)}
+      />
     );
   },
 );

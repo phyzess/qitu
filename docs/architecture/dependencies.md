@@ -20,34 +20,35 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 
 ## Tooling
 
-| Package                           |    Version | Use                                               |
-| --------------------------------- | ---------: | ------------------------------------------------- |
-| `pnpm`                            |   `11.5.2` | Workspace package manager                         |
-| `typescript`                      | `7.0.1-rc` | Official TypeScript 7 RC through `typescript@rc`  |
-| `vite-plus`                       |    `0.2.1` | VoidZero toolchain command surface                |
-| `vite`                            |   `8.0.16` | Vite plugin peer and client types for the web app |
-| `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI                   |
-| `@playwright/test`                |   `1.61.0` | Scripted browser smoke for the first slice        |
-| `vitest`                          |    `4.1.9` | Worker runtime smoke tests                        |
-| `@vitest/runner`                  |    `4.1.9` | Explicit peer for Worker runtime test pool        |
-| `@vitest/snapshot`                |    `4.1.9` | Explicit peer for Worker runtime test pool        |
-| `@types/node`                     |   `26.0.0` | Node.js compatibility typings                     |
-| `@cloudflare/vite-plugin`         |   `1.42.1` | Cloudflare Vite integration candidate             |
-| `@cloudflare/vitest-pool-workers` |  `0.16.18` | Official Cloudflare Worker runtime test pool      |
-| `drizzle-kit`                     |  `0.31.10` | Migration generation candidate                    |
+| Package                           |    Version | Use                                                             |
+| --------------------------------- | ---------: | --------------------------------------------------------------- |
+| `pnpm`                            |   `11.5.2` | Workspace package manager                                       |
+| `typescript`                      | `7.0.1-rc` | Official TypeScript 7 RC through `typescript@rc`                |
+| `vite-plus`                       |    `0.2.1` | VoidZero toolchain command surface                              |
+| `vite`                            |   `8.0.16` | Vite plugin peer and client types for the web app               |
+| `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI                                 |
+| `@playwright/test`                |   `1.61.0` | Scripted browser smoke for the first slice                      |
+| `tslib`                           |    `2.8.1` | Runtime helper needed by the pinned shadcn CLI dependency chain |
+| `vitest`                          |    `4.1.9` | Worker runtime smoke tests                                      |
+| `@vitest/runner`                  |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
+| `@vitest/snapshot`                |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
+| `@types/node`                     |   `26.0.0` | Node.js compatibility typings                                   |
+| `@cloudflare/vite-plugin`         |   `1.42.1` | Cloudflare Vite integration candidate                           |
+| `@cloudflare/vitest-pool-workers` |  `0.16.18` | Official Cloudflare Worker runtime test pool                    |
+| `drizzle-kit`                     |  `0.31.10` | Migration generation candidate                                  |
 
 ## UI
 
-| Package                     |      Version | Use                                 |
-| --------------------------- | -----------: | ----------------------------------- |
-| `tailwindcss`               |      `4.3.1` | Styling                             |
-| `@tailwindcss/vite`         |      `4.3.1` | Tailwind Vite plugin                |
-| `shadcn`                    |     `4.11.0` | Component CLI and registry workflow |
-| `@base-ui-components/react` | `1.0.0-rc.0` | Unstyled accessible primitives      |
-| `lucide-react`              |     `1.21.0` | Icons                               |
-| `clsx`                      |      `2.1.1` | Class composition                   |
-| `tailwind-merge`            |      `3.6.0` | Tailwind class merge                |
-| `class-variance-authority`  |      `0.7.1` | Component variants                  |
+| Package                    |  Version | Use                                  |
+| -------------------------- | -------: | ------------------------------------ |
+| `tailwindcss`              |  `4.3.1` | Styling                              |
+| `@tailwindcss/vite`        |  `4.3.1` | Tailwind Vite plugin                 |
+| `shadcn`                   | `4.11.0` | Component CLI and registry workflow  |
+| `@base-ui/react`           |  `1.6.0` | shadcn Base UI accessible primitives |
+| `lucide-react`             | `1.21.0` | Icons                                |
+| `clsx`                     |  `2.1.1` | Class composition                    |
+| `tailwind-merge`           |  `3.6.0` | Tailwind class merge                 |
+| `class-variance-authority` |  `0.7.1` | Component variants                   |
 
 ## Charts
 

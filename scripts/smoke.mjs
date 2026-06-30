@@ -40,6 +40,7 @@ function assert(condition, message) {
 }
 
 const packageJson = JSON.parse(text("package.json"));
+const componentsConfig = JSON.parse(text("components.json"));
 const workerPackageJson = JSON.parse(text("apps/worker/package.json"));
 const appTemplateManifest = JSON.parse(text("templates/app/manifest.json"));
 const workspace = text("pnpm-workspace.yaml");
@@ -58,6 +59,7 @@ const emailPackage = text("packages/email/src/index.ts");
 const i18nPackage = text("packages/i18n/src/index.ts");
 const rbacPackage = text("packages/rbac/src/index.ts");
 const workerSources = sourceTextUnder("apps/worker/src");
+const uiSources = sourceTextUnder("packages/ui/src");
 const workerAiAdvisoryStore = text("apps/worker/src/ai-advisory-store.ts");
 const workerEmailDelivery = text("apps/worker/src/email-delivery.ts");
 const workerImportAdapters = text("apps/worker/src/import-adapters.ts");
@@ -80,6 +82,7 @@ const envExample = text(".env.example");
 const workerDevVarsExample = text("apps/worker/.dev.vars.example");
 const workerPackage = JSON.parse(text("apps/worker/package.json"));
 const webPackage = JSON.parse(text("apps/web/package.json"));
+const uiPackage = JSON.parse(text("packages/ui/package.json"));
 const templateFeaturePackage = JSON.parse(text("templates/feature/package.json"));
 const coreMigration = [
   text("apps/worker/migrations/0001_core.sql"),
@@ -172,6 +175,51 @@ assert(
   "@playwright/test must stay pinned to 1.61.0.",
 );
 assert(
+  packageJson.devDependencies.shadcn === "4.11.0",
+  "shadcn CLI must stay pinned to 4.11.0 for the recorded UI registry workflow.",
+);
+assert(
+  packageJson.devDependencies.tslib === "2.8.1",
+  "tslib must stay pinned so the local shadcn CLI dependency chain can execute.",
+);
+assert(
+  packageJson.scripts["ui:add"] === "shadcn add --cwd ." &&
+    packageJson.scripts["ui:info"] === "shadcn info --cwd .",
+  "root package scripts must expose the shadcn registry workflow.",
+);
+assert(
+  exists("components.json") &&
+    componentsConfig.style === "base-nova" &&
+    componentsConfig.rsc === false &&
+    componentsConfig.tsx === true &&
+    componentsConfig.tailwind?.css === "packages/ui/src/styles.css" &&
+    componentsConfig.aliases?.ui === "@/components",
+  "components.json must configure shadcn base-nova output into packages/ui.",
+);
+assert(
+  uiPackage.dependencies["@base-ui/react"] === "1.6.0" &&
+    !("@base-ui-components/react" in uiPackage.dependencies),
+  "@qitu/ui must use the shadcn Base UI package, not the old @base-ui-components RC package.",
+);
+assert(
+  uiSources.includes("@base-ui/react/button") &&
+    uiSources.includes("@base-ui/react/dialog") &&
+    uiSources.includes("@base-ui/react/menu") &&
+    uiSources.includes("@base-ui/react/field") &&
+    uiSources.includes("@base-ui/react/input") &&
+    uiSources.includes("@base-ui/react/select"),
+  "@qitu/ui primitives must be backed by Base UI source imports.",
+);
+assert(
+  !webSources.includes("@base-ui/react") && !webSources.includes("@base-ui-components/react"),
+  "apps/web must consume qitu UI primitives instead of importing Base UI directly.",
+);
+assert(
+  !uiSources.includes("@base-ui-components/react") &&
+    !webSources.includes("@base-ui-components/react"),
+  "the old @base-ui-components/react package must not reappear in source.",
+);
+assert(
   packageJson.scripts.smoke.includes("worker-integration.mjs"),
   "smoke script must run Worker integration.",
 );
@@ -208,6 +256,13 @@ assert(
 assert(
   tsconfig.includes("./examples/json-records"),
   "root tsconfig must reference examples/json-records.",
+);
+assert(tsconfig.includes("tsconfig.base.json"), "root tsconfig must extend the base config.");
+assert(
+  baseTsconfig.includes('"@/components": ["./packages/ui/src"]') &&
+    baseTsconfig.includes('"@/components/ui": ["./packages/ui/src"]') &&
+    baseTsconfig.includes('"@/lib/utils": ["./packages/ui/src/utils.ts"]'),
+  "base tsconfig must expose shadcn aliases to packages/ui.",
 );
 assert(tsconfig.includes("./templates/feature"), "root tsconfig must reference templates/feature.");
 assert(tsconfig.includes("./packages/i18n"), "root tsconfig must reference packages/i18n.");

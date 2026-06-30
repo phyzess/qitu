@@ -481,6 +481,23 @@ Import job status 在 review 和 commit 动作后由 staged-record status counts
 
 Starter 支持只提交 approved rows，但旧 helper 把最后一次 record decision 当作整个 job state。多记录导入时，这会让仍有 pending records 的 job 看起来已整体 approved 或 committed。由 counts 推导状态，可以保持 workflow 真实，同时不预造新的 terminal states。
 
+### Shadcn Base UI Execution Contract
+
+Decision:
+
+让 shadcn/Base UI 方向成为可执行契约，而不是只停留在文档里：
+
+1. 在 workspace root 固定 `shadcn@4.11.0`，并暴露 `vp run ui:add` / `vp run ui:info`。
+2. 根目录 `components.json` 使用 shadcn `base-nova` preset。
+3. 通过 root TypeScript aliases 将 shadcn registry 输出解析到 `packages/ui/src`。
+4. 使用 `shadcn@4.11.0 --base base` 实际生成的 Base UI package：`@base-ui/react@1.6.0`，不再使用旧的 `@base-ui-components/react` RC 包。
+5. App 页面继续只消费 `@qitu/ui`；Base UI imports 只属于 reusable qitu UI primitives。
+6. 如果 shadcn config、Base UI imports 或 package pins 偏离这个 contract，smoke checks 必须失败。
+
+原因：
+
+此前实现只把 shadcn/Base UI 记录成方向，但 app code 仍在手写交互 primitives，旧 Base UI 依赖也没有真正使用。这让 design-system baseline 无法执行。Starter 需要可运行的 registry path、可访问 primitive backing，以及不让 app 页面绕过 `packages/ui` 的 package boundary。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

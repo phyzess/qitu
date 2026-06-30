@@ -195,7 +195,9 @@ assert(existsSync(join(root, "apps/web/src/i18n/locales.ts")), "web i18n locales
 assert(existsSync(join(root, "apps/web/src/i18n/messages.ts")), "web i18n messages must be split.");
 assert(
   webRuntimeSource.includes("function LanguageSelector") &&
-    webRuntimeSource.includes('role="menuitemradio"') &&
+    webRuntimeSource.includes("MenuRadioGroup") &&
+    webRuntimeSource.includes("MenuRadioItem") &&
+    webRuntimeSource.includes("localeOptions.map") &&
     !webRuntimeSource.includes("cycleLocale"),
   "web language control must present explicit locale choices instead of one-click cycling.",
 );

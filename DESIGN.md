@@ -75,6 +75,11 @@ Runtime UI uses sans-serif fonts only. Document/report exports may use serif tok
 
 App-owned pages may compose those primitives, but should not duplicate shell or design-token behavior.
 
+Interactive primitives follow the shadcn Base UI execution path: the root
+`components.json` uses the `base-nova` preset, registry output resolves into
+`packages/ui/src`, and reusable components wrap `@base-ui/react`. App pages
+consume `@qitu/ui` instead of importing Base UI directly.
+
 ## Charts
 
 `packages/charts` is the only chart abstraction. App pages must not import `@visx/*` directly.

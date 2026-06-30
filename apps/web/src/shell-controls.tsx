@@ -1,8 +1,25 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AnimatedIcon, Button, cn, StatusBadge } from "@qitu/ui";
+import { useEffect, useMemo, useRef } from "react";
+import {
+  AnimatedIcon,
+  Button,
+  cn,
+  DialogClose,
+  DialogContent,
+  DialogRoot,
+  Input,
+  MenuContent,
+  MenuGroupLabel,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuRadioItemIndicator,
+  MenuRoot,
+  MenuTrigger,
+  PanelActionButton,
+  StatusBadge,
+} from "@qitu/ui";
 import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
 import { routePath, type AppNavigationPath } from "./app-routes";
-import { localeOptions, useI18n } from "./i18n";
+import { localeOptions, useI18n, type Locale } from "./i18n";
 import { useTheme } from "./theme";
 import type { ApiUser } from "./types";
 
@@ -48,76 +65,46 @@ export function LanguageSelector(props: {
   compact?: boolean | undefined;
 }) {
   const { locale, localeMeta, setLocale, t } = useI18n();
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
   const currentLabel = t("language.current", { label: localeMeta.label });
   const title = `${t("language.choose")}. ${currentLabel}`;
 
-  useEffect(() => {
-    if (!open) return undefined;
-
-    function handlePointerDown(event: PointerEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
   return (
-    <div className="relative inline-flex" ref={rootRef}>
-      <Button
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={title}
-        className={cn(props.compact ? "size-8 px-0" : undefined, props.className)}
-        size="sm"
-        title={title}
-        variant="ghost"
-        onClick={() => setOpen((current) => !current)}
-      >
-        <AnimatedIcon name="language" size={15} />
-        <span className={props.compact ? "sr-only" : undefined}>
-          {props.compact ? t("language.choose") : localeMeta.shortLabel}
-        </span>
-        {props.compact ? null : <ChevronDown aria-hidden="true" size={13} />}
-      </Button>
-      {open ? (
-        <div
-          aria-label={t("language.menuTitle")}
-          className="qitu-surface qitu-overlay-surface absolute right-0 top-[calc(100%+var(--qitu-space-s0))] z-[var(--qitu-z-overlay)] w-44 overflow-hidden p-1"
-          role="menu"
+    <MenuRoot modal={false}>
+      <MenuTrigger
+        render={
+          <Button
+            aria-label={title}
+            className={cn(props.compact ? "size-8 px-0" : undefined, props.className)}
+            size="sm"
+            title={title}
+            variant="ghost"
+          >
+            <AnimatedIcon name="language" size={15} />
+            <span className={props.compact ? "sr-only" : undefined}>
+              {props.compact ? t("language.choose") : localeMeta.shortLabel}
+            </span>
+            {props.compact ? null : <ChevronDown aria-hidden="true" size={13} />}
+          </Button>
+        }
+      />
+      <MenuContent aria-label={t("language.menuTitle")} className="w-44">
+        <MenuRadioGroup
+          value={locale}
+          onValueChange={(value) => {
+            setLocale(value as Locale);
+          }}
         >
-          <div className="px-2 py-1 text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-            {currentLabel}
-          </div>
+          <MenuGroupLabel>{currentLabel}</MenuGroupLabel>
           {localeOptions.map((option) => {
             const selected = option.id === locale;
             return (
-              <button
+              <MenuRadioItem
                 aria-label={
                   selected ? t("language.optionSelected", { label: option.label }) : option.label
                 }
-                aria-checked={selected}
-                className="qitu-panel-action min-h-9 w-full px-2 py-1 text-left"
+                className="min-h-9 w-full px-2 py-1"
                 key={option.id}
-                role="menuitemradio"
-                type="button"
-                onClick={() => {
-                  setLocale(option.id);
-                  setOpen(false);
-                }}
+                value={option.id}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[length:var(--qitu-text-label-13)] font-medium leading-[var(--qitu-leading-label-14)]">
@@ -127,15 +114,15 @@ export function LanguageSelector(props: {
                     {option.id}
                   </span>
                 </span>
-                {selected ? (
+                <MenuRadioItemIndicator>
                   <Check className="shrink-0 text-[var(--qitu-chroma-active)]" size={14} />
-                ) : null}
-              </button>
+                </MenuRadioItemIndicator>
+              </MenuRadioItem>
             );
           })}
-        </div>
-      ) : null}
-    </div>
+        </MenuRadioGroup>
+      </MenuContent>
+    </MenuRoot>
   );
 }
 
@@ -168,52 +155,35 @@ export function WorkspaceSearchDialog(props: {
     return () => window.cancelAnimationFrame(id);
   }, [props.open]);
 
-  useEffect(() => {
-    if (!props.open) return undefined;
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        props.onOpenChange(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [props.open, props.onOpenChange]);
-
-  if (!props.open) return null;
-
   return (
-    <div
-      className="qitu-overlay-backdrop fixed inset-0 grid place-items-start px-4 py-[10vh]"
-      role="presentation"
-      onMouseDown={() => props.onOpenChange(false)}
-    >
-      <section
+    <DialogRoot open={props.open} onOpenChange={(open) => props.onOpenChange(open)}>
+      <DialogContent
         aria-label={t("search.title")}
-        className="qitu-surface qitu-overlay-surface mx-auto w-full max-w-2xl overflow-hidden"
-        role="dialog"
-        onMouseDown={(event) => event.stopPropagation()}
+        className="fixed left-1/2 top-[10vh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 overflow-hidden"
+        initialFocus={inputRef}
       >
         <div className="flex items-center gap-3 bg-[var(--qitu-surface-row)] px-[var(--qitu-space-s1)] py-[var(--qitu-space-s0)]">
           <AnimatedIcon className="shrink-0 text-[var(--qitu-dim)]" name="search" size={16} />
-          <input
+          <Input
             ref={inputRef}
-            className="h-10 min-w-0 flex-1 bg-transparent text-[length:var(--qitu-text-copy-14)] text-[var(--qitu-text)] outline-none placeholder:text-[var(--qitu-dim)]"
+            className="qitu-command-input"
             placeholder={t("search.placeholder")}
             value={props.query}
-            onChange={(event) => props.onQueryChange(event.target.value)}
+            onValueChange={props.onQueryChange}
           />
-          <Button
-            aria-label={t("action.closeSearch")}
-            className="size-8 px-0"
-            size="sm"
-            title={t("action.closeSearch")}
-            variant="ghost"
-            onClick={() => props.onOpenChange(false)}
-          >
-            <X size={15} />
-          </Button>
+          <DialogClose
+            render={
+              <Button
+                aria-label={t("action.closeSearch")}
+                className="size-8 px-0"
+                size="sm"
+                title={t("action.closeSearch")}
+                variant="ghost"
+              >
+                <X size={15} />
+              </Button>
+            }
+          />
         </div>
         <div className="max-h-[min(520px,62vh)] overflow-y-auto p-2">
           {filteredEntries.length === 0 ? (
@@ -223,39 +193,31 @@ export function WorkspaceSearchDialog(props: {
           ) : (
             <div className="space-y-1">
               {filteredEntries.map((entry) => (
-                <button
-                  className="qitu-panel-action w-full text-left"
+                <PanelActionButton
                   data-search-entry-id={entry.id}
+                  icon={<AnimatedIcon name="search" size={14} />}
                   key={entry.id}
-                  type="button"
+                  label={entry.label}
+                  trailing={<ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />}
                   onClick={() => {
                     props.onOpenChange(false);
                     props.onQueryChange("");
                     entry.onSelect();
                   }}
                 >
-                  <span className="qitu-icon-chip size-8">
-                    <AnimatedIcon name="search" size={14} />
+                  <span className="block truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
+                    {t("search.descriptionSeparator", {
+                      description: entry.description,
+                      group: entry.group,
+                    })}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
-                      {entry.label}
-                    </span>
-                    <span className="block truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-                      {t("search.descriptionSeparator", {
-                        description: entry.description,
-                        group: entry.group,
-                      })}
-                    </span>
-                  </span>
-                  <ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />
-                </button>
+                </PanelActionButton>
               ))}
             </div>
           )}
         </div>
-      </section>
-    </div>
+      </DialogContent>
+    </DialogRoot>
   );
 }
 
@@ -271,23 +233,15 @@ export function UserPanel(props: {
 }) {
   const { formatStatus, roleLabel, t } = useI18n();
 
-  if (!props.open) return null;
-
   const displayName = props.user.displayName ?? props.user.email;
   const initial = displayName.slice(0, 1).toUpperCase();
 
   return (
-    <>
-      <div
-        className="qitu-dismiss-layer fixed inset-0"
-        role="presentation"
-        onMouseDown={props.onClose}
-      />
-      <section
+    <DialogRoot modal={false} open={props.open} onOpenChange={(open) => !open && props.onClose()}>
+      <DialogContent
         aria-label={t("user.openPanel", { name: displayName })}
-        aria-modal="true"
-        className="qitu-surface qitu-overlay-surface fixed right-[var(--qitu-layout-gutter)] top-[calc(var(--qitu-size-bar)+var(--qitu-space-s2))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
-        role="dialog"
+        backdropClassName="qitu-dismiss-layer qitu-transparent-backdrop"
+        className="fixed right-[var(--qitu-layout-gutter)] top-[calc(var(--qitu-size-bar)+var(--qitu-space-s2))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden"
       >
         <div className="flex items-start gap-3 bg-[var(--qitu-surface-row)] p-[var(--qitu-space-s1)]">
           <div className="qitu-avatar-mark size-10 shrink-0 text-[length:var(--qitu-text-label-14)] font-semibold">
@@ -308,20 +262,22 @@ export function UserPanel(props: {
         </div>
 
         <div className="grid gap-1 p-2">
-          <PanelAction
+          <PanelActionButton
             description={t("user.accountDescription")}
             icon={<AnimatedIcon name="settings" size={15} />}
             label={t("user.accountSettings")}
+            trailing={<ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />}
             onClick={() => {
               props.onClose();
               props.onNavigate(routePath("account"));
             }}
           />
           {props.canManageUsers ? (
-            <PanelAction
+            <PanelActionButton
               description={t("user.managementDescription")}
               icon={<AnimatedIcon name="users" size={15} />}
               label={t("user.managementTitle")}
+              trailing={<ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />}
               onClick={() => {
                 props.onClose();
                 props.onNavigate(routePath("users"));
@@ -344,29 +300,7 @@ export function UserPanel(props: {
             </Button>
           </div>
         </div>
-      </section>
-    </>
-  );
-}
-
-function PanelAction(props: {
-  description: string;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button className="qitu-panel-action w-full text-left" type="button" onClick={props.onClick}>
-      <span className="qitu-icon-chip size-8">{props.icon}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
-          {props.label}
-        </span>
-        <span className="block truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-          {props.description}
-        </span>
-      </span>
-      <ArrowRight className="shrink-0 text-[var(--qitu-dim)]" size={14} />
-    </button>
+      </DialogContent>
+    </DialogRoot>
   );
 }
