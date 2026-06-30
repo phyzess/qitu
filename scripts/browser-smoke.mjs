@@ -1,10 +1,13 @@
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 import process from "node:process";
 import { chromium, expect } from "@playwright/test";
 
 const root = process.cwd();
 const webUrl = "http://localhost:5173";
-const workerHealthUrl = "http://127.0.0.1:8787/health";
+const workerPort = process.env.QITU_WORKER_PORT ?? (await findOpenPort());
+const workerUrl = `http://127.0.0.1:${workerPort}`;
+const workerHealthUrl = `${workerUrl}/health`;
 const vp = process.platform === "win32" ? "vp.cmd" : "vp";
 const serverLog = [];
 const maxLogLines = 160;
@@ -15,6 +18,8 @@ const server = spawn(vp, ["run", "dev:all"], {
   env: {
     ...process.env,
     CI: "1",
+    QITU_WORKER_ORIGIN: workerUrl,
+    QITU_WORKER_PORT: workerPort,
   },
   stdio: ["ignore", "pipe", "pipe"],
   shell: false,
@@ -288,7 +293,7 @@ async function runBrowserSmoke() {
 }
 
 async function postWorkerJson(path, body) {
-  const response = await fetch(`http://127.0.0.1:8787${path}`, {
+  const response = await fetch(`${workerUrl}${path}`, {
     method: "POST",
     body: JSON.stringify(body),
     headers: {
@@ -301,6 +306,24 @@ async function postWorkerJson(path, body) {
   }
 
   return response.json();
+}
+
+async function findOpenPort() {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close(() => reject(new Error("Unable to allocate a local Worker port.")));
+        return;
+      }
+
+      const port = String(address.port);
+      server.close(() => resolve(port));
+    });
+  });
 }
 
 async function launchChromium() {

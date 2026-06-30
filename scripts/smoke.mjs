@@ -39,6 +39,14 @@ function assert(condition, message) {
   if (!condition) failures.push(message);
 }
 
+function collectMatches(source, pattern) {
+  const values = new Set();
+  for (const match of source.matchAll(pattern)) {
+    values.add(match[1]);
+  }
+  return values;
+}
+
 const packageJson = JSON.parse(text("package.json"));
 const componentsConfig = JSON.parse(text("components.json"));
 const workerPackageJson = JSON.parse(text("apps/worker/package.json"));
@@ -70,10 +78,12 @@ const webApi = text("apps/web/src/api.ts");
 const webTypes = text("apps/web/src/types.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
 const workerIntegration = text("scripts/worker-integration.mjs");
+const devAllScript = text("scripts/dev-all.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
 const i18nCheck = text("scripts/i18n-check.mjs");
+const wranglerDevLocalScript = text("scripts/wrangler-dev-local.mjs");
 const wranglerTypesScript = text("scripts/wrangler-types.mjs");
 const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
@@ -84,6 +94,9 @@ const workerPackage = JSON.parse(text("apps/worker/package.json"));
 const webPackage = JSON.parse(text("apps/web/package.json"));
 const uiPackage = JSON.parse(text("packages/ui/package.json"));
 const templateFeaturePackage = JSON.parse(text("templates/feature/package.json"));
+const designTokens = text("packages/design-system/src/tokens.css");
+const uiStyles = text("packages/ui/src/styles.css");
+const webStyles = text("apps/web/src/styles.css");
 const coreMigration = [
   text("apps/worker/migrations/0001_core.sql"),
   text("apps/worker/migrations/0002_intake_reliability.sql"),
@@ -133,6 +146,23 @@ assert(
     packageJson.scripts["dev:web"] === "vp dev apps/web --host 0.0.0.0" &&
     packageJson.scripts["dev:all"] === "node scripts/dev-all.mjs",
   "default dev command must start the full local stack, with dev:web reserved for web-only debugging.",
+);
+assert(
+  workerPackageJson.scripts.dev === "node ../../scripts/wrangler-dev-local.mjs" &&
+    wranglerDevLocalScript.includes("QITU_WORKER_PORT") &&
+    wranglerDevLocalScript.includes('"--port"'),
+  "worker dev must route through a local Wrangler wrapper that honors QITU_WORKER_PORT.",
+);
+assert(
+  devAllScript.includes('"@qitu/web"') &&
+    devAllScript.includes('"@qitu/worker"') &&
+    browserSmoke.includes("findOpenPort") &&
+    browserSmoke.includes("QITU_WORKER_PORT") &&
+    browserSmoke.includes("QITU_WORKER_ORIGIN") &&
+    webViteConfig.includes("QITU_WORKER_ORIGIN") &&
+    webViteConfig.includes("QITU_WORKER_PORT") &&
+    !browserSmoke.includes("http://127.0.0.1:8787${path}"),
+  "browser smoke and Vite proxy must share the same Worker origin instead of hard-coding port 8787.",
 );
 assert(
   packageJson.devDependencies.typescript === "7.0.1-rc",
@@ -218,6 +248,27 @@ assert(
   !uiSources.includes("@base-ui-components/react") &&
     !webSources.includes("@base-ui-components/react"),
   "the old @base-ui-components/react package must not reappear in source.",
+);
+const qituTokenDefinitions = collectMatches(
+  [designTokens, uiStyles, webStyles].join("\n"),
+  /(--qitu-[A-Za-z0-9_-]+)\s*:/g,
+);
+const qituTokenUsages = collectMatches(
+  [designTokens, uiStyles, webStyles, uiSources, webSources, chartsPackage].join("\n"),
+  /var\((--qitu-[A-Za-z0-9_-]+)/g,
+);
+const undefinedQituTokens = [...qituTokenUsages].filter(
+  (token) => !qituTokenDefinitions.has(token),
+);
+assert(
+  undefinedQituTokens.length === 0,
+  `all consumed qitu CSS tokens must be defined. Missing: ${undefinedQituTokens.join(", ")}`,
+);
+assert(
+  designTokens.includes("--qitu-chroma-active") &&
+    uiStyles.includes("background: var(--qitu-chroma-active);") &&
+    uiStyles.includes("box-shadow: inset 0 -1px 0 var(--qitu-chroma-active);"),
+  "qitu active navigation indicators must use the canonical --qitu-chroma-active token.",
 );
 assert(
   packageJson.scripts.smoke.includes("worker-integration.mjs"),
@@ -688,12 +739,12 @@ assert(
   "AI advisory routes must persist suggestions, audit human decisions, and stay advisory-only.",
 );
 assert(
-  webViteConfig.includes('"/api": "http://127.0.0.1:8787"'),
-  "web dev server must proxy /api to local Worker dev.",
+  webViteConfig.includes('"/api": workerOrigin'),
+  "web dev server must proxy /api to the configured local Worker origin.",
 );
 assert(
-  webViteConfig.includes('"/health": "http://127.0.0.1:8787"'),
-  "web dev server must proxy /health to local Worker dev.",
+  webViteConfig.includes('"/health": workerOrigin'),
+  "web dev server must proxy /health to the configured local Worker origin.",
 );
 assert(
   webApi.includes('credentials: "include"') &&

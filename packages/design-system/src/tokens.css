@@ -69,6 +69,7 @@
     var(--qitu-brand-accent) 13%,
     var(--qitu-color-card)
   );
+  --qitu-chroma-active: var(--qitu-brand-accent);
 
   --qitu-chroma-lime: oklch(0.606 0.106 169.9);
   --qitu-chroma-lime-card: color-mix(in oklch, var(--qitu-chroma-lime) 20%, var(--qitu-color-card));
@@ -239,6 +240,7 @@
   --qitu-brand-accent: oklch(0.701 0.151 4.4);
   --qitu-brand-accent-ink: oklch(0.82 0.09 4);
   --qitu-brand-accent-soft: color-mix(in oklch, var(--qitu-brand-accent) 22%, transparent);
+  --qitu-chroma-active: var(--qitu-brand-accent);
   --qitu-chroma-lime: oklch(0.694 0.055 153.4);
   --qitu-chroma-lime-card: color-mix(in oklch, var(--qitu-chroma-lime) 24%, transparent);
   --qitu-chroma-lime-soft: color-mix(in oklch, var(--qitu-chroma-lime) 18%, transparent);

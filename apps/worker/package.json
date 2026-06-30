@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --local",
+    "dev": "node ../../scripts/wrangler-dev-local.mjs",
     "cf:typegen": "node ../../scripts/wrangler-types.mjs",
     "db:migrate:local": "node ../../scripts/wrangler-d1-migrate-local.mjs",
     "db:migrate:remote": "vp run db:migrate:preview",
