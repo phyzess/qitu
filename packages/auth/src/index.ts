@@ -1,7 +1,17 @@
 import * as v from "valibot";
 
 export const EmailSchema = v.pipe(v.string(), v.email());
-export const PasswordSchema = v.pipe(v.string(), v.minLength(12));
+export const authPasswordPolicy = {
+  minLength: 12,
+} as const;
+export const minimumPasswordLength = authPasswordPolicy.minLength;
+export const PasswordSchema = v.pipe(
+  v.string(),
+  v.minLength(
+    minimumPasswordLength,
+    `Password must be at least ${minimumPasswordLength} characters.`,
+  ),
+);
 
 export const InviteStatusSchema = v.picklist(["pending", "accepted", "expired", "revoked"]);
 export const PasswordResetStatusSchema = v.picklist(["pending", "used", "expired", "revoked"]);

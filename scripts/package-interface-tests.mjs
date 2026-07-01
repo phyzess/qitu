@@ -25,6 +25,7 @@ const server = await createServer({
 });
 
 try {
+  const auth = await server.ssrLoadModule("/packages/auth/src/index.ts");
   const importPipeline = await server.ssrLoadModule("/packages/import-pipeline/src/index.ts");
   const db = await server.ssrLoadModule("/packages/db/src/index.ts");
   const i18n = await server.ssrLoadModule("/packages/i18n/src/index.ts");
@@ -32,6 +33,11 @@ try {
   const templateFeature = await server.ssrLoadModule("/templates/feature/src/registry.ts");
   const webApi = await server.ssrLoadModule("/apps/web/src/api.ts");
 
+  assert(
+    auth.minimumPasswordLength === 12 &&
+      auth.authPasswordPolicy.minLength === auth.minimumPasswordLength,
+    "auth package must expose shared password policy constants.",
+  );
   assert(
     importPipeline.createManualReviewIssue().code === "manual_review_required",
     "import-pipeline must create the default confirmation gate issue.",

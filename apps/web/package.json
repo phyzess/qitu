@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@qitu/auth": "workspace:*",
     "@qitu/charts": "workspace:*",
     "@qitu/design-system": "workspace:*",
     "@qitu/i18n": "workspace:*",

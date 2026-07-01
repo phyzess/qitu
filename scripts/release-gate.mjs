@@ -4,6 +4,7 @@ import process from "node:process";
 const targets = {
   preview: {
     appUrlVars: ["QITU_PREVIEW_APP_URL", "QITU_PUBLIC_APP_URL", "QITU_HEALTH_URL"],
+    internalUrlVars: ["QITU_PREVIEW_WORKER_URL", "QITU_PREVIEW_WORKERS_DEV_URL"],
     steps: [
       ["vp", "run", "verify:kit"],
       ["vp", "run", "deploy:preview:dry-run"],
@@ -14,6 +15,7 @@ const targets = {
   },
   production: {
     appUrlVars: ["QITU_PRODUCTION_APP_URL", "QITU_PUBLIC_APP_URL", "QITU_HEALTH_URL"],
+    internalUrlVars: ["QITU_PRODUCTION_WORKER_URL", "QITU_PRODUCTION_WORKERS_DEV_URL"],
     steps: [
       ["vp", "run", "verify:kit"],
       ["vp", "run", "deploy:production:dry-run"],
@@ -50,6 +52,7 @@ try {
   for (const [command, ...args] of steps) {
     await run(command, args);
   }
+  await runOptionalInternalHealthChecks(options.target, config);
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }
@@ -127,6 +130,7 @@ function withFailedJobLimit(steps, limit) {
 function printPlan(target, config, steps) {
   console.log(`Release gate target: ${target}`);
   console.log(`Required app URL env: one of ${config.appUrlVars.join(", ")}`);
+  console.log(`Optional internal health URL env: one of ${config.internalUrlVars.join(", ")}`);
   console.log("Steps:");
   for (const step of steps) {
     console.log(`- ${formatStep(step)}`);
@@ -139,6 +143,32 @@ function formatStep(step) {
 
 function hasAnyEnv(names) {
   return names.some((name) => Boolean(process.env[name]?.trim()));
+}
+
+async function runOptionalInternalHealthChecks(target, config) {
+  const internalUrl = firstEnv(config.internalUrlVars);
+  if (!internalUrl) {
+    console.log(`No internal Worker health URL configured for ${target}; skipping optional check.`);
+    return;
+  }
+
+  await run("node", [
+    "scripts/health-check.mjs",
+    target,
+    "--url",
+    internalUrl,
+    "--expect-env",
+    target,
+  ]);
+}
+
+function firstEnv(names) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+
+  return null;
 }
 
 function run(command, args) {

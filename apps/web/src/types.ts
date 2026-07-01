@@ -15,7 +15,21 @@ export type InvitationSummary = {
   createdAt: string;
   createdBy?: string;
   acceptedAt?: string | null;
+  latestEmailErrorMessage?: string | null;
+  latestEmailMessageId?: string | null;
+  latestEmailProviderMessageId?: string | null;
+  latestEmailStatus?: string | null;
   revokedAt?: string | null;
+};
+
+export type EmailDeliverySummary = {
+  emailMessageId: string;
+  errorMessage?: string;
+  mode: string;
+  provider: string;
+  providerMessageId?: string;
+  sentAt?: string;
+  status: string;
 };
 
 export type SourceFile = {

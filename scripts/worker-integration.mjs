@@ -103,6 +103,47 @@ async function main() {
       "bootstrap_disabled",
     );
 
+    const failingEmailEnv = await createTestEnv({
+      EMAIL: new FakeEmailSender({ fail: true }),
+      EMAIL_DELIVERY_MODE: "send",
+      MAIL_FROM: "noreply@phyzess.me",
+    });
+    const failingEmailAdmin = createClient(worker, failingEmailEnv);
+    await failingEmailAdmin.json("/api/bootstrap/local-admin", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "failing-email-admin@example.com",
+        password: "correct horse battery staple",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    const failedInviteDelivery = await failingEmailAdmin.json("/api/invitations", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "failed-delivery@example.com",
+        role: "viewer",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    assert(
+      failedInviteDelivery.invitation.status === "pending" &&
+        failedInviteDelivery.delivery === "failed" &&
+        failedInviteDelivery.emailDelivery.errorMessage.includes("Simulated email failure"),
+      "invitation is created and marks failed email delivery",
+    );
+    const failedEmailLedger = await failingEmailEnv.DB.prepare(
+      "SELECT status, error_message FROM email_messages WHERE kind = 'invitation' LIMIT 1",
+    ).first();
+    assert(
+      failedEmailLedger?.status === "failed" &&
+        failedEmailLedger.error_message.includes("Simulated email failure"),
+      "failed invitation email is recorded in email_messages",
+    );
+
     const viewerClient = createClient(worker, env);
     const viewerBootstrap = await viewerClient.json("/api/bootstrap/invitations", {
       method: "POST",
@@ -188,6 +229,7 @@ async function main() {
       typeof managedInvitation.inviteToken === "string",
       "local authenticated invitation returns token",
     );
+    assert(managedInvitation.emailDelivery.status === "stored", "invite returns email delivery");
 
     const managedUsers = await adminClient.json("/api/users?limit=20");
     assert(
@@ -201,6 +243,32 @@ async function main() {
       ),
       "admin can list invitations",
     );
+    assert(
+      managedInvitations.invitations.some(
+        (invitation) =>
+          invitation.email === "managed-viewer@example.com" &&
+          invitation.latestEmailStatus === "stored",
+      ),
+      "invitation list includes latest email delivery status",
+    );
+    const resentManagedInvitation = await adminClient.json(
+      `/api/invitations/${managedInvitation.invitation.id}/resend`,
+      {
+        method: "POST",
+      },
+    );
+    assert(
+      resentManagedInvitation.delivery === "stored" &&
+        typeof resentManagedInvitation.inviteToken === "string",
+      "admin can resend pending invitation and receive a local token",
+    );
+    const resendAudit = await env.DB.prepare(
+      "SELECT action, subject_id FROM audit_events WHERE action = 'invitation.resent' AND subject_id = ? LIMIT 1",
+    )
+      .bind(managedInvitation.invitation.id)
+      .first();
+    assert(resendAudit?.subject_id === managedInvitation.invitation.id, "resend is audited");
+
     const revokedManagedInvitation = await adminClient.json(
       `/api/invitations/${managedInvitation.invitation.id}/revoke`,
       {
@@ -235,6 +303,99 @@ async function main() {
       }),
       409,
     );
+    const deletedRevokedInvitation = await adminClient.json(
+      `/api/invitations/${managedInvitation.invitation.id}`,
+      {
+        method: "DELETE",
+      },
+    );
+    assert(
+      deletedRevokedInvitation.deletedInvitationId === managedInvitation.invitation.id,
+      "admin can delete revoked invitation",
+    );
+    const deleteInvitationAudit = await env.DB.prepare(
+      "SELECT action, subject_id FROM audit_events WHERE action = 'invitation.deleted' AND subject_id = ? LIMIT 1",
+    )
+      .bind(managedInvitation.invitation.id)
+      .first();
+    assert(
+      deleteInvitationAudit?.subject_id === managedInvitation.invitation.id,
+      "deleted invitation is audited",
+    );
+
+    const deleteMemberInvitation = await adminClient.json("/api/invitations", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "delete-member@example.com",
+        role: "viewer",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    const deleteMemberClient = createClient(worker, env);
+    const deleteMemberAccepted = await deleteMemberClient.json(
+      `/api/invitations/${deleteMemberInvitation.inviteToken}/accept`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          displayName: "Delete Member",
+          password: "correct horse battery staple",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+    );
+    await deleteMemberClient.json("/api/auth/password-reset/request", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "delete-member@example.com",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+    await expectStatus(
+      await adminClient.request(`/api/users/${adminAccepted.user.id}`, {
+        method: "DELETE",
+      }),
+      409,
+    );
+    const deletedMember = await adminClient.json(`/api/users/${deleteMemberAccepted.user.id}`, {
+      method: "DELETE",
+    });
+    assert(deletedMember.ok === true, "admin can hard-delete a member");
+    assert(
+      !(await env.DB.prepare("SELECT id FROM users WHERE id = ? LIMIT 1")
+        .bind(deleteMemberAccepted.user.id)
+        .first()),
+      "hard delete removes user row",
+    );
+    assert(
+      !(await env.DB.prepare("SELECT user_id FROM password_credentials WHERE user_id = ? LIMIT 1")
+        .bind(deleteMemberAccepted.user.id)
+        .first()),
+      "hard delete removes password credentials",
+    );
+    assert(
+      !(await env.DB.prepare("SELECT id FROM sessions WHERE user_id = ? LIMIT 1")
+        .bind(deleteMemberAccepted.user.id)
+        .first()),
+      "hard delete removes sessions",
+    );
+    assert(
+      !(await env.DB.prepare("SELECT id FROM password_reset_tokens WHERE user_id = ? LIMIT 1")
+        .bind(deleteMemberAccepted.user.id)
+        .first()),
+      "hard delete removes password reset tokens",
+    );
+    const deletedUserAudit = await env.DB.prepare(
+      "SELECT action, subject_id FROM audit_events WHERE action = 'user.deleted' AND subject_id = ? LIMIT 1",
+    )
+      .bind(deleteMemberAccepted.user.id)
+      .first();
+    assert(deletedUserAudit?.subject_id === deleteMemberAccepted.user.id, "delete is audited");
 
     const demoClient = createClient(worker, env);
     const demoReviewer = await demoClient.json("/api/bootstrap/local-reviewer", {
@@ -1100,14 +1261,19 @@ class FakeQueue {
 }
 
 class FakeEmailSender {
-  constructor() {
+  constructor(options = {}) {
+    this.fail = options.fail === true;
     this.messages = [];
   }
 
   async send(message) {
+    if (this.fail) {
+      throw new Error("Simulated email failure");
+    }
+
     this.messages.push(message);
     return {
-      id: `email-${this.messages.length}`,
+      messageId: `email-${this.messages.length}`,
     };
   }
 }

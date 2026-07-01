@@ -56,9 +56,11 @@
   ],
   "optionalExamples": ["examples/import-review", "examples/json-records"],
   "renameAfterCopy": {
+    "EMAIL_DELIVERY_MODE": "Use store locally and send after Cloudflare Email Sending is configured.",
     "PUBLIC_APP_NAME": "Set to the generated app name.",
     "PUBLIC_APP_URL": "Set to the deployed web origin before preview or production.",
     "MAIL_FROM": "Set to a verified Cloudflare Email sender before non-local email delivery.",
+    "MAIL_REPLY_TO": "Optionally set to an app-owned support or no-reply reply address.",
     "wrangler.name": "Rename the Worker from qitu-worker to the generated app Worker name.",
     "wrangler.resources": "Replace local D1/R2/Queue names and IDs with app-owned resources."
   },

@@ -7,9 +7,11 @@ import {
   LoginInputSchema,
   PasswordSchema,
   RequestPasswordResetInputSchema,
+  createInviteExpiry,
   createInvitation,
   createPasswordResetToken,
   createSession,
+  generateToken,
   hashPassword,
   hashSecret,
   isExpired,
@@ -33,7 +35,13 @@ import {
 import { authError, parseQueryLimit, parseRequestJson, type AppContext } from "./http-utils";
 import { localeFromRequest, type WorkerLocale } from "./locale";
 import { appCan, isAppRoleName, normalizeAppRole } from "./rbac-policy";
-import { appName, buildAppUrl, isLocalAppEnv, runtimeConfig } from "./runtime";
+import {
+  PublicAppUrlConfigError,
+  appName,
+  buildAppUrl,
+  isLocalAppEnv,
+  runtimeConfig,
+} from "./runtime";
 
 const sessionCookieName = "qitu_session";
 const LocalUserBootstrapInputSchema = v.object({
@@ -61,6 +69,10 @@ type InvitationRow = {
   created_at: string;
   accepted_at: string | null;
   revoked_at: string | null;
+  latest_email_error_message?: string | null;
+  latest_email_message_id?: string | null;
+  latest_email_provider_message_id?: string | null;
+  latest_email_status?: string | null;
 };
 
 type LoginRow = UserRow & {
@@ -151,6 +163,115 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     });
   });
 
+  app.delete("/api/users/:userId", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
+    }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
+
+    const userId = context.req.param("userId");
+    if (userId === current.user.id) {
+      return authError(
+        context,
+        "cannot_delete_self",
+        "Administrators cannot delete themselves.",
+        409,
+      );
+    }
+
+    const user = await context.env.DB.prepare(
+      `
+        SELECT id, email, role, display_name, created_at
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+      .bind(userId)
+      .first<UserRow>();
+
+    if (!user) {
+      return authError(context, "user_not_found", "User was not found.", 404);
+    }
+
+    const role = normalizeAppRole(user.role);
+    if (role === "owner" || role === "admin") {
+      const remainingAdmin = await context.env.DB.prepare(
+        `
+          SELECT id
+          FROM users
+          WHERE id != ?
+            AND role IN ('owner', 'admin')
+          LIMIT 1
+        `,
+      )
+        .bind(user.id)
+        .first<{ id: string }>();
+
+      if (!remainingAdmin) {
+        return authError(
+          context,
+          "last_admin_member",
+          "At least one owner or admin must remain.",
+          409,
+        );
+      }
+    }
+
+    const now = new Date().toISOString();
+    const fingerprint = await requestFingerprint(context);
+    const emailHash = (await hashEventValue(user.email)) ?? user.email;
+
+    await context.env.DB.batch([
+      context.env.DB.prepare("DELETE FROM password_credentials WHERE user_id = ?").bind(user.id),
+      context.env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(user.id),
+      context.env.DB.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").bind(user.id),
+      context.env.DB.prepare("DELETE FROM users WHERE id = ?").bind(user.id),
+      prepareAuditInsert(
+        context.env,
+        createAuditEvent({
+          action: "user.deleted",
+          actor: {
+            id: current.user.id,
+            kind: "user",
+          },
+          subject: {
+            id: user.id,
+            kind: "user",
+          },
+          metadata: {
+            deletedBy: current.user.id,
+            emailHash,
+            role,
+          },
+        }),
+      ),
+      prepareSecurityEventInsert(context.env, {
+        ...fingerprint,
+        eventType: "user.deleted",
+        severity: "warning",
+        actorUserId: current.user.id,
+        targetUserId: user.id,
+        action: "user.delete",
+        outcome: "succeeded",
+        sessionId: current.sessionId,
+        createdAt: now,
+        metadata: {
+          deletedBy: current.user.id,
+          emailHash,
+          role,
+        },
+      }),
+    ]);
+
+    return context.json({
+      deletedUserId: user.id,
+      ok: true,
+    });
+  });
+
   app.get("/api/invitations", async (context) => {
     const current = await readCurrentUser(context);
     if (!current) {
@@ -163,7 +284,48 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     const result = await context.env.DB.prepare(
       `
         SELECT
-          id, email, role, status, token_hash, expires_at, created_by, created_at, accepted_at, revoked_at
+          id,
+          email,
+          role,
+          status,
+          token_hash,
+          expires_at,
+          created_by,
+          created_at,
+          accepted_at,
+          revoked_at,
+          (
+            SELECT email_messages.id
+            FROM email_messages
+            WHERE email_messages.kind = 'invitation'
+              AND json_extract(email_messages.metadata_json, '$.invitationId') = invitations.id
+            ORDER BY email_messages.created_at DESC
+            LIMIT 1
+          ) AS latest_email_message_id,
+          (
+            SELECT email_messages.status
+            FROM email_messages
+            WHERE email_messages.kind = 'invitation'
+              AND json_extract(email_messages.metadata_json, '$.invitationId') = invitations.id
+            ORDER BY email_messages.created_at DESC
+            LIMIT 1
+          ) AS latest_email_status,
+          (
+            SELECT email_messages.provider_message_id
+            FROM email_messages
+            WHERE email_messages.kind = 'invitation'
+              AND json_extract(email_messages.metadata_json, '$.invitationId') = invitations.id
+            ORDER BY email_messages.created_at DESC
+            LIMIT 1
+          ) AS latest_email_provider_message_id,
+          (
+            SELECT email_messages.error_message
+            FROM email_messages
+            WHERE email_messages.kind = 'invitation'
+              AND json_extract(email_messages.metadata_json, '$.invitationId') = invitations.id
+            ORDER BY email_messages.created_at DESC
+            LIMIT 1
+          ) AS latest_email_error_message
         FROM invitations
         ORDER BY created_at DESC
         LIMIT ?
@@ -256,6 +418,176 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
         revoked_at: now,
         status: "revoked",
       }),
+    });
+  });
+
+  app.post("/api/invitations/:invitationId/resend", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
+    }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
+
+    const invitationId = context.req.param("invitationId");
+    const invitation = await context.env.DB.prepare(
+      `
+        SELECT
+          id, email, role, status, token_hash, expires_at, created_by, created_at, accepted_at, revoked_at
+        FROM invitations
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+      .bind(invitationId)
+      .first<InvitationRow>();
+
+    if (!invitation) {
+      return authError(context, "invitation_not_found", "Invitation was not found.", 404);
+    }
+
+    if (invitation.status !== "pending" && invitation.status !== "expired") {
+      return authError(
+        context,
+        "invitation_not_resendable",
+        "Only pending or expired invitations can be resent.",
+        409,
+      );
+    }
+
+    const token = generateToken();
+    const tokenHash = await hashSecret(token);
+    const now = new Date().toISOString();
+    const expiresAt = createInviteExpiry(new Date(now));
+    const inviteUrlResult = buildInvitationUrl(context, token);
+    if (!inviteUrlResult.ok) return inviteUrlResult.response;
+
+    await context.env.DB.batch([
+      context.env.DB.prepare(
+        `
+          UPDATE invitations
+          SET status = 'pending',
+              token_hash = ?,
+              expires_at = ?,
+              revoked_at = NULL
+          WHERE id = ?
+        `,
+      ).bind(tokenHash, expiresAt, invitation.id),
+      prepareAuditInsert(
+        context.env,
+        createAuditEvent({
+          action: "invitation.resent",
+          actor: {
+            id: current.user.id,
+            kind: "user",
+          },
+          subject: {
+            id: invitation.id,
+            kind: "invitation",
+          },
+          metadata: {
+            email: invitation.email,
+            previousStatus: invitation.status,
+            role: invitation.role,
+          },
+        }),
+      ),
+    ]);
+
+    const delivery = await sendInvitationEmail(context, {
+      invitationId: invitation.id,
+      email: invitation.email,
+      locale: localeFromRequest(context, undefined),
+      role: invitation.role,
+      url: inviteUrlResult.url,
+      resent: true,
+    });
+
+    const updatedInvitation: InvitationRow = {
+      ...invitation,
+      expires_at: expiresAt,
+      latest_email_error_message: delivery.errorMessage ?? null,
+      latest_email_message_id: delivery.id,
+      latest_email_provider_message_id: delivery.providerMessageId ?? null,
+      latest_email_status: delivery.status,
+      revoked_at: null,
+      status: "pending",
+      token_hash: tokenHash,
+    };
+
+    return context.json({
+      delivery: delivery.status,
+      emailDelivery: publicEmailDelivery(delivery),
+      invitation: publicInvitationListItem(updatedInvitation),
+      ...(isLocalRuntime(context)
+        ? {
+            inviteToken: token,
+            inviteUrl: inviteUrlResult.url,
+          }
+        : {}),
+    });
+  });
+
+  app.delete("/api/invitations/:invitationId", async (context) => {
+    const current = await readCurrentUser(context);
+    if (!current) {
+      return authError(context, "unauthorized", "Login is required.", 401);
+    }
+    const denied = await requirePermission(context, current, "invitation:create");
+    if (denied) return denied;
+
+    const invitationId = context.req.param("invitationId");
+    const invitation = await context.env.DB.prepare(
+      `
+        SELECT
+          id, email, role, status, token_hash, expires_at, created_by, created_at, accepted_at, revoked_at
+        FROM invitations
+        WHERE id = ?
+        LIMIT 1
+      `,
+    )
+      .bind(invitationId)
+      .first<InvitationRow>();
+
+    if (!invitation) {
+      return authError(context, "invitation_not_found", "Invitation was not found.", 404);
+    }
+
+    if (invitation.status !== "revoked") {
+      return authError(
+        context,
+        "invitation_not_revoked",
+        "Only revoked invitations can be deleted.",
+        409,
+      );
+    }
+
+    await context.env.DB.batch([
+      context.env.DB.prepare("DELETE FROM invitations WHERE id = ?").bind(invitation.id),
+      prepareAuditInsert(
+        context.env,
+        createAuditEvent({
+          action: "invitation.deleted",
+          actor: {
+            id: current.user.id,
+            kind: "user",
+          },
+          subject: {
+            id: invitation.id,
+            kind: "invitation",
+          },
+          metadata: {
+            email: invitation.email,
+            role: invitation.role,
+            status: invitation.status,
+          },
+        }),
+      ),
+    ]);
+
+    return context.json({
+      deletedInvitationId: invitation.id,
+      ok: true,
     });
   });
 
@@ -527,6 +859,8 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
       userId: user.id,
       email,
     });
+    const resetUrlResult = buildPasswordResetUrl(context, token);
+    if (!resetUrlResult.ok) return resetUrlResult.response;
 
     await context.env.DB.batch([
       context.env.DB.prepare(
@@ -561,12 +895,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
       ),
     ]);
 
-    const resetUrl = buildAppUrl(context.env, `/reset-password/${token}`);
     const emailMessage = renderPasswordResetEmail({
       appName: appName(context.env),
       email,
       locale,
-      url: resetUrl,
+      url: resetUrlResult.url,
     });
     const delivery = await deliverEmail(context.env, {
       kind: "password_reset",
@@ -583,10 +916,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     return context.json({
       ok: true,
       delivery: delivery.status,
+      emailDelivery: publicEmailDelivery(delivery),
       ...(isLocalRuntime(context)
         ? {
             resetToken: token,
-            resetUrl,
+            resetUrl: resetUrlResult.url,
           }
         : {}),
     });
@@ -849,6 +1183,75 @@ async function createLocalUserBootstrapResponse(
   );
 }
 
+type EmailDeliveryRecord = Awaited<ReturnType<typeof deliverEmail>>;
+
+function buildInvitationUrl(
+  context: AppContext,
+  token: string,
+): { ok: true; url: string } | { ok: false; response: Response } {
+  return buildPublicRouteUrl(context, `/invite/${token}`);
+}
+
+function buildPasswordResetUrl(
+  context: AppContext,
+  token: string,
+): { ok: true; url: string } | { ok: false; response: Response } {
+  return buildPublicRouteUrl(context, `/reset-password/${token}`);
+}
+
+function buildPublicRouteUrl(
+  context: AppContext,
+  path: string,
+): { ok: true; url: string } | { ok: false; response: Response } {
+  try {
+    return {
+      ok: true,
+      url: buildAppUrl(context.env, path),
+    };
+  } catch (error) {
+    if (error instanceof PublicAppUrlConfigError) {
+      return {
+        ok: false,
+        response: authError(context, "public_app_url_invalid", error.message, 500),
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function sendInvitationEmail(
+  context: AppContext,
+  input: {
+    email: string;
+    invitationId: string;
+    locale: WorkerLocale;
+    resent?: boolean;
+    role: string;
+    url: string;
+  },
+): Promise<EmailDeliveryRecord> {
+  const email = renderInvitationEmail({
+    appName: appName(context.env),
+    email: input.email,
+    locale: input.locale,
+    url: input.url,
+  });
+
+  return deliverEmail(context.env, {
+    kind: "invitation",
+    to: input.email,
+    subject: email.subject,
+    html: email.html,
+    text: email.text,
+    metadata: {
+      invitationId: input.invitationId,
+      resent: input.resent === true,
+      role: input.role,
+    },
+  });
+}
+
 async function createInvitationResponse(
   context: AppContext,
   input: { email: string; role?: string | undefined },
@@ -866,6 +1269,8 @@ async function createInvitationResponse(
   });
 
   const { invitation, token } = invitationWithToken;
+  const inviteUrlResult = buildInvitationUrl(context, token);
+  if (!inviteUrlResult.ok) return inviteUrlResult.response;
 
   await context.env.DB.batch([
     context.env.DB.prepare(
@@ -905,32 +1310,23 @@ async function createInvitationResponse(
     ),
   ]);
 
-  const inviteUrl = buildAppUrl(context.env, `/invite/${token}`);
-  const email = renderInvitationEmail({
-    appName: appName(context.env),
+  const delivery = await sendInvitationEmail(context, {
+    invitationId: invitation.id,
     email: invitation.email,
     locale: options.locale,
-    url: inviteUrl,
-  });
-  const delivery = await deliverEmail(context.env, {
-    kind: "invitation",
-    to: invitation.email,
-    subject: email.subject,
-    html: email.html,
-    text: email.text,
-    metadata: {
-      invitationId: invitation.id,
-    },
+    role: invitation.role,
+    url: inviteUrlResult.url,
   });
 
   return context.json(
     {
       invitation: publicInvitation(invitation),
       delivery: delivery.status,
+      emailDelivery: publicEmailDelivery(delivery),
       ...(options.returnToken
         ? {
             inviteToken: token,
-            inviteUrl,
+            inviteUrl: inviteUrlResult.url,
           }
         : {}),
     },
@@ -1020,12 +1416,34 @@ function publicInvitationListItem(invitation: InvitationRow): Record<string, str
     id: invitation.id,
     email: invitation.email,
     role: invitation.role,
-    status: invitation.status,
+    status: publicInvitationStatus(invitation),
     expiresAt: invitation.expires_at,
     createdBy: invitation.created_by,
     createdAt: invitation.created_at,
     acceptedAt: invitation.accepted_at,
     revokedAt: invitation.revoked_at,
+    latestEmailErrorMessage: invitation.latest_email_error_message ?? null,
+    latestEmailMessageId: invitation.latest_email_message_id ?? null,
+    latestEmailProviderMessageId: invitation.latest_email_provider_message_id ?? null,
+    latestEmailStatus: invitation.latest_email_status ?? null,
+  };
+}
+
+function publicInvitationStatus(invitation: InvitationRow): string {
+  return invitation.status === "pending" && isExpired(invitation.expires_at)
+    ? "expired"
+    : invitation.status;
+}
+
+function publicEmailDelivery(delivery: EmailDeliveryRecord): Record<string, string | undefined> {
+  return {
+    emailMessageId: delivery.id,
+    errorMessage: delivery.errorMessage,
+    mode: delivery.mode,
+    provider: delivery.provider,
+    providerMessageId: delivery.providerMessageId,
+    sentAt: delivery.sentAt,
+    status: delivery.status,
   };
 }
 

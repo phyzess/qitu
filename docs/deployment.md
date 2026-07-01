@@ -22,6 +22,15 @@ vp run deploy:preview:dry-run
 vp run deploy:production:dry-run
 ```
 
+Preview and production dry-runs also run `scripts/deploy-preflight.mjs`. The preflight prints a
+non-secret configuration summary and fails before bundling when:
+
+1. `PUBLIC_APP_URL` is missing, not HTTPS, still points at `example.com`, points at localhost, or uses a `workers.dev` diagnostic URL.
+2. `EMAIL_DELIVERY_MODE` is not `send`.
+3. `MAIL_FROM` is missing or still uses `example.com`.
+4. The target D1 database id is still a placeholder.
+5. The Worker is missing the `send_email` binding, static assets handoff, or import queue DLQ.
+
 `apps/worker/wrangler.jsonc` serves the built React app as same-origin Worker Static Assets for preview and production. API routes still run through the Worker first for `/api/*` and `/health`, so the web app can keep relative API URLs and HttpOnly cookies without adding CORS.
 
 Run a target health check after any deployed Worker is reachable:
@@ -32,6 +41,10 @@ QITU_PRODUCTION_APP_URL=https://app.example.com vp run health:production
 ```
 
 The health check requests `/health`, verifies the `qitu-worker` response contract, and confirms the reported runtime environment is `preview` or `production`. It does not read or print secrets.
+
+Use `QITU_PREVIEW_WORKER_URL` or `QITU_PRODUCTION_WORKER_URL` only for optional internal Worker
+diagnostics during the release gate. Do not set `PUBLIC_APP_URL` to a workers.dev URL; invitation and
+password-reset links must use the public custom origin.
 
 ## 2. Required Resources
 
@@ -61,7 +74,7 @@ wrangler queues create qitu-import-jobs-production-dlq
 
 Then replace `REPLACE_WITH_PREVIEW_D1_DATABASE_ID` and `REPLACE_WITH_PRODUCTION_D1_DATABASE_ID` in `apps/worker/wrangler.jsonc` before remote migration or deployment.
 
-Cloudflare Email Service must be configured with a verified sender before invitation or password reset email can be sent outside local mode. Set `MAIL_FROM` to a verified address for the target environment and keep `PUBLIC_APP_URL` aligned with the deployed web origin.
+Cloudflare Email Service must be configured with a verified sender before invitation or password reset email can be sent outside local mode. Set `EMAIL_DELIVERY_MODE=send`, set `MAIL_FROM` to a verified address for the target environment, optionally set `MAIL_REPLY_TO`, and keep `PUBLIC_APP_URL` aligned with the deployed web origin.
 
 Inbound email requires Cloudflare Email Routing to route one or more intake addresses to this Worker.
 The Worker `email` handler stores raw messages under the `raw-emails/` R2 prefix and sends supported
@@ -80,7 +93,7 @@ wrangler secret put PROVIDER_API_KEY --env production
 
 Do not commit secret values into `.env`, `.dev.vars`, docs, or `wrangler.jsonc`.
 
-`MAIL_FROM`, `PUBLIC_APP_NAME`, and `PUBLIC_APP_URL` are configuration values, not secrets. They still need environment-specific review before deployment.
+`EMAIL_DELIVERY_MODE`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_APP_NAME`, and `PUBLIC_APP_URL` are configuration values, not secrets. They still need environment-specific review before deployment.
 
 ## 4. Remote Migration
 
@@ -110,11 +123,12 @@ Before a real deployment:
 4. Confirm remote resource IDs are not placeholders.
 5. Confirm `PUBLIC_APP_URL` matches the deployed web origin.
 6. Confirm provider secrets exist if optional real AI providers are enabled.
-7. Confirm `MAIL_FROM` uses a verified Cloudflare Email sender.
+7. Confirm `EMAIL_DELIVERY_MODE=send` and `MAIL_FROM` uses a verified Cloudflare Email sender.
 8. Confirm invitation bootstrap routes and the login-page setup UI are disabled outside `APP_ENV=local`.
 9. Confirm the target queue has a dead-letter queue.
 10. Run the failed-job snapshot for the target environment.
 11. Run the target deploy command, which rebuilds, deploys, and health-checks the deployed URL.
+12. Optionally set `QITU_PREVIEW_WORKER_URL` or `QITU_PRODUCTION_WORKER_URL` to run a second internal Worker health check after the public custom-origin health check.
 
 The release gate script codifies the reviewed sequence above. By default it prints the plan only:
 
@@ -133,7 +147,9 @@ QITU_PRODUCTION_APP_URL=https://app.example.com \
   vp run release:production -- --yes
 ```
 
-The full gate runs `verify:kit`, target deploy dry-run, target remote D1 migration, failed-job snapshot, deploy, and post-deploy health check. Use `--failed-job-limit 100` if the operator snapshot needs a larger review window.
+The full gate runs `verify:kit`, target deploy dry-run with preflight, target remote D1 migration,
+failed-job snapshot, deploy, public health check, and an optional internal Worker health check. Use
+`--failed-job-limit 100` if the operator snapshot needs a larger review window.
 
 ```sh
 vp run ops:failed-jobs -- preview --limit 50
@@ -180,6 +196,9 @@ QITU_PRODUCTION_APP_URL=https://app.example.com \
 
 Use `--dry-run` first when validating the target and app URL. The successful command prints a one-time invitation URL; treat that URL as a secret operational artifact and do not paste it into issue trackers, docs, logs, or chat rooms that are not approved for secrets.
 
+The operator command rejects non-local `PUBLIC_APP_URL` values that are not HTTPS, still use
+`example.com`, point at localhost, or use a workers.dev diagnostic URL.
+
 If all admin access is lost, repeat the same one-time admin invitation process instead of re-enabling local bootstrap in a deployed environment. The operator command still creates an invitation, not a user/password directly, so the first recovered admin accepts the invite through the normal password setup, session, and audit path.
 
 ## 7. DLQ And Failed Job Recovery
@@ -197,5 +216,7 @@ The starter does not attach an automatic DLQ consumer. Add one only after a real
 
 Before production use, add:
 
-1. Runtime integration tests for auth, email, upload, queue, D1, R2, and audit.
+1. Runtime integration tests for Cloudflare platform behavior that cannot be covered by local fakes.
 2. A deployment automation or infrastructure-as-code path.
+
+For sender reputation and inbox placement, see `docs/operations/email-deliverability.md`.

@@ -45,17 +45,19 @@ export async function parseRequestJson<TSchema extends v.GenericSchema>(
     };
   }
 
+  const issues = result.issues.map((issue) => ({
+    message: issue.message,
+    path: issue.path?.map((item) => item.key).join("."),
+  }));
+
   return {
     ok: false,
     response: context.json(
       {
         error: {
           code: "invalid_request",
-          message: "Request body did not match the expected schema.",
-          issues: result.issues.map((issue) => ({
-            message: issue.message,
-            path: issue.path?.map((item) => item.key).join("."),
-          })),
+          message: issues[0]?.message ?? "Request body is invalid.",
+          issues,
         },
       },
       400,
@@ -67,7 +69,7 @@ export function authError(
   context: AppContext,
   code: string,
   message: string,
-  status: 400 | 401 | 403 | 404 | 409 | 410,
+  status: 400 | 401 | 403 | 404 | 409 | 410 | 500,
 ): Response {
   return context.json(
     {

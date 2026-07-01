@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { minimumPasswordLength } from "@qitu/auth";
 import type { ChartDatum } from "@qitu/charts";
 import {
   AnimatedIcon,
@@ -21,6 +22,8 @@ import {
   confirmPendingStagedRecords,
   confirmPasswordReset,
   createInvitation,
+  deleteInvitation,
+  deleteUser,
   dismissAiAdvisory,
   drainLocalImportJobs,
   generateAiAdvisory,
@@ -38,6 +41,7 @@ import {
   me,
   rejectStagedRecord,
   requestPasswordReset,
+  resendInvitation,
   revokeInvitation,
   retryImportJob,
   uploadSourceFile,
@@ -659,6 +663,12 @@ export function App() {
 
   async function handleLocalSetup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const policyError = passwordPolicyError(authForm.password, t);
+    if (policyError) {
+      setError(policyError);
+      return;
+    }
+
     await runAction(async () => {
       const bootstrapDemoUser =
         setupRole === "admin" ? bootstrapLocalAdmin : bootstrapLocalReviewer;
@@ -716,6 +726,11 @@ export function App() {
   async function handleInviteAccept(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (authRoute.kind !== "invite") return;
+    const policyError = passwordPolicyError(authForm.password, t);
+    if (policyError) {
+      setError(policyError);
+      return;
+    }
 
     await runAction(async () => {
       const accepted = await acceptInvitation({
@@ -749,6 +764,11 @@ export function App() {
   async function handleRoutePasswordReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (authRoute.kind !== "reset") return;
+    const policyError = passwordPolicyError(authForm.password, t);
+    if (policyError) {
+      setError(policyError);
+      return;
+    }
 
     await runAction(async () => {
       await confirmPasswordReset({
@@ -780,6 +800,12 @@ export function App() {
             ? "notice.localResetTokenCreated"
             : "notice.passwordResetEmailSent",
         });
+        return;
+      }
+
+      const policyError = passwordPolicyError(authForm.password, t);
+      if (policyError) {
+        setError(policyError);
         return;
       }
 
@@ -820,9 +846,35 @@ export function App() {
       });
       setCreatedInvitationUrl(response.inviteUrl ?? null);
       setNotice({
-        key: response.inviteUrl
-          ? "notice.localInvitationCreated"
-          : "notice.invitationEmailRequested",
+        key:
+          response.emailDelivery?.status === "failed"
+            ? "notice.invitationEmailFailed"
+            : response.inviteUrl
+              ? "notice.localInvitationCreated"
+              : "notice.invitationEmailRequested",
+      });
+      await loadUserManagement();
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleResendInvitation(invitationId: string) {
+    setIsBusy(true);
+    setError(null);
+    setAdminError(null);
+    try {
+      const response = await resendInvitation(invitationId);
+      setCreatedInvitationUrl(response.inviteUrl ?? null);
+      setNotice({
+        key:
+          response.emailDelivery?.status === "failed"
+            ? "notice.invitationEmailFailed"
+            : response.inviteUrl
+              ? "notice.localInvitationCreated"
+              : "notice.invitationResent",
       });
       await loadUserManagement();
     } catch (caught) {
@@ -840,6 +892,37 @@ export function App() {
       await revokeInvitation(invitationId);
       setCreatedInvitationUrl(null);
       setNotice({ key: "notice.invitationRevoked" });
+      await loadUserManagement();
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleDeleteInvitation(invitationId: string) {
+    setIsBusy(true);
+    setError(null);
+    setAdminError(null);
+    try {
+      await deleteInvitation(invitationId);
+      setCreatedInvitationUrl(null);
+      setNotice({ key: "notice.invitationDeleted" });
+      await loadUserManagement();
+    } catch (caught) {
+      setAdminError(errorMessage(caught));
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleDeleteUser(userId: string) {
+    setIsBusy(true);
+    setError(null);
+    setAdminError(null);
+    try {
+      await deleteUser(userId);
+      setNotice({ key: "notice.userDeleted" });
       await loadUserManagement();
     } catch (caught) {
       setAdminError(errorMessage(caught));
@@ -1487,8 +1570,11 @@ export function App() {
             isBusy={isBusy || isLoadingUserManagement}
             isLoading={isInitialUserManagementLoad}
             onCreateInvitation={() => void handleCreateInvitation()}
+            onDeleteInvitation={(invitationId) => void handleDeleteInvitation(invitationId)}
+            onDeleteUser={(userId) => void handleDeleteUser(userId)}
             onInvitationFormChange={setInvitationForm}
             onRefreshUsers={() => void loadUserManagement()}
+            onResendInvitation={(invitationId) => void handleResendInvitation(invitationId)}
             onRevokeInvitation={(invitationId) => void handleRevokeInvitation(invitationId)}
             user={user}
             users={users}
@@ -1841,4 +1927,10 @@ function buildSearchEntries(props: {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Request failed.";
+}
+
+function passwordPolicyError(password: string, t: Translate): string | null {
+  return password.length < minimumPasswordLength
+    ? t("auth.passwordMinLength", { count: String(minimumPasswordLength) })
+    : null;
 }

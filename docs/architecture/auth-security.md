@@ -12,7 +12,7 @@ Current scaffold status:
 1. `@qitu/auth` owns email normalization, invitation token hashing, PBKDF2 password hashing, and session token hashing.
 2. `apps/worker` exposes local baseline routes for bootstrap invite, local demo user bootstraps, authenticated invite, user/invitation management, accept, login, logout, current user lookup, and password reset.
 3. `apps/worker/migrations` store token hashes and password hashes, never plaintext tokens or passwords.
-4. `@qitu/email` renders invitation and password-reset messages. Worker delivery uses Cloudflare `send_email` in non-local environments and stores local delivery metadata during development.
+4. `@qitu/email` renders invitation and password-reset messages. Worker delivery supports `store` and `send` modes, uses Cloudflare `send_email` in send mode, and always records `email_messages` metadata.
 5. `@qitu/rbac` owns the starter role/permission table. Worker write routes check permissions before mutating data and audit denied attempts.
 
 MVP defaults:
@@ -65,16 +65,28 @@ Baseline routes:
 
 ```text
 GET /api/users
+DELETE /api/users/:userId
 GET /api/invitations
 POST /api/invitations
+POST /api/invitations/:invitationId/resend
 POST /api/invitations/:invitationId/revoke
+DELETE /api/invitations/:invitationId
 ```
 
-These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, and revoke pending invitations. `reviewer` and `viewer` can still use the authenticated workbench, but member and invitation settings stay admin-only.
+These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, resend pending or expired invitations, revoke pending invitations, delete revoked invitations, and hard-delete members. `reviewer` and `viewer` can still use the authenticated workbench, but member and invitation settings stay admin-only.
+
+Invitation creation returns success when the invitation row is created even if email delivery fails. The response and `email_messages` row must mark `delivery: failed` so an administrator can resend without losing the pending invitation.
+
+Member deletion is hard delete in the starter baseline. The route must:
+
+1. Refuse to delete the current user.
+2. Refuse to delete the last remaining `owner` or `admin`.
+3. Delete password credentials, sessions, password reset tokens, and the user row.
+4. Write audit and security events with only a minimal deleted-user snapshot.
 
 For first-admin creation in a deployed environment, use `vp run ops:create-admin-invite` to seed a one-time admin invitation through an operator-reviewed process. Do not re-enable local bootstrap and do not insert a user/password directly; the first admin should still accept an invitation so password setup, session creation, and audit semantics stay aligned with the normal auth flow.
 
-Local development may return the generated invite URL for authenticated invitation creation. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
+Local development may return the generated invite URL for authenticated invitation creation and resend. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
 
 ## 3. Session Defaults
 
@@ -140,12 +152,12 @@ Future apps can replace or extend this mapping without changing the auth/session
 
 Always audit:
 
-1. Invitation created/revoked/accepted.
+1. Invitation created/resent/revoked/deleted/accepted.
 2. Login success/failure.
 3. Logout.
 4. Password reset requested/succeeded.
 5. Role changes.
-6. User disabled/restored.
+6. User deleted.
 7. Source file upload.
 8. Import approved/rejected/voided.
 9. AI advisory triggered.

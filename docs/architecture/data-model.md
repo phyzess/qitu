@@ -177,7 +177,9 @@ The core table stores what the file is physically. App-owned feature code decide
 
 ## 5. Email Tables
 
-The current outbound email baseline stores delivery metadata only:
+The current outbound email baseline stores delivery metadata only. It is used for both `store` mode
+and `send` mode so invitation and password-reset flows can show whether an email was only recorded,
+sent through Cloudflare Email Service, or failed before/while sending:
 
 ```sql
 email_messages (
@@ -196,6 +198,9 @@ email_messages (
 ```
 
 Raw bodies should live in R2. D1 stores metadata and minimal extracted text only.
+
+For invitation email, `metadata_json` includes the invitation id so admin views can show the latest
+delivery status and support resend without storing plaintext tokens.
 
 Inbound email routing can add a separate app-owned or core-owned table later. Do not overload `email_messages` with raw email body storage.
 

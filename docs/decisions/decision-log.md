@@ -559,6 +559,27 @@ Reason:
 
 The starter should prove reusable foundations without making the shell feel like a finished business app. Source intake, import jobs, review, audit, account, and member management are necessary startup-kit capabilities, but the top-level product story should be the reusable workspace and settings surface, not a collection of pseudo-product modules. Removing finance-coded chart names closes a core-package vocabulary leak while preserving generic chart primitives.
 
+### 2026-07-01: Production Auth Email And Member Management Hardening
+
+Decision:
+
+Strengthen the reusable auth/email/admin baseline without adding business-specific concepts:
+
+1. Outbound auth email supports `store` and `send` delivery modes.
+2. Invitation and password-reset email always write `email_messages` delivery metadata.
+3. Invitation creation succeeds when the invitation row is created even if email delivery fails; the API, UI, and ledger must show `delivery: failed` so an administrator can resend.
+4. Auth links must be built from `PUBLIC_APP_URL`; preview and production must not use `example.com`, localhost, or workers.dev as the public email origin.
+5. Invitation management includes resend, revoke, delete revoked, and accepted/pending/revoked/expired status visibility.
+6. Member deletion is hard delete in the starter baseline, guarded by "cannot delete self" and "cannot delete the last owner/admin"; deleting a member also removes password credentials, sessions, and password reset tokens.
+7. Password policy constants are shared from `@qitu/auth` so web forms can fail fast before the Worker schema rejects a request.
+
+Reason:
+
+Real downstream adoption exposed reusable production gaps in auth email, invitation operations,
+public-link generation, member management, and deploy checks. These are qitu infrastructure concerns,
+not downstream business logic. Keeping the behavior business-neutral gives cloned apps a safer
+starting point while preserving app-owned feature boundaries.
+
 ### 2026-06-29: Import Job Status Comes From Review Counts
 
 Decision:

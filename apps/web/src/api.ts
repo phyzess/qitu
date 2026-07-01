@@ -2,6 +2,7 @@ import type {
   AiAdvisoryArtifact,
   ApiUser,
   AuditEvent,
+  EmailDeliverySummary,
   ImportJobEvent,
   ImportJobListItem,
   ImportJobReview,
@@ -39,6 +40,7 @@ export type HealthResponse = {
 
 export type BootstrapInvitationResponse = {
   delivery: string;
+  emailDelivery?: EmailDeliverySummary;
   inviteToken: string;
   inviteUrl: string;
   invitation: InvitationSummary;
@@ -46,13 +48,21 @@ export type BootstrapInvitationResponse = {
 
 export type CreateInvitationResponse = {
   delivery: string;
+  emailDelivery?: EmailDeliverySummary;
   inviteToken?: string;
   inviteUrl?: string;
   invitation: InvitationSummary;
 };
 
+export type ResendInvitationResponse = CreateInvitationResponse;
+
 export type RevokeInvitationResponse = {
   invitation: InvitationSummary;
+};
+
+export type DeleteInvitationResponse = {
+  deletedInvitationId: string;
+  ok: true;
 };
 
 export type UsersResponse = {
@@ -66,8 +76,14 @@ export type InvitationsResponse = {
 export type RequestPasswordResetResponse = {
   ok: true;
   delivery?: string;
+  emailDelivery?: EmailDeliverySummary;
   resetToken?: string;
   resetUrl?: string;
+};
+
+export type DeleteUserResponse = {
+  deletedUserId: string;
+  ok: true;
 };
 
 export type SourceFilesResponse = {
@@ -206,6 +222,24 @@ export async function createInvitation(input: {
 export async function revokeInvitation(invitationId: string): Promise<RevokeInvitationResponse> {
   return apiJson<RevokeInvitationResponse>(`/api/invitations/${invitationId}/revoke`, {
     method: "POST",
+  });
+}
+
+export async function resendInvitation(invitationId: string): Promise<ResendInvitationResponse> {
+  return apiJson<ResendInvitationResponse>(`/api/invitations/${invitationId}/resend`, {
+    method: "POST",
+  });
+}
+
+export async function deleteInvitation(invitationId: string): Promise<DeleteInvitationResponse> {
+  return apiJson<DeleteInvitationResponse>(`/api/invitations/${invitationId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteUser(userId: string): Promise<DeleteUserResponse> {
+  return apiJson<DeleteUserResponse>(`/api/users/${userId}`, {
+    method: "DELETE",
   });
 }
 

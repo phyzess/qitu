@@ -78,11 +78,13 @@ The Worker expects these bindings:
 
 The local env also defines:
 
-| Variable          | Default                 | Notes                                  |
-| ----------------- | ----------------------- | -------------------------------------- |
-| `PUBLIC_APP_NAME` | `qitu`                  | Used in auth emails.                   |
-| `PUBLIC_APP_URL`  | `http://localhost:5173` | Used to build invite/reset links.      |
-| `MAIL_FROM`       | `noreply@example.com`   | Replace with a verified sender domain. |
+| Variable              | Default                 | Notes                                                             |
+| --------------------- | ----------------------- | ----------------------------------------------------------------- |
+| `EMAIL_DELIVERY_MODE` | `store`                 | Use `store` locally and `send` after Email Service is configured. |
+| `PUBLIC_APP_NAME`     | `qitu`                  | Used in auth emails.                                              |
+| `PUBLIC_APP_URL`      | `http://localhost:5173` | Used to build invite/reset links.                                 |
+| `MAIL_FROM`           | `noreply@example.com`   | Replace with a verified sender domain.                            |
+| `MAIL_REPLY_TO`       | empty                   | Optional reply-to address for auth email.                         |
 
 For local port conflicts, the dev wrappers also honor:
 

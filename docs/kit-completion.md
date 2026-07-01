@@ -86,7 +86,7 @@ Verified coverage added in this pass:
 8. Browser smoke generates and confirms a deterministic AI advisory before approval/commit, then verifies `ai_advisory.confirmed` in the job event stream.
 9. The app information architecture exposes only Workspace and Settings as primary navigation, with source/import/review routes under Workspace and account/members/audit under Settings.
 10. Worker integration covers count-derived import job status after partial JSON commits, so pending rows keep the job in review until all approved rows are committed.
-11. Deploy dry-run commands verify local, preview, and production Worker bindings and exit cleanly through the Wrangler dry-run wrapper after Wrangler reports `--dry-run: exiting now.`.
+11. Deploy dry-run commands verify local Worker bindings through the Wrangler dry-run wrapper, while preview and production dry-runs run a preflight that blocks placeholder public URLs, unverified sender domains, placeholder D1 ids, missing Email bindings, and missing queue DLQs before bundling.
 12. App adoption is covered by a dry-run-first script that plans package rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety steps.
 13. `templates/feature` includes a replaceable migration, integration fixture, and web surface descriptor so a second feature slice can start without core edits.
 14. RBAC keeps reusable permission helpers in `packages/rbac` while cloned apps can define app-owned role policies in their deployable entrypoints.

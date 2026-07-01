@@ -99,6 +99,7 @@ const adoptAppScript = text("scripts/adopt-app.mjs");
 const devAllScript = text("scripts/dev-all.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const cleanupLocalSmoke = text("scripts/cleanup-local-smoke.mjs");
+const deployPreflight = text("scripts/deploy-preflight.mjs");
 const operatorAdminInvitation = text("scripts/operator-admin-invitation.mjs");
 const releaseGate = text("scripts/release-gate.mjs");
 const healthCheck = text("scripts/health-check.mjs");
@@ -110,6 +111,7 @@ const wranglerTypesScript = text("scripts/wrangler-types.mjs");
 const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
 const wranglerDeployScript = text("scripts/wrangler-deploy.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
+const emailDeliverabilityDoc = text("docs/operations/email-deliverability.md");
 const workflow = text(".github/workflows/verify.yml");
 const envExample = text(".env.example");
 const workerDevVarsExample = text("apps/worker/.dev.vars.example");
@@ -422,8 +424,18 @@ assert(
 );
 assert(
   packageJson.scripts["deploy:preview:dry-run"].includes("vp run -r build") &&
-    packageJson.scripts["deploy:production:dry-run"].includes("vp run -r build"),
-  "remote dry-run scripts must build web assets before Worker deploy dry-run.",
+    packageJson.scripts["deploy:preview:dry-run"].includes("deploy-preflight.mjs preview") &&
+    packageJson.scripts["deploy:production:dry-run"].includes("vp run -r build") &&
+    packageJson.scripts["deploy:production:dry-run"].includes("deploy-preflight.mjs production"),
+  "remote dry-run scripts must run deploy preflight and build web assets before Worker deploy dry-run.",
+);
+assert(
+  deployPreflight.includes("PUBLIC_APP_URL must be the public custom origin") &&
+    deployPreflight.includes("EMAIL_DELIVERY_MODE must be send") &&
+    deployPreflight.includes("Remote D1 database_id must be replaced") &&
+    deployPreflight.includes("send_email binding named EMAIL") &&
+    deployPreflight.includes("dead_letter_queue"),
+  "deploy preflight must check public origins, email sending mode, D1 placeholders, Email binding, and DLQ.",
 );
 assert(
   packageJson.scripts["deploy:preview"].includes("vp run -r build") &&
@@ -542,6 +554,10 @@ assert(exists("docs/deployment.md"), "docs/deployment.md must exist.");
 assert(
   exists("docs/operations/dlq-remediation.md"),
   "docs/operations/dlq-remediation.md must exist.",
+);
+assert(
+  exists("docs/operations/email-deliverability.md"),
+  "docs/operations/email-deliverability.md must exist.",
 );
 assert(exists("docs/release-notes.md"), "docs/release-notes.md must exist.");
 assert(exists("docs/troubleshooting.md"), "docs/troubleshooting.md must exist.");
@@ -828,8 +844,9 @@ assert(
   "local D1 migrations must use the guarded wrangler wrapper so verify:kit can complete.",
 );
 assert(
-  webPackage.dependencies["@qitu/charts"] === "workspace:*",
-  "web app must depend on the shared charts package.",
+  webPackage.dependencies["@qitu/auth"] === "workspace:*" &&
+    webPackage.dependencies["@qitu/charts"] === "workspace:*",
+  "web app must depend on shared auth policy and charts packages.",
 );
 assert(
   !envExample.includes("DEEPSEEK_API_KEY") &&
@@ -837,6 +854,13 @@ assert(
     !workerDevVarsExample.includes("DEEPSEEK_API_KEY") &&
     !workerDevVarsExample.includes("AI_PROVIDER"),
   "env examples must not advertise unimplemented AI provider secrets.",
+);
+assert(
+  envExample.includes("EMAIL_DELIVERY_MODE=store") &&
+    envExample.includes("MAIL_REPLY_TO=") &&
+    workerDevVarsExample.includes("EMAIL_DELIVERY_MODE=store") &&
+    workerDevVarsExample.includes("MAIL_REPLY_TO="),
+  "env examples must include email delivery mode and optional reply-to configuration.",
 );
 assert(
   coreMigration.includes("password_credentials"),
@@ -925,10 +949,22 @@ assert(
   workerSources.includes("deliverEmail") &&
     workerSources.includes("localeFromRequest") &&
     workerEmailDelivery.includes("email_messages") &&
+    workerEmailDelivery.includes("emailDeliveryMode") &&
+    workerEmailDelivery.includes("EMAIL_DELIVERY_MODE=send") &&
     workerEmailDelivery.includes("env.EMAIL.send") &&
     workerSources.includes("renderInvitationEmail") &&
     workerSources.includes("renderPasswordResetEmail"),
   "worker must deliver invitation and password reset emails through the email package.",
+);
+assert(
+  workerSources.includes("/api/invitations/:invitationId/resend") &&
+    workerSources.includes("/api/invitations/:invitationId/revoke") &&
+    workerSources.includes('app.delete("/api/invitations/:invitationId"') &&
+    workerSources.includes('app.delete("/api/users/:userId"') &&
+    workerSources.includes("cannot_delete_self") &&
+    workerSources.includes("last_admin_member") &&
+    workerSources.includes("user.deleted"),
+  "worker must expose complete invitation lifecycle and guarded member hard delete routes.",
 );
 assert(
   workerSourceIntake.includes("hashSourceContent(input.content)") &&
@@ -1187,6 +1223,16 @@ assert(
   "deployment docs must point to the DLQ remediation runbook and avoid automatic DLQ replay in the starter.",
 );
 assert(
+  deployment.includes("docs/operations/email-deliverability.md") &&
+    emailDeliverabilityDoc.includes("SPF") &&
+    emailDeliverabilityDoc.includes("DKIM") &&
+    emailDeliverabilityDoc.includes("DMARC") &&
+    emailDeliverabilityDoc.includes("workers.dev") &&
+    emailDeliverabilityDoc.includes("MAIL_FROM") &&
+    emailDeliverabilityDoc.includes("PUBLIC_APP_URL"),
+  "deployment docs must link the email deliverability runbook covering DNS auth, sender config, and temporary-domain avoidance.",
+);
+assert(
   dlqRunbook.includes("Cloudflare sends messages to a DLQ") &&
     dlqRunbook.includes("vp run ops:failed-jobs") &&
     dlqRunbook.includes("import_job:retry") &&
@@ -1218,9 +1264,17 @@ assert(
     operatorAdminInvitation.includes('role: "admin"') &&
     operatorAdminInvitation.includes("hashSecret") &&
     operatorAdminInvitation.includes("--dry-run") &&
+    operatorAdminInvitation.includes("publicAppUrlValidationError") &&
+    operatorAdminInvitation.includes("workers.dev") &&
     !operatorAdminInvitation.includes("password_credentials") &&
     !operatorAdminInvitation.includes("INSERT INTO users"),
   "ops:create-admin-invite must create an audited admin invitation without directly creating users or passwords.",
+);
+assert(
+  releaseGate.includes("QITU_PRODUCTION_WORKER_URL") &&
+    releaseGate.includes("runOptionalInternalHealthChecks") &&
+    releaseGate.includes("scripts/health-check.mjs"),
+  "release gate must support optional internal Worker health checks after public deployment health.",
 );
 assert(
   text("apps/worker/vitest.config.ts").includes("cloudflareTest") &&
@@ -1260,7 +1314,9 @@ assert(
     wranglerConfig.includes("IMPORT_JOBS") &&
     wranglerConfig.includes('"send_email"') &&
     wranglerConfig.includes('"EMAIL"') &&
+    wranglerConfig.includes('"EMAIL_DELIVERY_MODE"') &&
     wranglerConfig.includes('"MAIL_FROM"') &&
+    wranglerConfig.includes('"MAIL_REPLY_TO"') &&
     wranglerConfig.includes('"PUBLIC_APP_URL"'),
   "wrangler config must declare DB, SOURCE_FILES, IMPORT_JOBS, EMAIL, and public URL/mail vars.",
 );

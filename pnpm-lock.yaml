@@ -29,6 +29,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@qitu/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@qitu/charts':
         specifier: workspace:*
         version: link:../../packages/charts

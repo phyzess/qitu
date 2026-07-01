@@ -258,10 +258,12 @@ Completed requirements:
 1. Add a dry-run-first adoption script for app rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety.
 2. Expand `templates/feature` into a replaceable slice with a migration, integration fixture, registry export, and web-surface descriptor.
 3. Move app-specific role policy into deployable app entrypoints while keeping generic permission helpers in `packages/rbac`.
-4. Split bulky React orchestration helpers out of the top-level app component into app-owned modules.
-5. Add reusable UI pattern primitives for filter bars, data toolbars, detail drawers, and command-search fixture composition.
-6. Introduce confirmation semantic aliases so user-facing confirm/exclude language can coexist with existing approve/reject storage until a future migration.
-7. Add a business-neutral inbound email intake slice that stores raw messages, records receipt metadata, and hands supported attachments to source-file import jobs.
+4. Harden auth email delivery with `store`/`send` modes, delivery ledger visibility, failed-delivery resend, and public-origin link generation.
+5. Complete the starter member/invitation management loop with resend, revoke, delete revoked, member hard delete guards, shared auth validation, deployment preflight, and email deliverability guidance.
+6. Split bulky React orchestration helpers out of the top-level app component into app-owned modules.
+7. Add reusable UI pattern primitives for filter bars, data toolbars, detail drawers, and command-search fixture composition.
+8. Introduce confirmation semantic aliases so user-facing confirm/exclude language can coexist with existing approve/reject storage until a future migration.
+9. Add a business-neutral inbound email intake slice that stores raw messages, records receipt metadata, and hands supported attachments to source-file import jobs.
 
 Current verification:
 

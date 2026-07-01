@@ -22,7 +22,7 @@ import {
   type TimelineItem,
   type UploadQueueItem,
 } from "@qitu/ui";
-import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
+import { ArrowRight, Check, Clock3, FileUp, Send, Trash2, X } from "lucide-react";
 import type { AuditFilters } from "./audit-filters";
 import { routePath, type AppNavigationPath } from "./app-routes";
 import { ErrorText, Field, RuntimeRow, SelectField } from "./app-ui";
@@ -863,8 +863,11 @@ export function UsersPage(props: {
   isBusy: boolean;
   isLoading: boolean;
   onCreateInvitation: () => void;
+  onDeleteInvitation: (invitationId: string) => void;
+  onDeleteUser: (userId: string) => void;
   onInvitationFormChange: (form: InvitationForm) => void;
   onRefreshUsers: () => void;
+  onResendInvitation: (invitationId: string) => void;
   onRevokeInvitation: (invitationId: string) => void;
   user: ApiUser;
   users: ApiUser[];
@@ -921,7 +924,13 @@ export function UsersPage(props: {
             >
               <div className="space-y-2">
                 {props.users.map((user) => (
-                  <UserRow key={user.id} user={user} />
+                  <UserRow
+                    currentUserId={props.user.id}
+                    isBusy={props.isBusy}
+                    key={user.id}
+                    user={user}
+                    onDelete={props.onDeleteUser}
+                  />
                 ))}
               </div>
             </DataState>
@@ -951,6 +960,8 @@ export function UsersPage(props: {
                     invitation={invitation}
                     isBusy={props.isBusy}
                     key={invitation.id}
+                    onDelete={props.onDeleteInvitation}
+                    onResend={props.onResendInvitation}
                     onRevoke={props.onRevokeInvitation}
                   />
                 ))}
@@ -1194,8 +1205,14 @@ function ImportJobRow(props: {
   );
 }
 
-function UserRow(props: { user: ApiUser }) {
+function UserRow(props: {
+  currentUserId: string;
+  isBusy: boolean;
+  onDelete: (userId: string) => void;
+  user: ApiUser;
+}) {
   const { formatDateTime, roleLabel, t } = useI18n();
+  const canDelete = props.user.id !== props.currentUserId;
 
   return (
     <div className="qitu-surface-subtle flex flex-wrap items-center justify-between gap-3 p-3">
@@ -1212,6 +1229,17 @@ function UserRow(props: { user: ApiUser }) {
         <span className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {formatDateTime(props.user.createdAt)}
         </span>
+        <Button
+          aria-label={t("action.deleteMemberFor", {
+            email: props.user.email,
+          })}
+          disabled={props.isBusy || !canDelete}
+          size="sm"
+          variant="ghost"
+          onClick={() => props.onDelete(props.user.id)}
+        >
+          <Trash2 size={14} /> {t("action.delete")}
+        </Button>
       </div>
     </div>
   );
@@ -1220,10 +1248,14 @@ function UserRow(props: { user: ApiUser }) {
 function InvitationRow(props: {
   invitation: InvitationSummary;
   isBusy: boolean;
+  onDelete: (invitationId: string) => void;
+  onResend: (invitationId: string) => void;
   onRevoke: (invitationId: string) => void;
 }) {
   const { formatDateTime, formatStatus, roleLabel, t } = useI18n();
   const canRevoke = props.invitation.status === "pending";
+  const canResend = props.invitation.status === "pending" || props.invitation.status === "expired";
+  const canDelete = props.invitation.status === "revoked";
 
   return (
     <div className="qitu-surface-subtle flex flex-wrap items-start justify-between gap-3 p-3">
@@ -1252,6 +1284,21 @@ function InvitationRow(props: {
               })}
             </span>
           ) : null}
+          {props.invitation.latestEmailStatus ? (
+            <span>
+              {t("invitation.latestEmail", {
+                status: formatStatus(props.invitation.latestEmailStatus),
+              })}
+            </span>
+          ) : null}
+          {props.invitation.latestEmailStatus === "failed" &&
+          props.invitation.latestEmailErrorMessage ? (
+            <span className="text-[var(--qitu-color-destructive)]">
+              {t("invitation.emailError", {
+                message: props.invitation.latestEmailErrorMessage,
+              })}
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1259,6 +1306,24 @@ function InvitationRow(props: {
           {formatStatus(props.invitation.status)}
         </StatusBadge>
         <StatusBadge tone="neutral">{roleLabel(props.invitation.role)}</StatusBadge>
+        {props.invitation.latestEmailStatus ? (
+          <StatusBadge tone={statusTone(props.invitation.latestEmailStatus)}>
+            {formatStatus(props.invitation.latestEmailStatus)}
+          </StatusBadge>
+        ) : null}
+        {canResend ? (
+          <Button
+            aria-label={t("action.resendInvitationFor", {
+              email: props.invitation.email,
+            })}
+            disabled={props.isBusy}
+            size="sm"
+            variant="ghost"
+            onClick={() => props.onResend(props.invitation.id)}
+          >
+            <Send size={14} /> {t("action.resend")}
+          </Button>
+        ) : null}
         {canRevoke ? (
           <Button
             aria-label={t("action.revokeInvitationFor", {
@@ -1270,6 +1335,19 @@ function InvitationRow(props: {
             onClick={() => props.onRevoke(props.invitation.id)}
           >
             <X size={14} /> {t("action.revoke")}
+          </Button>
+        ) : null}
+        {canDelete ? (
+          <Button
+            aria-label={t("action.deleteInvitationFor", {
+              email: props.invitation.email,
+            })}
+            disabled={props.isBusy}
+            size="sm"
+            variant="ghost"
+            onClick={() => props.onDelete(props.invitation.id)}
+          >
+            <Trash2 size={14} /> {t("action.delete")}
           </Button>
         ) : null}
       </div>
@@ -1424,6 +1502,7 @@ function statusTone(status: string): StatusBadgeTone {
     status === "committed" ||
     status === "confirmed" ||
     status === "done" ||
+    status === "sent" ||
     status.includes("succeeded")
   ) {
     return "success";
