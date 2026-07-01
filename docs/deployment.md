@@ -44,6 +44,7 @@ The Worker expects:
 | `IMPORT_JOBS`  | Queues  | `qitu-import-jobs-dev`     | `qitu-import-jobs-preview`     | `qitu-import-jobs-production`     |
 | DLQ            | Queues  | `qitu-import-jobs-dev-dlq` | `qitu-import-jobs-preview-dlq` | `qitu-import-jobs-production-dlq` |
 | `EMAIL`        | Email   | local metadata only        | Cloudflare Email Sending       | Cloudflare Email Sending          |
+| Email Routing  | Email   | local simulated handler    | route to Worker email handler  | route to Worker email handler     |
 
 Create remote resources with account-specific names:
 
@@ -61,6 +62,12 @@ wrangler queues create qitu-import-jobs-production-dlq
 Then replace `REPLACE_WITH_PREVIEW_D1_DATABASE_ID` and `REPLACE_WITH_PRODUCTION_D1_DATABASE_ID` in `apps/worker/wrangler.jsonc` before remote migration or deployment.
 
 Cloudflare Email Service must be configured with a verified sender before invitation or password reset email can be sent outside local mode. Set `MAIL_FROM` to a verified address for the target environment and keep `PUBLIC_APP_URL` aligned with the deployed web origin.
+
+Inbound email requires Cloudflare Email Routing to route one or more intake addresses to this Worker.
+The Worker `email` handler stores raw messages under the `raw-emails/` R2 prefix and sends supported
+attachments through the same `source_files -> import_jobs -> queue` path as manual upload. Unsupported
+attachments are recorded in `inbound_email_attachments` without adding business parsing logic to
+reusable packages.
 
 ## 3. Secrets
 

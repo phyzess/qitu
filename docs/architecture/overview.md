@@ -1,7 +1,7 @@
 # qitu Architecture Overview
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-07-01
 
 ## 1. Purpose
 
@@ -32,10 +32,15 @@ flowchart TD
   API --> Files["packages/files"]
   API --> Import["packages/import-pipeline"]
   API --> Audit["packages/audit"]
+  API --> SourceIntake["app-owned source intake"]
 
   Files --> R2["Cloudflare R2"]
   Import --> D1["Cloudflare D1"]
   Import --> Queue["Cloudflare Queues"]
+  SourceIntake --> Files
+  SourceIntake --> Import
+  SourceIntake --> R2
+  SourceIntake --> Queue
   Audit --> D1
   Auth --> D1
 
@@ -46,10 +51,14 @@ flowchart TD
   Feature --> Staging["business-owned staging tables"]
   Feature --> BusinessTables["business-owned tables"]
 
-  EmailWorker["email handler"] --> Email["packages/email"]
-  Email --> R2
-  Email --> Import
+  EmailWorker["Worker email handler"] --> Email["packages/email schemas"]
+  EmailWorker --> SourceIntake
+  EmailWorker --> R2
 ```
+
+The email handler stores raw inbound RFC822 messages in R2 and hands supported attachments to the
+same source-file import pipeline used by authenticated upload. Business meaning still starts at the
+app-owned import adapter.
 
 ## 3. Layers
 

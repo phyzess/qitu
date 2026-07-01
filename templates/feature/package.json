@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/registry.ts",
-    "./import-feature": "./src/import-feature.ts"
+    "./fixtures": "./src/fixtures.ts",
+    "./import-feature": "./src/import-feature.ts",
+    "./web-surface": "./src/web-surface.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

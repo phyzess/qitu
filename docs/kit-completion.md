@@ -1,7 +1,7 @@
 # Kit Completion Contract
 
 Status: draft  
-Date: 2026-06-29
+Date: 2026-07-01
 
 This document defines what "complete but not redundant" means for `qitu`.
 
@@ -34,17 +34,17 @@ The final kit must include:
 
 1. App-managed auth with invite, accept, login, protected routing, account/logout, admin member and invitation management, current user, password reset, session revocation, and audit events.
 2. Minimal RBAC with invitation-assigned roles, guarded write routes, read-only viewer behavior, and audited denials.
-3. Source file intake with authenticated upload, R2 storage, D1 metadata, import job creation, and audit events.
+3. Source file intake with authenticated upload, inbound email attachment intake, R2 storage, D1 metadata, import job creation, and audit events.
 4. Queue-backed import processing with idempotent job state transitions, visible failures, retry classification, and audit events.
 5. A generic import/review/commit workflow based on `ImportFeatureAdapter`.
 6. One complete example feature that exercises parse, stage, review, approve, commit, and audit.
 7. React app shell with login, account, member and invitation settings, source files, import jobs, review table, and audit timeline screens.
 8. Business-neutral UI, design tokens, and chart primitives sufficient for data-heavy internal tools.
-9. Email abstraction with a Cloudflare-compatible invite/reset delivery path.
+9. Email abstraction with a Cloudflare-compatible invite/reset delivery path and generic inbound receipt metadata.
 10. AI advisory abstraction that stores advisory output and requires human confirmation before commit.
 11. Cloudflare binding docs and commands for local setup, local migration, validation, deployment preparation, and DLQ/failed-job remediation.
 12. Agent entrypoints for Codex, Claude Code, and Pi-style planning agents.
-13. Templates for new apps and new feature slices.
+13. Templates for new apps and new feature slices, including migration, fixture, and web-surface replacement slots.
 
 ## Completion Gates
 
@@ -59,23 +59,20 @@ The final kit must include:
 7. No reusable package imports app-owned feature code.
 8. No core package contains business-specific vocabulary.
 9. `.env.example`, `.dev.vars.example`, and setup docs list every required binding or secret name.
-10. A new feature can start from `templates/feature` without editing existing core packages.
+10. A new feature can start from `templates/feature` without editing existing core packages, including its first migration, test fixture, and web surface descriptor.
 
 ## Last Verified
 
-Date: 2026-06-29
+Date: 2026-07-01
 
 Workspace: local filesystem baseline; no git metadata is required for this evidence.
 
 Commands passed:
 
 1. `vp check --fix`
-2. `vp run ops:failed-jobs -- local --limit 5`
-3. `vp run smoke`
+2. `vp run smoke`
+3. `vp run -r typecheck`
 4. `vp run verify:kit`
-5. `vp run deploy:dry-run`
-6. `vp run deploy:preview:dry-run`
-7. `vp run deploy:production:dry-run`
 
 Verified coverage added in this pass:
 
@@ -90,6 +87,13 @@ Verified coverage added in this pass:
 9. The app information architecture exposes only Workspace and Settings as primary navigation, with source/import/review routes under Workspace and account/members/audit under Settings.
 10. Worker integration covers count-derived import job status after partial JSON commits, so pending rows keep the job in review until all approved rows are committed.
 11. Deploy dry-run commands verify local, preview, and production Worker bindings and exit cleanly through the Wrangler dry-run wrapper after Wrangler reports `--dry-run: exiting now.`.
+12. App adoption is covered by a dry-run-first script that plans package rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety steps.
+13. `templates/feature` includes a replaceable migration, integration fixture, and web surface descriptor so a second feature slice can start without core edits.
+14. RBAC keeps reusable permission helpers in `packages/rbac` while cloned apps can define app-owned role policies in their deployable entrypoints.
+15. React orchestration helpers for audit filters, upload queue state, and permission projection are app-owned modules outside the top-level app component.
+16. UI primitives now cover filter bars, data toolbars, detail drawers, and a command-search fixture used by the starter shell.
+17. Confirmation aliases bridge user-facing confirm/exclude language to existing review approve/reject storage before any future schema migration.
+18. Inbound email stores raw RFC822 messages, records receipt/attachment metadata, and hands supported attachments to the same source-file import job path as authenticated upload.
 
 ## Deliberately Out of Scope
 

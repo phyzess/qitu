@@ -8,11 +8,15 @@ It is intentionally business-neutral. Rename folders, package name, types, and U
 
 ```text
 feature-name/
+  migrations/
+    0001_feature_staging.sql
   src/
+    fixtures.ts
     import-feature.ts
     routes.ts
     review-ui.tsx
     schema.ts
+    web-surface.ts
     tests/
 ```
 
@@ -40,7 +44,10 @@ The template is deliberately runnable:
 
 1. `src/import-feature.ts` implements `ImportFeatureAdapter`.
 2. `src/registry.ts` exports an app-owned adapter registry.
-3. `vp run --filter @qitu/template-feature typecheck` verifies the copied shape before business rules are added.
+3. `src/fixtures.ts` exports a minimal import fixture for Worker integration and browser smoke.
+4. `src/web-surface.ts` exports a route/i18n/smoke descriptor that an app-owned React surface can consume.
+5. `migrations/0001_template_feature.sql` is a migration slot for feature-owned staging and committed tables.
+6. `vp run --filter @qitu/template-feature typecheck` verifies the copied shape before business rules are added.
 
 The adapter owns:
 
@@ -49,6 +56,8 @@ The adapter owns:
 3. Staging shape.
 4. Validation.
 5. Commit rules.
+6. The fixture that proves the feature path.
+7. The web surface hook that tells the app where the feature plugs into the workbench.
 
 The reusable import pipeline owns:
 
@@ -62,9 +71,28 @@ The reusable import pipeline owns:
 Keep registration app-owned. A Worker app can import the copied registry and merge it with any other app-local feature adapters:
 
 ```ts
-import { featureImportAdapters } from "./features/example/registry";
+import {
+  featureImportAdapters,
+  featureIntegrationFixtures,
+  featureWebSurfaces,
+} from "./features/example/registry";
 
 export const appImportAdapters = [...featureImportAdapters] as const;
+export const appIntegrationFixtures = [...featureIntegrationFixtures] as const;
+export const appWebSurfaces = [...featureWebSurfaces] as const;
 ```
 
 Do not import the copied feature from `packages/*`. Core packages should stay business-neutral.
+
+## Replace The Starter Feature
+
+For a real product repository:
+
+1. Copy this template under an app-owned feature folder.
+2. Move or rewrite the migration into `apps/worker/migrations`.
+3. Replace `TemplateParsedRecord`, `TemplateStagedRecord`, and `TemplateCommittedRecord`.
+4. Register the feature adapter from `apps/worker/src/import-adapters.ts`.
+5. Add Worker integration coverage using `featureIntegrationFixtures`.
+6. Add or replace an app-owned React route using `featureWebSurfaces`.
+7. Add browser smoke coverage for upload -> queue -> confirmation -> commit.
+8. Remove starter adapters only after the new feature verifies the same vertical slice.

@@ -252,7 +252,11 @@ async function runBrowserSmoke() {
       buffer: Buffer.from(rejectedContent),
     });
     await page.getByRole("button", { name: "Upload selected" }).click();
-    await expect(page.getByText(rejectedFilename, { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: new RegExp(`${escapeRegExp(rejectedFilename)}.*queued`),
+      }),
+    ).toBeVisible();
 
     await page.goto(`${webUrl}/workspace/imports`, {
       waitUntil: "domcontentloaded",
@@ -307,7 +311,9 @@ async function runBrowserSmoke() {
     });
     await page.getByRole("button", { name: "Upload selected" }).click();
     await expect(
-      page.getByRole("button", { name: new RegExp(escapeRegExp(failedFilename)) }),
+      page.getByRole("button", {
+        name: new RegExp(`${escapeRegExp(failedFilename)}.*queued`),
+      }),
     ).toBeVisible();
     await drainButton.click();
     await page.goto(`${webUrl}/workspace/imports`, {

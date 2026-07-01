@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { AnimatedIcon } from "./animated-icon";
+import { CommandSearchFixture } from "./command-search-fixture";
 import { QituMark } from "./qitu-mark";
 import { cn } from "./utils";
 
@@ -47,11 +48,11 @@ export function AppShell({
   const activeItem =
     subNavigation.find((item) => item.active) ?? targetPrimaryItem ?? navigation[0];
   const commandContent = (
-    <>
-      <AnimatedIcon name="search" size={15} />
-      <span className="qitu-command-label min-w-0 truncate">{commandLabel}</span>
-      <kbd className="qitu-command-kbd">{commandShortcutLabel}</kbd>
-    </>
+    <CommandSearchFixture
+      icon={<AnimatedIcon name="search" size={15} />}
+      label={commandLabel}
+      shortcut={commandShortcutLabel}
+    />
   );
 
   return (

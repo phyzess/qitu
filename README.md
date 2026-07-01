@@ -22,8 +22,9 @@ The repository currently contains:
 4. A runnable Cloudflare Worker shell.
 5. Generic core package interfaces.
 6. Two app-owned starter feature adapters in the Worker.
-7. Copyable app and feature templates under `templates/*`.
-8. Optional example feature packages under `examples/*`.
+7. A verified adoption script for renaming, pruning, and reconnecting cloned apps.
+8. Copyable app and feature templates under `templates/*`.
+9. Optional example feature packages under `examples/*`.
 
 See `docs/capability-matrix.md` for what is designed, scaffolded, runnable, tested, or production-ready.
 
@@ -124,9 +125,9 @@ templates/
 `apps/*` are deployable entrypoints.
 
 `apps/worker/src/*` keeps deployable Worker wiring app-owned: HTTP routes, auth route
-composition, Cloudflare binding adapters, the import job runner, import review routes, and
-starter feature registration live there. Reusable state rules and contracts still belong in
-`packages/*`.
+composition, Cloudflare binding adapters, source-file intake, inbound email routing, the import job
+runner, import review routes, and starter feature registration live there. Reusable state rules and
+contracts still belong in `packages/*`.
 
 `packages/*` are reusable infrastructure and UI packages.
 

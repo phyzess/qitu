@@ -68,6 +68,8 @@ const importPipeline = text("packages/import-pipeline/src/index.ts");
 const chartsPackage = text("packages/charts/src/index.tsx");
 const templateFeature = text("templates/feature/src/import-feature.ts");
 const templateFeatureRegistry = text("templates/feature/src/registry.ts");
+const templateFeatureFixtures = text("templates/feature/src/fixtures.ts");
+const templateFeatureWebSurface = text("templates/feature/src/web-surface.ts");
 const exampleImportReview = text("examples/import-review/src/index.ts");
 const exampleJsonRecords = text("examples/json-records/src/index.ts");
 const authPackage = text("packages/auth/src/index.ts");
@@ -78,16 +80,22 @@ const workerSources = sourceTextUnder("apps/worker/src");
 const uiSources = sourceTextUnder("packages/ui/src");
 const workerAiAdvisoryStore = text("apps/worker/src/ai-advisory-store.ts");
 const workerEmailDelivery = text("apps/worker/src/email-delivery.ts");
+const workerInboundEmail = text("apps/worker/src/inbound-email.ts");
 const workerImportAdapters = text("apps/worker/src/import-adapters.ts");
 const workerImportJobRunner = text("apps/worker/src/import-job-runner.ts");
+const workerSourceIntake = text("apps/worker/src/source-intake.ts");
 const webApp = text("apps/web/src/app.tsx");
 const webSources = sourceTextUnder("apps/web/src");
 const webAuthRoute = text("apps/web/src/auth-route.ts");
 const webApi = text("apps/web/src/api.ts");
+const webAuditFilters = text("apps/web/src/audit-filters.ts");
+const webPermissions = text("apps/web/src/web-permissions.ts");
 const webTypes = text("apps/web/src/types.ts");
+const webUploadQueueState = text("apps/web/src/upload-queue-state.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
 const workspaceHome = text("apps/web/src/workspace-home.tsx");
 const workerIntegration = text("scripts/worker-integration.mjs");
+const adoptAppScript = text("scripts/adopt-app.mjs");
 const devAllScript = text("scripts/dev-all.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
 const cleanupLocalSmoke = text("scripts/cleanup-local-smoke.mjs");
@@ -120,6 +128,7 @@ const coreMigration = [
   text("apps/worker/migrations/0005_ai_advisories.sql"),
   text("apps/worker/migrations/0006_user_roles.sql"),
   text("apps/worker/migrations/0007_event_foundations.sql"),
+  text("apps/worker/migrations/0008_inbound_email.sql"),
 ].join("\n");
 const readme = text("README.md");
 const deployment = text("docs/deployment.md");
@@ -249,6 +258,7 @@ assert(
   packageJson.scripts["ops:create-admin-invite"],
   "package.json must expose ops:create-admin-invite.",
 );
+assert(packageJson.scripts["adopt:app"], "package.json must expose adopt:app.");
 assert(packageJson.scripts["db:migrate:preview"], "package.json must expose db:migrate:preview.");
 assert(
   packageJson.scripts["db:migrate:production"],
@@ -290,6 +300,18 @@ assert(
   "apps/web must expose an app-owned workspace home slot that does not foreground audit events.",
 );
 assert(
+  exists("apps/web/src/audit-filters.ts") &&
+    exists("apps/web/src/upload-queue-state.ts") &&
+    exists("apps/web/src/web-permissions.ts") &&
+    webAuditFilters.includes("auditFilterQuery") &&
+    webUploadQueueState.includes("createUploadQueueEntries") &&
+    webPermissions.includes("buildWebPermissions") &&
+    !webApp.includes("function auditFilterQuery") &&
+    !webApp.includes("function buildWebPermissions") &&
+    !webApp.includes("function createUploadQueueEntries"),
+  "apps/web orchestration helpers must live in app-owned modules instead of app.tsx.",
+);
+assert(
   exists("components.json") &&
     componentsConfig.style === "base-nova" &&
     componentsConfig.rsc === false &&
@@ -326,13 +348,23 @@ assert(
     uiSources.includes("export function DateField") &&
     uiSources.includes("export function SegmentedControl") &&
     uiSources.includes("export function ConfirmDialog") &&
+    uiSources.includes("export function CommandSearchFixture") &&
     uiSources.includes("export function BatchActionBar") &&
+    uiSources.includes("export function DataToolbar") &&
+    uiSources.includes("export function DetailDrawer") &&
+    uiSources.includes("export function FilterBar") &&
     uiSources.includes("export function ListFrame") &&
     uiSources.includes("export function UploadQueue") &&
+    uiSources.includes("qitu-command-search-fixture") &&
+    uiSources.includes("qitu-data-toolbar") &&
+    uiSources.includes("qitu-filter-bar") &&
     uiSources.includes("qitu-list-frame") &&
     uiSources.includes("qitu-list-state-row") &&
     uiSources.includes("qitu-upload-compact") &&
     webSources.includes("<DateField") &&
+    webSources.includes("<FilterBar") &&
+    webSources.includes("<DataToolbar") &&
+    webSources.includes("<DetailDrawer") &&
     webSources.includes("TableCell") &&
     webSources.includes("<ListFrame") &&
     webSources.includes("uploadQueue") &&
@@ -484,12 +516,20 @@ assert(exists("templates/feature"), "templates/feature must exist.");
 assert(exists("templates/feature/package.json"), "templates/feature/package.json must exist.");
 assert(exists("templates/feature/tsconfig.json"), "templates/feature/tsconfig.json must exist.");
 assert(
+  exists("templates/feature/migrations/0001_template_feature.sql"),
+  "templates/feature must include a feature-owned migration slot.",
+);
+assert(
   exists("templates/feature/src/import-feature.ts"),
   "templates/feature must expose a real TypeScript adapter starter.",
 );
 assert(
   exists("templates/feature/src/registry.ts"),
   "templates/feature must expose an app-owned registry starter.",
+);
+assert(
+  exists("templates/feature/src/fixtures.ts") && exists("templates/feature/src/web-surface.ts"),
+  "templates/feature must expose integration fixtures and a web surface descriptor.",
 );
 assert(
   !exists("templates/feature/src/import-feature.ts.txt"),
@@ -553,12 +593,28 @@ assert(
 );
 assert(
   templateFeatureRegistry.includes("featureImportAdapters") &&
+    templateFeatureRegistry.includes("featureIntegrationFixtures") &&
+    templateFeatureRegistry.includes("featureWebSurfaces") &&
     templateFeatureRegistry.includes("selectFeatureImportAdapter"),
-  "templates/feature must include an app-owned adapter registry starter.",
+  "templates/feature must include app-owned adapter, fixture, and web surface registries.",
+);
+assert(
+  templateFeatureFixtures.includes("templateFeatureFixture") &&
+    templateFeatureFixtures.includes("expectedStagedCount") &&
+    templateFeatureWebSurface.includes("templateFeatureWebSurface") &&
+    templateFeatureWebSurface.includes("i18nKeys") &&
+    templateFeatureWebSurface.includes("smokePath"),
+  "templates/feature must include integration fixture and web surface descriptors.",
 );
 assert(
   importPipeline.includes("commitApproved") && importPipeline.includes("CommitApprovedContext"),
   "import pipeline commit contract must require approved records and reviewer context.",
+);
+assert(
+  importPipeline.includes("ConfirmationRecordDecisionActionSchema") &&
+    importPipeline.includes("reviewActionForConfirmationAction") &&
+    importPipeline.includes("confirmationStatusForStagedStatus"),
+  "import pipeline must expose confirmation-language aliases over stable review actions.",
 );
 assert(
   exampleImportReview.includes("commitApproved"),
@@ -634,6 +690,21 @@ for (const path of appTemplateManifest.optionalExamples ?? []) {
   assert(exists(path), `app template optional example references missing path: ${path}`);
 }
 assert(
+  appTemplateManifest.copy.includes("scripts/adopt-app.mjs") &&
+    appTemplateManifest.adoptionCommands?.some((command) => command.includes("adopt:app")) &&
+    appTemplateManifest.productBaselineCleanup?.includes("templates"),
+  "app template manifest must include the adopt-app script, adoption commands, and product cleanup paths.",
+);
+assert(
+  adoptAppScript.includes("Dry run only") &&
+    adoptAppScript.includes("clean-product-baseline") &&
+    adoptAppScript.includes("git remote set-url --push") &&
+    adoptAppScript.includes("qitu_session") &&
+    adoptAppScript.includes("qitu-worker") &&
+    adoptAppScript.includes("qitu-template"),
+  "adopt-app script must default to dry-run identity changes and remote safety guidance.",
+);
+assert(
   aiAdvisoryPackage.includes("AdvisoryArtifactSchema") &&
     aiAdvisoryPackage.includes("GenerateImportReviewAdvisoryInputSchema") &&
     aiAdvisoryPackage.includes("generateLocalImportReviewAdvisory") &&
@@ -650,20 +721,47 @@ assert(
   "auth package must expose password reset schemas and token creation.",
 );
 assert(
-  rbacPackage.includes('roleNames = ["owner", "admin", "reviewer", "viewer"]') &&
+  rbacPackage.includes("createRbacPolicy") &&
+    rbacPackage.includes("starterRolePolicy") &&
+    rbacPackage.includes('roleNames = ["owner", "admin", "reviewer", "viewer"]') &&
     rbacPackage.includes("rolePermissions") &&
     rbacPackage.includes("viewer: []") &&
+    rbacPackage.includes("normalizeRoleForPolicy") &&
     rbacPackage.includes('"invitation:create"') &&
     rbacPackage.includes('"source_file:upload"'),
-  "rbac package must expose owner/admin/reviewer/viewer permissions with viewer read-only.",
+  "rbac package must expose a default starter policy plus app-owned role policy helpers.",
+);
+assert(
+  exists("apps/worker/src/rbac-policy.ts") &&
+    exists("apps/web/src/rbac-policy.ts") &&
+    text("apps/worker/src/rbac-policy.ts").includes("createRbacPolicy") &&
+    text("apps/web/src/rbac-policy.ts").includes("createRbacPolicy") &&
+    workerSources.includes("appCan(") &&
+    webSources.includes("appCan("),
+  "worker and web apps must use app-owned RBAC policy adapters instead of binding directly to package defaults.",
 );
 assert(
   emailPackage.includes("EmailMessageSchema") &&
+    emailPackage.includes("InboundEmailReceiptSchema") &&
+    emailPackage.includes("InboundEmailAttachmentSchema") &&
     emailPackage.includes("renderInvitationEmail") &&
     emailPackage.includes("renderPasswordResetEmail") &&
     emailPackage.includes("locale?: string") &&
     emailPackage.includes("zhCnAuthEmailMessages"),
-  "email package must expose localized generic auth email message schemas and templates.",
+  "email package must expose localized auth email templates and inbound email receipt schemas.",
+);
+assert(
+  workerSourceIntake.includes("createSourceFileImportJob") &&
+    workerSourceIntake.includes("source_file.uploaded") &&
+    workerSourceIntake.includes("import_job.queued") &&
+    workerInboundEmail.includes("handleInboundEmail") &&
+    workerInboundEmail.includes("raw-emails/") &&
+    workerInboundEmail.includes("parseMimeAttachments") &&
+    workerInboundEmail.includes("system:inbound-email") &&
+    workerSources.includes("async email(message, env)") &&
+    coreMigration.includes("inbound_email_messages") &&
+    coreMigration.includes("inbound_email_attachments"),
+  "worker must support business-neutral inbound email intake into raw R2, source files, and import jobs.",
 );
 assert(
   i18nPackage.includes("createTranslator") &&
@@ -833,9 +931,9 @@ assert(
   "worker must deliver invitation and password reset emails through the email package.",
 );
 assert(
-  workerSources.includes("hashSourceContent(content)") &&
-    workerSources.includes("findDuplicateSourceFile") &&
-    workerSources.includes("import_job.dispatch_failed"),
+  workerSourceIntake.includes("hashSourceContent(input.content)") &&
+    workerSourceIntake.includes("findDuplicateSourceFile") &&
+    workerSourceIntake.includes("import_job.dispatch_failed"),
   "source file intake must include content hash idempotency and queue dispatch failure handling.",
 );
 assert(

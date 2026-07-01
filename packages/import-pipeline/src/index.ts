@@ -29,6 +29,7 @@ export const ImportFailureClassSchema = v.picklist([
 export const ReviewIssueSeveritySchema = v.picklist(["info", "warning", "error"]);
 export const ReviewRecordDecisionActionSchema = v.picklist(["approve", "reject"]);
 export const ReviewDecisionActionSchema = v.picklist(["approve", "reject", "void"]);
+export const ConfirmationRecordDecisionActionSchema = v.picklist(["confirm", "exclude"]);
 export const StagedRecordStatusSchema = v.picklist([
   "pending",
   "approved",
@@ -40,7 +41,11 @@ export type ImportFailureClass = v.InferOutput<typeof ImportFailureClassSchema>;
 export type ReviewIssueSeverity = v.InferOutput<typeof ReviewIssueSeveritySchema>;
 export type ReviewRecordDecisionAction = v.InferOutput<typeof ReviewRecordDecisionActionSchema>;
 export type ReviewDecisionAction = v.InferOutput<typeof ReviewDecisionActionSchema>;
+export type ConfirmationRecordDecisionAction = v.InferOutput<
+  typeof ConfirmationRecordDecisionActionSchema
+>;
 export type StagedRecordStatus = v.InferOutput<typeof StagedRecordStatusSchema>;
+export type ConfirmationRecordStatus = "pending" | "confirmed" | "excluded" | "committed";
 
 export type ImportJob = {
   id: string;
@@ -124,6 +129,32 @@ export function stagedStatusForReviewAction(
   action: ReviewRecordDecisionAction,
 ): Extract<StagedRecordStatus, "approved" | "rejected"> {
   return action === "approve" ? "approved" : "rejected";
+}
+
+export function reviewActionForConfirmationAction(
+  action: ConfirmationRecordDecisionAction,
+): ReviewRecordDecisionAction {
+  return action === "confirm" ? "approve" : "reject";
+}
+
+export function confirmationActionForReviewAction(
+  action: ReviewRecordDecisionAction,
+): ConfirmationRecordDecisionAction {
+  return action === "approve" ? "confirm" : "exclude";
+}
+
+export function stagedStatusForConfirmationAction(
+  action: ConfirmationRecordDecisionAction,
+): Extract<StagedRecordStatus, "approved" | "rejected"> {
+  return stagedStatusForReviewAction(reviewActionForConfirmationAction(action));
+}
+
+export function confirmationStatusForStagedStatus(
+  status: StagedRecordStatus,
+): ConfirmationRecordStatus {
+  if (status === "approved") return "confirmed";
+  if (status === "rejected") return "excluded";
+  return status;
 }
 
 export function summarizeReviewStatuses(statuses: Iterable<string>): ReviewStatusSummary {

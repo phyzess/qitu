@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ChartDatum } from "@qitu/charts";
-import { can, normalizeRole, type Permission } from "@qitu/rbac";
 import {
   AnimatedIcon,
   AppShell,
@@ -44,6 +43,12 @@ import {
   uploadSourceFile,
 } from "./api";
 import {
+  auditFilterQuery,
+  defaultAuditFilters,
+  hasAuditFilters,
+  type AuditFilters,
+} from "./audit-filters";
+import {
   type AppNavigationPath,
   appRouteFromPath,
   defaultAuthenticatedPath,
@@ -72,6 +77,7 @@ import {
   WorkspaceSearchDialog,
 } from "./shell-controls";
 import { useI18n, type MessageKey, type Translate } from "./i18n";
+import { createUploadQueueEntries } from "./upload-queue-state";
 import type {
   AiAdvisoryArtifact,
   ApiUser,
@@ -84,6 +90,7 @@ import type {
   StagedRecord,
   UploadQueueEntry,
 } from "./types";
+import { buildWebPermissions, defaultWebPermissions, type WebPermissions } from "./web-permissions";
 import { AccountPage, AuditPage, ImportsPage, SourcesPage, UsersPage } from "./workspace-pages";
 import { WorkspaceHomeSlot } from "./workspace-home";
 
@@ -100,16 +107,6 @@ const defaultInvitationForm = {
   role: "viewer",
 };
 
-const defaultAuditFilters = {
-  action: "",
-  actorId: "",
-  occurredAfter: "",
-  occurredBefore: "",
-  subjectId: "",
-  subjectKind: "",
-};
-
-type AuditFilters = typeof defaultAuditFilters;
 type NoticeDescriptor = {
   key: MessageKey;
   values?: Record<string, number | string>;
@@ -122,15 +119,6 @@ type WorkspaceReviewCounts = {
 type SessionBootstrap = {
   runtimeEnvironment: string | null;
   user: ApiUser | null;
-};
-type WebPermissions = {
-  canCommitImports: boolean;
-  canDecideReviews: boolean;
-  canManageUsers: boolean;
-  canProcessImports: boolean;
-  canRetryImports: boolean;
-  canUploadSources: boolean;
-  canWriteAiAdvisories: boolean;
 };
 
 let sessionBootstrapCache: SessionBootstrap | null = null;
@@ -146,16 +134,6 @@ const localDemoProfiles = {
     email: "reviewer@example.com",
   },
 } as const;
-
-const defaultWebPermissions: WebPermissions = {
-  canCommitImports: false,
-  canDecideReviews: false,
-  canManageUsers: false,
-  canProcessImports: false,
-  canRetryImports: false,
-  canUploadSources: false,
-  canWriteAiAdvisories: false,
-};
 
 function loadSessionBootstrap(): Promise<SessionBootstrap> {
   if (sessionBootstrapCache) {
@@ -1859,76 +1837,6 @@ function buildSearchEntries(props: {
   }
 
   return entries;
-}
-
-function hasAuditFilters(filters: AuditFilters): boolean {
-  return Object.values(filters).some((value) => value.trim().length > 0);
-}
-
-function auditFilterQuery(filters: AuditFilters): {
-  action?: string;
-  actorId?: string;
-  occurredAfter?: string;
-  occurredBefore?: string;
-  subjectId?: string;
-  subjectKind?: string;
-} {
-  return {
-    ...(filters.action.trim() ? { action: filters.action.trim() } : {}),
-    ...(filters.actorId.trim() ? { actorId: filters.actorId.trim() } : {}),
-    ...(filters.occurredAfter.trim()
-      ? { occurredAfter: startOfDateUtc(filters.occurredAfter.trim()) }
-      : {}),
-    ...(filters.occurredBefore.trim()
-      ? { occurredBefore: dayAfterDateUtc(filters.occurredBefore.trim()) }
-      : {}),
-    ...(filters.subjectId.trim() ? { subjectId: filters.subjectId.trim() } : {}),
-    ...(filters.subjectKind.trim() ? { subjectKind: filters.subjectKind.trim() } : {}),
-  };
-}
-
-function startOfDateUtc(dateValue: string): string {
-  return `${dateValue}T00:00:00.000Z`;
-}
-
-function dayAfterDateUtc(dateValue: string): string {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  const date = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1));
-  date.setUTCDate(date.getUTCDate() + 1);
-  return date.toISOString();
-}
-
-function buildWebPermissions(user: ApiUser): WebPermissions {
-  return {
-    canCommitImports: canUse(user, "import_job:commit"),
-    canDecideReviews: canUse(user, "review:decide"),
-    canManageUsers: canUse(user, "invitation:create"),
-    canProcessImports: canUse(user, "import_job:process"),
-    canRetryImports: canUse(user, "import_job:retry"),
-    canUploadSources: canUse(user, "source_file:upload"),
-    canWriteAiAdvisories: canUse(user, "ai_advisory:write"),
-  };
-}
-
-function canUse(user: ApiUser, permission: Permission): boolean {
-  return can(
-    {
-      id: user.id,
-      role: normalizeRole(user.role),
-    },
-    permission,
-  );
-}
-
-function createUploadQueueEntries(files: File[]): UploadQueueEntry[] {
-  return files.map((file) => ({
-    file,
-    id:
-      typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    status: "queued",
-  }));
 }
 
 function errorMessage(error: unknown): string {

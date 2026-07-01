@@ -32,7 +32,7 @@ Core packages own:
 3. Import job lifecycle.
 4. Queue message envelope.
 5. Generic review issue lifecycle.
-6. Approve/reject/void decision records.
+6. Approve/reject/void decision records, with confirmation-language aliases for app UI.
 7. Audit hooks.
 
 Core does not own business staging payloads or business commit tables.
@@ -89,6 +89,26 @@ type ReviewDecision = {
   }>;
 };
 ```
+
+The current database and event taxonomy still use the stable internal
+`approve`/`reject` action names. User-facing surfaces may use
+`confirm`/`exclude` through the `@qitu/import-pipeline` alias helpers:
+
+```ts
+reviewActionForConfirmationAction("confirm"); // "approve"
+reviewActionForConfirmationAction("exclude"); // "reject"
+confirmationStatusForStagedStatus("approved"); // "confirmed"
+confirmationStatusForStagedStatus("rejected"); // "excluded"
+```
+
+Migration rule:
+
+1. UI copy can use confirmation language now.
+2. App routes can expose confirmation-language endpoints such as `confirm-pending`.
+3. Internal route keys, permission names, event names, and D1 statuses stay compatible until
+   a deliberate schema migration is planned.
+4. A future migration may rename storage fields only when the app can migrate audit readers,
+   smoke tests, and downstream route contracts together.
 
 Job status is derived from staged-record status counts after review and commit actions:
 

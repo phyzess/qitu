@@ -884,6 +884,132 @@ Reason:
 
 Downstream products quickly diverge from generic placeholder layouts. A shared list-state primitive keeps qitu's intake lists visually stable across empty and populated states, and gives regression tests a concrete structure to verify instead of relying on text-only assertions.
 
+### 2026-07-01: Adoption Script For Real App Baselines
+
+Decision:
+
+Add `vp run adopt:app` as a dry-run-first script for turning a copied qitu checkout into an app-owned repository.
+
+Rules:
+
+1. The script plans package namespace, root package name, session cookie, Worker name, Cloudflare resource-name, and public app-name edits.
+2. It writes files only with explicit `--apply`.
+3. It can remove scaffold-only templates, examples, agent docs, roadmap, capability, and kit-completion docs with `--clean-product-baseline`.
+4. It prints remote safety commands instead of changing git remotes automatically.
+5. It must not read, write, or print secret values.
+
+Reason:
+
+Downstream adoption showed that qitu's first-day value depends on a safe path from reusable seed to real product repository. Making adoption dry-run-first preserves review while removing private-memory rename steps.
+
+### 2026-07-01: Replaceable Feature Slice Template
+
+Decision:
+
+Expand `templates/feature` from an adapter skeleton into a replaceable feature slice scaffold with migration, integration fixture, web surface descriptor, and smoke-path metadata.
+
+Rules:
+
+1. The template keeps parser, staging, validation, commit, fixtures, and web-surface hooks app-owned.
+2. The migration file is a slot to copy into app-owned Worker migrations and rewrite for the product feature.
+3. The registry exports import adapters, integration fixtures, and web surfaces.
+4. Core packages must not import copied feature code.
+5. Starter adapters should be removed only after a copied feature proves the same upload -> queue -> confirmation -> commit path.
+
+Reason:
+
+Downstream work replaces a vertical slice, not just a parser. A deeper template gives leverage to agents adding the first real business feature without changing qitu core semantics.
+
+### 2026-07-01: App-Owned RBAC Policy Seam
+
+Decision:
+
+Keep `@qitu/rbac` as the permission evaluation module, but make role policy app-owned through `createRbacPolicy`, `normalizeRoleForPolicy`, and app-local policy adapters.
+
+Rules:
+
+1. `@qitu/rbac` ships the starter `owner/admin/reviewer/viewer` policy as the default.
+2. Worker and Web apps use `apps/*/src/rbac-policy.ts` adapters.
+3. Downstream apps may rename or replace role names without editing package internals.
+4. Permission names remain business-neutral until a real app proves a reusable extension is needed.
+5. Database role values remain strings owned by the app policy.
+
+Reason:
+
+Downstream apps need app-owned role vocabulary. Keeping fixed role names only in the package made the RBAC module shallow; the policy seam keeps authorization mechanics reusable while letting apps own role language.
+
+### 2026-07-01: Web Orchestration Helpers Are App-Owned Modules
+
+Decision:
+
+Split audit filters, upload queue state, and web permission projection out of `apps/web/src/app.tsx` into app-owned helper modules.
+
+Rules:
+
+1. `app.tsx` remains the route/workflow orchestrator.
+2. Audit filter query construction lives in `apps/web/src/audit-filters.ts`.
+3. Upload queue entry construction lives in `apps/web/src/upload-queue-state.ts`.
+4. Permission projection lives in `apps/web/src/web-permissions.ts` and calls the app-owned RBAC policy.
+5. Pages import shared app-owned types instead of redefining workflow helper shapes.
+
+Reason:
+
+The web shell is the main replacement surface for downstream products. Moving repeated orchestration helpers out of the root app module improves locality without inventing a framework layer.
+
+### 2026-07-01: UI Pattern Primitives Beyond Basic Controls
+
+Decision:
+
+Add shared qitu primitives for filter bars, data toolbars, detail drawers, and command-search trigger structure, and wire them into the starter shell/pages.
+
+Rules:
+
+1. Audit filters use `FilterBar`.
+2. Audit result headers use `DataToolbar`.
+3. Source metadata details use `DetailDrawer`.
+4. The app shell command trigger uses `CommandSearchFixture`.
+5. These primitives own layout structure only; business filtering semantics remain app-owned.
+
+Reason:
+
+The first primitive hardening pass covered controls; downstream pages also drift in repeated pattern composition. These small pattern primitives keep density, spacing, and accessibility consistent without turning qitu into a full design-system catalog.
+
+### 2026-07-01: Confirmation Alias Bridge Before Schema Migration
+
+Decision:
+
+Expose confirmation-language aliases in `@qitu/import-pipeline` while keeping existing review actions and statuses stable.
+
+Rules:
+
+1. `confirm` maps to the existing `approve` action.
+2. `exclude` maps to the existing `reject` action.
+3. `approved` can display as `confirmed`; `rejected` can display as `excluded`.
+4. Route keys, permission names, event names, and database statuses stay stable until a deliberate migration is planned.
+5. Package interface tests must cover the alias mapping.
+
+Reason:
+
+UI language has moved toward confirmation, but immediate storage renames would be noisy and risky. A package-level alias bridge gives downstream code a canonical semantic interface while preserving compatibility.
+
+### 2026-07-01: Business-Neutral Inbound Email Intake
+
+Decision:
+
+Add an inbound email handler that stores raw RFC822 messages and hands supported attachments to the existing source-file import pipeline.
+
+Rules:
+
+1. Worker `email(message, env)` handles Cloudflare Email Routing events.
+2. Raw messages are stored in R2 under `raw-emails/`.
+3. `inbound_email_messages` and `inbound_email_attachments` store generic receipt and attachment metadata.
+4. Supported attachments create `source_files`, `import_jobs`, audit events, job events, and queue messages through the shared source intake helper.
+5. Business interpretation of attachments remains in app-owned import adapters.
+
+Reason:
+
+Real internal data apps often receive files by email. Adding a narrow inbound intake path extends qitu's source-first architecture without adding business parsers, workflow engines, or product-specific inbox semantics.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

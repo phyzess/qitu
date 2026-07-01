@@ -22,6 +22,7 @@
     "deploy:production": "vp run -r build && vp run --filter @qitu/worker deploy:production && vp run health:production",
     "release:preview": "node scripts/release-gate.mjs preview",
     "release:production": "node scripts/release-gate.mjs production",
+    "adopt:app": "node scripts/adopt-app.mjs",
     "health": "node scripts/health-check.mjs local",
     "health:preview": "node scripts/health-check.mjs preview",
     "health:production": "node scripts/health-check.mjs production",

@@ -5,12 +5,10 @@ import {
   Button,
   Checkbox,
   DataState,
+  DataToolbar,
   DateField,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerRoot,
-  DrawerTitle,
+  DetailDrawer,
+  FilterBar,
   Input,
   ListFrame,
   MetricStrip,
@@ -25,6 +23,7 @@ import {
   type UploadQueueItem,
 } from "@qitu/ui";
 import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
+import type { AuditFilters } from "./audit-filters";
 import { routePath, type AppNavigationPath } from "./app-routes";
 import { ErrorText, Field, RuntimeRow, SelectField } from "./app-ui";
 import { useI18n, type Translate } from "./i18n";
@@ -54,15 +53,6 @@ export type WorkspaceHomeProps = {
 type InvitationForm = {
   email: string;
   role: string;
-};
-
-type AuditFilters = {
-  action: string;
-  actorId: string;
-  occurredAfter: string;
-  occurredBefore: string;
-  subjectId: string;
-  subjectKind: string;
 };
 
 export function OverviewPage(props: WorkspaceHomeProps) {
@@ -393,20 +383,28 @@ export function SourcesPage(props: {
           <Guardrail label={t("guardrail.importQueued")} />
         </div>
       </Surface>
-      <DrawerRoot
+      <DetailDrawer
         open={Boolean(selectedSourceId)}
         onOpenChange={(open) => !open && setSelectedSourceId(null)}
+        closeAction={
+          <Button
+            aria-label={t("action.closeDetails")}
+            className="size-8 px-0"
+            size="sm"
+            title={t("action.closeDetails")}
+            variant="ghost"
+            onClick={() => setSelectedSourceId(null)}
+          >
+            <X size={14} />
+          </Button>
+        }
+        description={t("sources.detailsDescription")}
+        title={selectedSource?.filename ?? ""}
       >
-        <DrawerContent>
-          {selectedSource ? (
-            <SourceDetailsDrawer
-              file={selectedSource}
-              jobs={selectedSourceJobs}
-              onClose={() => setSelectedSourceId(null)}
-            />
-          ) : null}
-        </DrawerContent>
-      </DrawerRoot>
+        {selectedSource ? (
+          <SourceDetailsDrawer file={selectedSource} jobs={selectedSourceJobs} />
+        ) : null}
+      </DetailDrawer>
     </div>
   );
 }
@@ -629,9 +627,25 @@ export function AuditPage(props: {
             icon={<AnimatedIcon name="audit" size={16} />}
             title={t("audit.title")}
           />
-          <form
-            className="mt-[var(--qitu-space-s1)] grid gap-3 lg:grid-cols-6"
+          <FilterBar
+            className="mt-[var(--qitu-space-s1)]"
             onSubmit={submitFilters}
+            actions={
+              <>
+                <Button disabled={props.isBusy} size="sm" type="submit">
+                  <AnimatedIcon name="search" size={14} /> {t("action.applyFilters")}
+                </Button>
+                <Button
+                  disabled={props.isBusy}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={props.onClearFilters}
+                >
+                  <X size={14} /> {t("action.clearFilters")}
+                </Button>
+              </>
+            }
           >
             <Field
               label={t("audit.filterAction")}
@@ -684,28 +698,23 @@ export function AuditPage(props: {
                 props.onFiltersChange({ ...props.filters, occurredBefore })
               }
             />
-            <div className="flex flex-wrap gap-2 lg:col-span-6">
-              <Button disabled={props.isBusy} size="sm" type="submit">
-                <AnimatedIcon name="search" size={14} /> {t("action.applyFilters")}
-              </Button>
-              <Button
-                disabled={props.isBusy}
-                size="sm"
-                type="button"
-                variant="ghost"
-                onClick={props.onClearFilters}
-              >
-                <X size={14} /> {t("action.clearFilters")}
-              </Button>
-            </div>
-          </form>
+          </FilterBar>
         </Surface>
 
         <Surface className="p-[var(--qitu-space-s1)]">
-          <SectionHeader
-            icon={<AnimatedIcon name="activity" size={16} />}
-            title={t("audit.results")}
-          />
+          <DataToolbar
+            meta={t("audit.resultCount", { count: String(props.auditEvents.length) })}
+            actions={
+              <StatusBadge tone={props.auditEvents.length > 0 ? "info" : "neutral"}>
+                {props.auditEvents.length > 0 ? t("status.ready") : t("status.empty")}
+              </StatusBadge>
+            }
+          >
+            <SectionHeader
+              icon={<AnimatedIcon name="activity" size={16} />}
+              title={t("audit.results")}
+            />
+          </DataToolbar>
           <div className="mt-[var(--qitu-space-s1)]">
             <DataState
               description={t("audit.empty")}
@@ -1069,40 +1078,11 @@ function SourceFileRow(props: {
   );
 }
 
-function SourceDetailsDrawer(props: {
-  file: SourceFile;
-  jobs: ImportJobListItem[];
-  onClose: () => void;
-}) {
+function SourceDetailsDrawer(props: { file: SourceFile; jobs: ImportJobListItem[] }) {
   const { formatBytes, formatDateTime, formatStatus, t } = useI18n();
 
   return (
     <div>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <DrawerTitle className="truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
-            {props.file.filename}
-          </DrawerTitle>
-          <DrawerDescription className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
-            {t("sources.detailsDescription")}
-          </DrawerDescription>
-        </div>
-        <DrawerClose
-          render={
-            <Button
-              aria-label={t("action.closeDetails")}
-              className="size-8 px-0"
-              size="sm"
-              title={t("action.closeDetails")}
-              variant="ghost"
-              onClick={props.onClose}
-            >
-              <X size={14} />
-            </Button>
-          }
-        />
-      </div>
-
       <div className="mt-[var(--qitu-space-s1)] grid gap-2">
         <RuntimeRow label={t("sources.uploadedAt")} value={formatDateTime(props.file.uploadedAt)} />
         <RuntimeRow label={t("sources.fileSize")} value={formatBytes(props.file.size)} />

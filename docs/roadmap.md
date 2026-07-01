@@ -237,6 +237,39 @@ Seventh hardening increment:
 4. Drop pre-release compatibility redirects for old flat route paths.
 5. Derive import job status from staged-record counts so partial commits keep jobs in review while pending rows remain.
 
+## Phase 6: Downstream Adoption Feedback Hardening
+
+Status:
+
+```text
+baseline complete
+```
+
+Goal:
+
+Fold real cloned-app feedback back into the starter without turning `qitu` into a business app.
+
+Boundary:
+
+Keep downstream concerns app-owned. The starter may provide scripts, templates, seams, and business-neutral primitives, but reusable packages must not gain business-specific roles, fields, workflows, reports, or parser assumptions.
+
+Completed requirements:
+
+1. Add a dry-run-first adoption script for app rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety.
+2. Expand `templates/feature` into a replaceable slice with a migration, integration fixture, registry export, and web-surface descriptor.
+3. Move app-specific role policy into deployable app entrypoints while keeping generic permission helpers in `packages/rbac`.
+4. Split bulky React orchestration helpers out of the top-level app component into app-owned modules.
+5. Add reusable UI pattern primitives for filter bars, data toolbars, detail drawers, and command-search fixture composition.
+6. Introduce confirmation semantic aliases so user-facing confirm/exclude language can coexist with existing approve/reject storage until a future migration.
+7. Add a business-neutral inbound email intake slice that stores raw messages, records receipt metadata, and hands supported attachments to source-file import jobs.
+
+Current verification:
+
+1. Smoke checks guard adoption manifest/script invariants, template feature replacement slots, RBAC policy seams, UI primitive usage, confirmation aliases, and inbound email wiring.
+2. Package interface tests SSR-load the feature template registry and verify custom RBAC policy and confirmation alias contracts.
+3. Worker integration covers inbound email attachment intake through local D1/R2/Queue fakes.
+4. Typecheck covers the Worker email handler, shared schemas, app-owned RBAC helpers, and new UI primitives.
+
 ## Completion Gate
 
 The final target is defined in `docs/kit-completion.md`.

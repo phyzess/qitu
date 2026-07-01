@@ -53,6 +53,7 @@ async function main() {
     const client = createClient(worker, env);
 
     await expectStatus(await client.post("/api/source-files", "unauthorized"), 401);
+    await testInboundEmailIntake(worker);
 
     const previewEnv = await createTestEnv({
       APP_ENV: "preview",
@@ -806,6 +807,93 @@ async function createTestEnv(overrides = {}) {
     SOURCE_FILES: sourceFiles,
     IMPORT_JOBS: importJobs,
     ...overrides,
+  };
+}
+
+async function testInboundEmailIntake(worker) {
+  const env = await createTestEnv();
+  const rawEmail = [
+    'Content-Type: multipart/mixed; boundary="qitu-boundary"',
+    "Subject: Inbound source",
+    "From: sender@example.com",
+    "To: intake@example.com",
+    "",
+    "--qitu-boundary",
+    "Content-Type: text/plain",
+    "",
+    "Please process the attached source.",
+    "--qitu-boundary",
+    "Content-Type: text/csv",
+    'Content-Disposition: attachment; filename="inbound-source.txt"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    "bGFiZWwsdmFsdWUKSW5ib3VuZCw0Mgo=",
+    "--qitu-boundary--",
+    "",
+  ].join("\r\n");
+
+  await worker.email(createInboundEmailMessage(rawEmail), env, {
+    waitUntil() {},
+    passThroughOnException() {},
+  });
+
+  assert(env.IMPORT_JOBS.messages.length === 1, "inbound email attachment queues import job");
+  const inboundEmail = await env.DB.prepare(
+    "SELECT id, raw_object_key, attachment_count, status FROM inbound_email_messages LIMIT 1",
+  ).first();
+  assert(inboundEmail?.attachment_count === 1, "inbound email stores receipt metadata");
+  assert(inboundEmail.status === "queued", "inbound email receipt reflects queued attachment");
+  assert(
+    env.SOURCE_FILES.has(inboundEmail.raw_object_key),
+    "inbound email stores raw RFC822 in R2",
+  );
+
+  const attachment = await env.DB.prepare(
+    "SELECT source_file_id, import_job_id, object_key, status FROM inbound_email_attachments LIMIT 1",
+  ).first();
+  assert(attachment?.source_file_id, "inbound attachment links to source file");
+  assert(attachment?.import_job_id, "inbound attachment links to import job");
+  assert(attachment?.status === "queued", "inbound attachment stores queue status");
+
+  const source = await env.DB.prepare(
+    "SELECT filename, uploaded_by FROM source_files WHERE id = ? LIMIT 1",
+  )
+    .bind(attachment.source_file_id)
+    .first();
+  assert(source?.filename === "inbound-source.txt", "inbound attachment creates source file");
+  assert(
+    source?.uploaded_by === "system:inbound-email",
+    "inbound source file records system actor",
+  );
+}
+
+function createInboundEmailMessage(rawEmail) {
+  const bytes = new TextEncoder().encode(rawEmail);
+  return {
+    from: "sender@example.com",
+    headers: new Headers({
+      "content-type": 'multipart/mixed; boundary="qitu-boundary"',
+      from: "sender@example.com",
+      subject: "Inbound source",
+      to: "intake@example.com",
+    }),
+    raw: new ReadableStream({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    }),
+    rawSize: bytes.byteLength,
+    to: "intake@example.com",
+    forward() {
+      return Promise.resolve({ id: "forwarded" });
+    },
+    reply() {
+      return Promise.resolve({ id: "reply" });
+    },
+    setReject(reason) {
+      this.rejected = reason;
+    },
   };
 }
 

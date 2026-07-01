@@ -1,6 +1,10 @@
 import { importFeatureAdapter } from "./import-feature";
+import { templateFeatureFixture } from "./fixtures";
+import { templateFeatureWebSurface } from "./web-surface";
 
 export const featureImportAdapters = [importFeatureAdapter] as const;
+export const featureIntegrationFixtures = [templateFeatureFixture] as const;
+export const featureWebSurfaces = [templateFeatureWebSurface] as const;
 
 export type RegisteredFeatureImportAdapter = (typeof featureImportAdapters)[number];
 

@@ -18,7 +18,7 @@ import {
   type User,
 } from "@qitu/auth";
 import { renderInvitationEmail, renderPasswordResetEmail } from "@qitu/email";
-import { can, isRoleName, normalizeRole, type Permission } from "@qitu/rbac";
+import type { Permission } from "@qitu/rbac";
 import type { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import * as v from "valibot";
@@ -32,6 +32,7 @@ import {
 } from "./event-store";
 import { authError, parseQueryLimit, parseRequestJson, type AppContext } from "./http-utils";
 import { localeFromRequest, type WorkerLocale } from "./locale";
+import { appCan, isAppRoleName, normalizeAppRole } from "./rbac-policy";
 import { appName, buildAppUrl, isLocalAppEnv, runtimeConfig } from "./runtime";
 
 const sessionCookieName = "qitu_session";
@@ -308,7 +309,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
     const user: User = {
       id: crypto.randomUUID(),
       email: normalizeEmail(invitation.email),
-      role: normalizeRole(invitation.role),
+      role: normalizeAppRole(invitation.role),
       createdAt: now,
     };
 
@@ -854,7 +855,7 @@ async function createInvitationResponse(
   options: { createdBy: string; locale: WorkerLocale; returnToken: boolean },
 ): Promise<Response> {
   const requestedRole = input.role ?? "viewer";
-  if (!isRoleName(requestedRole)) {
+  if (!isAppRoleName(requestedRole)) {
     return authError(context, "invalid_role", "Invitation role is not supported.", 400);
   }
 
@@ -942,9 +943,9 @@ export async function requirePermission(
   current: CurrentUser,
   permission: Permission,
 ): Promise<Response | null> {
-  const role = normalizeRole(current.user.role);
+  const role = normalizeAppRole(current.user.role);
   if (
-    can(
+    appCan(
       {
         id: current.user.id,
         role,
@@ -1039,7 +1040,7 @@ function mapUser(row: UserRow): User {
   const user: User = {
     id: row.id,
     email: row.email,
-    role: normalizeRole(row.role),
+    role: normalizeAppRole(row.role),
     createdAt: row.created_at,
   };
 

@@ -16,7 +16,11 @@ templates/* -> copyable starting points
 
 `qitu` does not require a top-level `domains/*` folder. Concrete apps may organize business code by feature, workflow, bounded context, or vertical slice.
 
-`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include auth route composition, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include auth route composition, the app role policy, source-file intake, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, inbound email routing, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+
+Inbound email routing is app-owned Worker wiring. `packages/email` owns generic message, receipt,
+and attachment schemas; `apps/worker/src/inbound-email.ts` adapts Cloudflare Email Routing to raw
+R2 storage, D1 metadata, and source-file import handoff.
 
 ## 2. Proposed Packages
 
@@ -42,14 +46,15 @@ Does not own:
 Owns:
 
 1. Permission registry.
-2. `can(user, action, resource)`.
-3. Route guards.
-4. UI visibility helpers.
+2. Starter role policy helpers.
+3. Business-neutral permission checks.
+4. UI visibility helper primitives.
 
 Does not own:
 
 1. Business-specific actions.
 2. Business-specific resource hierarchies.
+3. The canonical role taxonomy of a cloned app.
 
 ### 2.3 `packages/files`
 
@@ -170,13 +175,15 @@ Owns:
 1. Transactional email sending.
 2. Invitation email.
 3. Password reset email.
-4. Inbound email metadata.
-5. Raw email R2 storage.
-6. Attachment handoff.
+4. Inbound email receipt and attachment schemas.
+5. Provider-neutral email metadata contracts.
 
 Does not own:
 
 1. Business-specific attachment parsing.
+2. Cloudflare Email Routing configuration.
+3. Raw inbound R2 object key policy.
+4. Source-file import handoff.
 
 ### 2.11 `packages/ai-advisory`
 

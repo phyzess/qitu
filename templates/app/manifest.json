@@ -20,6 +20,7 @@
     "packages/testing",
     "packages/ui",
     "scripts/browser-smoke.mjs",
+    "scripts/adopt-app.mjs",
     "scripts/dev-all.mjs",
     "scripts/doctor.mjs",
     "scripts/i18n-check.mjs",
@@ -62,5 +63,22 @@
     "wrangler.resources": "Replace local D1/R2/Queue names and IDs with app-owned resources."
   },
   "firstCommands": ["vp run setup", "vp run verify:kit", "vp run deploy:dry-run"],
+  "adoptionCommands": [
+    "vp run adopt:app -- --name <app-name>",
+    "vp run adopt:app -- --name <app-name> --apply",
+    "vp run adopt:app -- --name <app-name> --clean-product-baseline --apply"
+  ],
+  "productBaselineCleanup": [
+    "templates",
+    "examples",
+    "docs/guides",
+    "docs/templates",
+    "docs/agents",
+    "docs/kit-completion.md",
+    "docs/capability-matrix.md",
+    "docs/release-notes.md",
+    "docs/upgrade-notes.md",
+    "docs/roadmap.md"
+  ],
   "mustStayBusinessNeutral": ["packages/*", "templates/*", "docs/architecture/*", "docs/agents/*"]
 }

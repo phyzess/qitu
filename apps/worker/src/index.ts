@@ -1,6 +1,5 @@
 import { generateLocalImportReviewAdvisory, requiresHumanConfirmation } from "@qitu/ai-advisory";
 import { createAuditEvent } from "@qitu/audit";
-import { buildSourceFileKey, hashSourceContent } from "@qitu/files";
 import { parseImportJobMessage, type ImportJobMessage } from "@qitu/jobs";
 import { Hono } from "hono";
 import { prepareAuditInsert } from "./audit-store";
@@ -18,20 +17,14 @@ import {
   requestFingerprint,
 } from "./event-store";
 import { authError, parseQueryLimit, type AppContext } from "./http-utils";
-import { selectImportAdapter } from "./import-adapters";
 import { markImportJobFailed, processImportJob } from "./import-job-runner";
 import { readImportReviewStats } from "./import-review-stats";
 import { readImportJobReview, registerImportReviewRoutes } from "./import-review-routes";
+import { handleInboundEmail } from "./inbound-email";
 import { isLocalAppEnv, runtimeConfig } from "./runtime";
+import { createSourceFileImportJob } from "./source-intake";
 
 const app = new Hono<{ Bindings: Env }>();
-
-type DuplicateSourceFileRow = {
-  source_file_id: string;
-  object_key: string;
-  import_job_id: string | null;
-  status: string | null;
-};
 
 type SourceFileRow = {
   id: string;
@@ -296,231 +289,54 @@ app.post("/api/source-files", async (context) => {
     );
   }
 
-  const sourceFileId = crypto.randomUUID();
-  const jobId = crypto.randomUUID();
   const filename = context.req.header("x-filename") ?? "source.bin";
   const contentType = context.req.header("content-type") ?? "application/octet-stream";
-  const adapter = selectImportAdapter({
-    filename,
+  const workspaceId = context.req.header("x-workspace-id") ?? "default";
+  const fingerprint = await requestFingerprint(context);
+  const result = await createSourceFileImportJob(context.env, {
+    actor: {
+      id: current.user.id,
+      kind: "user",
+    },
+    content,
     contentType,
+    filename,
+    requestId: fingerprint.requestId,
+    workspaceId,
   });
-  if (!adapter) {
+
+  if (!result.ok) {
     return context.json(
       {
         error: {
-          code: "unsupported_source_file",
-          message: "No import adapter can handle this source file.",
+          code: result.code,
+          message: result.message,
         },
+        ...(result.sourceFileId ? { sourceFileId: result.sourceFileId } : {}),
+        ...(result.importJobId ? { importJobId: result.importJobId } : {}),
+        ...(result.objectKey ? { objectKey: result.objectKey } : {}),
+        ...(result.code === "queue_dispatch_failed" ? { status: "failed" } : {}),
       },
-      415,
+      result.status,
     );
   }
 
-  const workspaceId = context.req.header("x-workspace-id") ?? "default";
-  const size = content.byteLength;
-  const contentHash = await hashSourceContent(content);
-  const idempotencyKey = `${workspaceId}:${contentHash}`;
-  const now = new Date().toISOString();
-  const duplicate = await findDuplicateSourceFile(context.env, {
-    workspaceId,
-    contentHash,
-  });
-
-  if (duplicate) {
+  if (result.duplicate) {
     return context.json({
-      sourceFileId: duplicate.source_file_id,
-      importJobId: duplicate.import_job_id,
-      objectKey: duplicate.object_key,
-      status: duplicate.status,
+      sourceFileId: result.sourceFileId,
+      importJobId: result.importJobId,
+      objectKey: result.objectKey,
+      status: result.status,
       duplicate: true,
     });
   }
 
-  const objectKey = buildSourceFileKey({
-    workspaceId,
-    sourceFileId,
-    filename,
-  });
-  const fingerprint = await requestFingerprint(context);
-
-  await context.env.SOURCE_FILES.put(objectKey, content, {
-    httpMetadata: {
-      contentType,
-    },
-    customMetadata: {
-      contentHash,
-      uploadedBy: current.user.id,
-    },
-  });
-
-  const message: ImportJobMessage = {
-    kind: "import.source_file",
-    jobId,
-    sourceFileId,
-    objectKey,
-    requestedBy: current.user.id,
-  };
-
-  try {
-    await context.env.DB.batch([
-      context.env.DB.prepare(
-        `
-          INSERT INTO source_files (
-            id, workspace_id, object_key, filename, content_type, content_hash, size, uploaded_by, uploaded_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-      ).bind(
-        sourceFileId,
-        workspaceId,
-        objectKey,
-        filename,
-        contentType,
-        contentHash,
-        size,
-        current.user.id,
-        now,
-      ),
-      context.env.DB.prepare(
-        `
-          INSERT INTO import_jobs (
-            id,
-            source_file_id,
-            status,
-            job_kind,
-            adapter_id,
-            idempotency_key,
-            attempt_count,
-            created_by,
-            created_at,
-            updated_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-      ).bind(
-        jobId,
-        sourceFileId,
-        "queued",
-        adapter.jobKind,
-        adapter.id,
-        idempotencyKey,
-        0,
-        current.user.id,
-        now,
-        now,
-      ),
-      prepareAuditInsert(
-        context.env,
-        createAuditEvent({
-          action: "source_file.uploaded",
-          actor: {
-            id: current.user.id,
-            kind: "user",
-          },
-          subject: {
-            id: sourceFileId,
-            kind: "source_file",
-          },
-          metadata: {
-            workspaceId,
-            objectKey,
-            filename,
-            contentType,
-            contentHash,
-            importJobId: jobId,
-          },
-        }),
-      ),
-      prepareImportJobEventInsert(context.env, {
-        importJobId: jobId,
-        sourceFileId,
-        eventType: "source_file.uploaded",
-        statusTo: "stored",
-        actorUserId: current.user.id,
-        message: "Source file stored.",
-        requestId: fingerprint.requestId,
-        createdAt: now,
-        metadata: {
-          workspaceId,
-          filename,
-          contentType,
-          contentHash,
-        },
-      }),
-      prepareAuditInsert(
-        context.env,
-        createAuditEvent({
-          action: "import_job.queued",
-          actor: {
-            id: current.user.id,
-            kind: "user",
-          },
-          subject: {
-            id: jobId,
-            kind: "import_job",
-          },
-          metadata: {
-            sourceFileId,
-            objectKey,
-            adapterId: adapter.id,
-            jobKind: adapter.jobKind,
-          },
-        }),
-      ),
-      prepareImportJobEventInsert(context.env, {
-        importJobId: jobId,
-        sourceFileId,
-        eventType: "import_job.queued",
-        statusTo: "queued",
-        actorUserId: current.user.id,
-        message: "Import job queued.",
-        requestId: fingerprint.requestId,
-        createdAt: now,
-        metadata: {
-          objectKey,
-          adapterId: adapter.id,
-          jobKind: adapter.jobKind,
-        },
-      }),
-    ]);
-  } catch (error) {
-    await context.env.SOURCE_FILES.delete(objectKey);
-    throw error;
-  }
-
-  try {
-    await context.env.IMPORT_JOBS.send(message);
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : "Queue dispatch failed.";
-    await markImportJobFailed(context.env, {
-      jobId,
-      sourceFileId,
-      reason,
-      action: "import_job.dispatch_failed",
-      failureClass: "queue_dispatch",
-    });
-
-    return context.json(
-      {
-        error: {
-          code: "queue_dispatch_failed",
-          message: "Source file was stored, but import job dispatch failed.",
-        },
-        sourceFileId,
-        importJobId: jobId,
-        objectKey,
-        status: "failed",
-      },
-      503,
-    );
-  }
-
   return context.json(
     {
-      sourceFileId,
-      importJobId: jobId,
-      objectKey,
-      status: "queued",
+      sourceFileId: result.sourceFileId,
+      importJobId: result.importJobId,
+      objectKey: result.objectKey,
+      status: result.status,
     },
     202,
   );
@@ -796,6 +612,9 @@ export default {
       await processImportJob(env, body);
     }
   },
+  async email(message, env) {
+    await handleInboundEmail(message, env);
+  },
 } satisfies ExportedHandler<Env, ImportJobMessage>;
 
 async function updateAiAdvisoryStatusResponse(
@@ -915,29 +734,6 @@ async function updateAiAdvisoryStatusResponse(
           }),
     }),
   });
-}
-
-async function findDuplicateSourceFile(
-  env: Env,
-  input: { workspaceId: string; contentHash: string },
-): Promise<DuplicateSourceFileRow | null> {
-  return env.DB.prepare(
-    `
-      SELECT
-        source_files.id AS source_file_id,
-        source_files.object_key,
-        import_jobs.id AS import_job_id,
-        import_jobs.status
-      FROM source_files
-      LEFT JOIN import_jobs ON import_jobs.source_file_id = source_files.id
-      WHERE source_files.workspace_id = ?
-        AND source_files.content_hash = ?
-      ORDER BY import_jobs.created_at DESC
-      LIMIT 1
-    `,
-  )
-    .bind(input.workspaceId, input.contentHash)
-    .first<DuplicateSourceFileRow>();
 }
 
 function publicSourceFile(row: SourceFileRow): Record<string, unknown> {

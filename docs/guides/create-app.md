@@ -16,6 +16,41 @@ Before creating an app, decide:
 6. Whether inbound email is enabled.
 7. Whether AI advisory features are enabled.
 
+## Adoption Script
+
+After copying the manifest paths into a new repository, use the adoption script to plan the
+rename from `qitu` to the app-owned identity:
+
+```text
+vp run adopt:app -- --name internal-tool
+```
+
+The script is dry-run by default. It reports package namespace, session cookie, Worker name,
+Cloudflare resource-name, and public app-name edits without writing files. After reviewing the
+plan, apply the identity rename:
+
+```text
+vp run adopt:app -- --name internal-tool --apply
+```
+
+For a real product repository that no longer wants scaffold navigation noise, remove starter-only
+templates, examples, agent docs, and kit-completion documents after the first copied baseline has
+been verified:
+
+```text
+vp run adopt:app -- --name internal-tool --clean-product-baseline --apply
+```
+
+The script prints remote safety steps instead of changing remotes automatically:
+
+```text
+git remote rename origin qitu-template
+git remote set-url --push qitu-template DISABLED
+git remote add origin <app-owned-git-url>
+```
+
+This keeps the upstream scaffold visible while preventing accidental pushes back to the template.
+
 ## Future CLI
 
 The eventual CLI should feel like this:
@@ -42,11 +77,14 @@ The generated app may organize business code inside `apps/*/src/features/*`, ins
 1. Read `templates/app/manifest.json`.
 2. Copy every path listed in `manifest.json.copy`.
 3. Keep or remove `manifest.json.optionalExamples`.
-4. Rename public app metadata, Worker name, and Cloudflare resources listed in `manifest.json.renameAfterCopy`.
-5. Run `vp run setup`.
-6. Run `vp run verify:kit`.
-7. Add the first app-owned feature from `templates/feature`.
-8. Add app-owned migrations and routes only after the first feature needs them.
+4. Run `vp run adopt:app -- --name <app-name>` and review the dry-run plan.
+5. Run `vp run adopt:app -- --name <app-name> --apply`.
+6. Rename the upstream remote to `qitu-template` and disable its push URL.
+7. Run `vp run setup`.
+8. Run `vp run verify:kit`.
+9. Add the first app-owned feature from `templates/feature`.
+10. Add app-owned migrations and routes only after the first feature needs them.
+11. Optionally run `vp run adopt:app -- --name <app-name> --clean-product-baseline --apply` after the copied baseline is verified.
 
 ## Cloudflare Bindings
 
@@ -90,3 +128,5 @@ Before calling an app usable:
 6. Audit events are written for sensitive actions.
 7. Business-owned feature code does not leak into reusable `packages/*`.
 8. `templates/app/manifest.json` paths were copied or intentionally excluded.
+9. `qitu_session`, `qitu-worker`, `qitu-dev`, `qitu-preview`, and `qitu-production` no longer appear in runtime config unless the app intentionally keeps qitu names.
+10. The upstream scaffold remote cannot receive pushes from the product repository.

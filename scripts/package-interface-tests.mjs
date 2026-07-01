@@ -28,6 +28,8 @@ try {
   const importPipeline = await server.ssrLoadModule("/packages/import-pipeline/src/index.ts");
   const db = await server.ssrLoadModule("/packages/db/src/index.ts");
   const i18n = await server.ssrLoadModule("/packages/i18n/src/index.ts");
+  const rbac = await server.ssrLoadModule("/packages/rbac/src/index.ts");
+  const templateFeature = await server.ssrLoadModule("/templates/feature/src/registry.ts");
   const webApi = await server.ssrLoadModule("/apps/web/src/api.ts");
 
   assert(
@@ -63,9 +65,18 @@ try {
     "import-pipeline must surface jobs with approved uncommitted records.",
   );
   assert(
+    importPipeline.reviewActionForConfirmationAction("confirm") === "approve" &&
+      importPipeline.reviewActionForConfirmationAction("exclude") === "reject" &&
+      importPipeline.confirmationStatusForStagedStatus("approved") === "confirmed" &&
+      importPipeline.confirmationStatusForStagedStatus("rejected") === "excluded",
+    "import-pipeline must expose confirmation-language aliases over existing review actions.",
+  );
+  assert(
     typeof db.users.role === "object" &&
       typeof db.passwordResetTokens.tokenHash === "object" &&
-      typeof db.emailMessages.providerMessageId === "object",
+      typeof db.emailMessages.providerMessageId === "object" &&
+      typeof db.inboundEmailMessages.rawObjectKey === "object" &&
+      typeof db.inboundEmailAttachments.sourceFileId === "object",
     "db package must expose the current auth/email migration baseline.",
   );
   const localeFormatters = i18n.createLocaleFormatters({
@@ -104,6 +115,25 @@ try {
       ],
     }) === "zh-CN",
     "i18n package must resolve locales from Accept-Language candidates.",
+  );
+  const customPolicy = rbac.createRbacPolicy({
+    fallbackRole: "viewer",
+    permissions: {
+      operator: ["source_file:upload", "review:decide"],
+      viewer: [],
+    },
+    roles: ["operator", "viewer"],
+  });
+  assert(
+    rbac.normalizeRoleForPolicy(customPolicy, "missing") === "viewer" &&
+      rbac.can({ id: "user-1", role: "operator" }, "review:decide", customPolicy) === true &&
+      rbac.can({ id: "user-2", role: "viewer" }, "review:decide", customPolicy) === false,
+    "rbac package must let app-owned role policies use product-owned role names without changing the package.",
+  );
+  assert(
+    templateFeature.featureIntegrationFixtures[0]?.filename === "template-feature.csv" &&
+      templateFeature.featureWebSurfaces[0]?.detailRoute === "/workspace/template-feature",
+    "feature template must export integration fixtures and web surface descriptors.",
   );
   const structuredApiError = await webApi.apiErrorFromResponse(
     new Response(
