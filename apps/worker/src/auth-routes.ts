@@ -110,7 +110,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/api/bootstrap/local-reviewer", async (context) => {
     return createLocalUserBootstrapResponse(context, {
       action: "auth.local_reviewer_bootstrap",
-      defaultDisplayName: "Reviewer",
+      defaultDisplayName: "Operator",
       eventType: "auth.local_reviewer_bootstrapped",
       role: "reviewer",
     });

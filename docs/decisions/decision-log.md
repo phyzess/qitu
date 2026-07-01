@@ -210,7 +210,7 @@ email: admin@example.com
 password: correct horse battery staple
 ```
 
-The bootstrap routes create or reset those users only when `APP_ENV=local`; invitation-only onboarding remains the non-local default. The reviewer account exercises review workflows, and the admin account exercises user and invitation management.
+The bootstrap routes create or reset those users only when `APP_ENV=local`; invitation-only onboarding remains the non-local default. The operator account exercises confirmation workflows, and the admin account exercises user and invitation management.
 
 Reason:
 
@@ -272,7 +272,7 @@ Baseline routes:
 Rules:
 
 1. Protected routes require a current session and redirect signed-out users to `/login`.
-2. Login, invite acceptance, and local reviewer bootstrap land in the authenticated workbench.
+2. Login, invite acceptance, and local operator bootstrap land in the authenticated workbench.
 3. The account entry is visible in the authenticated topbar and exposes logout through its user panel.
 4. Member and invitation management are real app routes backed by Worker APIs and RBAC, not hidden test-only capabilities.
 5. The route shell stays business-neutral; app-owned feature routes may add business meaning outside reusable packages.
@@ -543,7 +543,7 @@ Keep qitu's shipped web routes as real authenticated routes, but present them th
 
 Rules:
 
-1. Authenticated login lands on `/workspace`, not directly on a review workflow.
+1. Authenticated login lands on `/workspace`, not directly on a confirmation workflow.
 2. Primary navigation exposes only Workspace and Settings.
 3. Workspace contains `/workspace`, `/workspace/sources`, `/workspace/imports`, and `/workspace/reviews`.
 4. Settings contains `/settings`, `/settings/members`, and `/settings/audit`.
@@ -594,6 +594,295 @@ Make the shadcn/Base UI direction executable instead of documentation-only:
 Reason:
 
 The previous implementation only recorded shadcn/Base UI as a direction while hand-rolling interactive primitives in app code and leaving the old Base UI package unused. That made the design-system baseline unenforceable. The starter needs a working registry path, accessible primitive backing, and a package boundary that keeps qitu tokens/components canonical without letting app pages bypass `packages/ui`.
+
+### 2026-07-01: Production Auth Hygiene And API Error Visibility
+
+Decision:
+
+Keep local setup and demo credentials as local-only development affordances across both API and UI:
+
+1. Bootstrap invitation and local demo user routes remain disabled unless `APP_ENV=local`.
+2. The login page shows the `Setup` tab and local demo credential affordances only after `/health` reports `APP_ENV=local`.
+3. Preview and production login pages must not prefill demo credentials.
+4. First-admin onboarding in deployed environments must use a one-time admin invitation, not local bootstrap or direct user/password creation.
+5. The web API client must parse structured backend error bodies in the `{ error: { code, message, issues? } }` shape and surface the backend message instead of replacing it with generic HTTP status text.
+6. Network-style frontend failures use a stable Worker-connection message so operators can distinguish backend validation from local proxy/runtime problems.
+
+Reason:
+
+Downstream practice showed that local scaffold conveniences become production risk when they are visible in deployed login screens, and generic HTTP errors make upload/auth failures hard to act on. qitu should keep cloned local setup fast while making preview and production invitation-only by default, and it should preserve backend error semantics all the way to the frontend.
+
+### 2026-07-01: UI Primitive Governance As Downstream Paved Road
+
+Decision:
+
+Treat shared UI primitive governance as boundary protection, not as speculative component-library expansion.
+
+Rules:
+
+1. Missing common primitives should be checked against the shadcn/Base UI registry before custom implementation.
+2. App pages import reusable controls from `@qitu/ui`; direct Base UI imports stay inside `packages/ui`.
+3. qitu provides first-pass shared wrappers for checkbox, drawer, popover, segmented control, confirm dialog, and table primitives in addition to the existing button, dialog, menu, input, select, surface, data-state, status, and timeline primitives.
+4. App pages must not introduce raw native date inputs, raw checkbox controls, or page-local table structures once shared qitu primitives exist.
+5. qitu provides a small `DateField` composed from qitu `Popover` plus a single-date `Calendar`; Base UI does not currently provide a calendar primitive in the pinned `@base-ui/react@1.6.0` package.
+6. If a page needs a bespoke primitive, record why the registry and existing qitu wrapper were insufficient.
+7. Primitive names and props remain business-neutral and must not encode downstream product vocabulary.
+
+Reason:
+
+Downstream practice showed that waiting for repeated duplication before adding primitives lets product pages accumulate page-local table, checkbox, date, drawer, and action-bar implementations. For a reusable seed, the safer default is to provide a small paved road early, keep it business-neutral, and enforce it with smoke checks so future downstream work follows the qitu visual and accessibility contract.
+
+### 2026-07-01: Batch Source Upload Queue Baseline
+
+Decision:
+
+Move source intake from a single selected file action to an app-owned upload queue backed by a shared `@qitu/ui` `UploadQueue` display primitive.
+
+Rules:
+
+1. File objects and upload side effects stay in `apps/web`; `packages/ui` receives only generic item names, status, metadata, and actions.
+2. File selection appends to the existing queue instead of replacing it.
+3. The queue supports multiple selected files, drag-and-drop handoff, per-file uploading/uploaded/duplicate/failed states, item removal, and retry actions for failed rows.
+4. The Worker upload route remains compatible with the existing single-file source upload API while the frontend processes queued files sequentially.
+5. Failed uploads stay visible in the queue with backend error messages preserved by the structured API error client.
+6. Source intake copy and props remain business-neutral; downstream file meaning still belongs in app-owned feature adapters.
+
+Reason:
+
+Downstream practice showed that upload intake becomes product-facing quickly. A batch-first queue gives users append selection, visible partial failure, and retry without forcing a backend batch API before it is needed. Keeping `UploadQueue` generic prevents downstream pages from recreating local upload row styling while preserving the core/business boundary.
+
+### 2026-07-01: Source List Details Drawer
+
+Decision:
+
+Use the source-file list as the primary source intake surface and put source metadata plus related import jobs in a drawer opened from each row.
+
+Rules:
+
+1. The source list must remain usable without opening the drawer.
+2. Drawer content is generic source metadata, object storage metadata, and import job state only.
+3. The drawer uses `@qitu/ui` `Drawer` primitives instead of page-local overlays.
+4. Technical guardrails may remain visible, but source/job details should not require a permanent side panel.
+5. Business interpretation of the source file stays in app-owned feature adapters, not in the generic source list.
+
+Reason:
+
+Downstream intake workflows need a dense list for routine scanning and a focused details surface for exceptions. A drawer avoids turning operational metadata into the primary workspace while still keeping source provenance and job state one click away.
+
+### 2026-07-01: Confirmation Language First Batch Action
+
+Decision:
+
+Add a `Confirm pending` user-facing batch action for staged records while preserving the existing backend approve route and internal review status names.
+
+Rules:
+
+1. The UI can use confirmation language for routine data-quality gates before backend status names are migrated.
+2. The first batch action confirms all pending staged records for the selected import job through a backend `confirm-pending` route.
+3. Existing per-row approve/reject actions remain for exception handling.
+4. Commit still requires approved/confirmed records and keeps the existing `commitApproved` path.
+5. The backend batch route keeps the existing internal `approve` action/status names while exposing confirmation language to the UI.
+
+Reason:
+
+Downstream practice showed that presenting every parsed row as a manual confirmation obligation makes routine intake feel heavier than necessary. A small batch confirmation action starts the language and workflow migration without destabilizing the import state machine or bypassing existing audit events.
+
+### 2026-07-01: Backend Batch Confirmation Endpoint
+
+Decision:
+
+Move `Confirm pending` from a frontend loop over per-record approve calls to a backend job-level route: `POST /api/import-jobs/:jobId/review/confirm-pending`.
+
+Rules:
+
+1. The route requires `review:decide`, the same permission as per-record approve/reject.
+2. The route only changes staged records currently in `pending` status.
+3. Internal review action/status names stay `approve` and `approved` until a broader schema migration is justified.
+4. The route writes one review decision, per-record decision/audit rows, a job status update, and an import job event.
+5. The frontend calls this route for routine batch confirmation and keeps per-row approve/reject for exception handling.
+
+Reason:
+
+Once the UI shape proved useful, keeping batch confirmation as a frontend loop created extra request chatter and made the product interaction look more temporary than it was. A backend route keeps audit and status derivation centralized while preserving compatibility with the existing import review state machine.
+
+### 2026-07-01: Confirmation Language UI Migration
+
+Decision:
+
+Move the main web UI labels from review/approve/reject language toward confirmation/exclusion language while keeping route keys, permission names, event names, and database statuses stable.
+
+Rules:
+
+1. User-facing navigation should say `Confirmations`, not `Reviews`.
+2. Routine positive actions should say confirm/confirmed, even while the internal status remains `approved`.
+3. Negative row decisions should say exclude/excluded, even while the internal status remains `rejected`.
+4. Permission and event identifiers such as `review:decide` and `import_review.record_rejected` remain unchanged until a deliberate backend migration is planned.
+5. Browser smoke should assert the user-facing language, while worker integration can continue asserting internal route/event compatibility.
+
+Reason:
+
+Downstream practice showed that "review everything" makes routine data intake feel like manual compliance work. A UI-language migration gives product surfaces the right mental model now without forcing a risky schema or event taxonomy change in the same slice.
+
+### 2026-07-01: Target Deploy And Health Check Gate
+
+Decision:
+
+Add explicit preview and production deployment commands that wrap Wrangler deploy and run a target health check after deployment.
+
+Rules:
+
+1. Remote D1 migrations remain explicit reviewed commands and are not hidden inside deploy scripts.
+2. Target deploy commands must build web assets, run `wrangler deploy` for the selected environment, and then check `/health`.
+3. Preview and production health checks require the deployed origin through `QITU_PREVIEW_APP_URL`, `QITU_PRODUCTION_APP_URL`, `QITU_PUBLIC_APP_URL`, or `--url`; qitu must not guess account-specific hostnames.
+4. The health script verifies `ok`, `service = qitu-worker`, and the expected `APP_ENV` value.
+5. Health and deploy scripts must not read or print secret values.
+
+Reason:
+
+Deployability should be a product feature of the starter, not a remembered sequence of ad hoc Wrangler commands. Keeping migration and failed-job inspection explicit preserves operator review, while a narrow deploy wrapper plus `/health` contract turns the final release step into a repeatable command that proves the deployed runtime environment.
+
+### 2026-07-01: App-Owned Workspace Home Slot
+
+Decision:
+
+Keep `/workspace` as the authenticated default route, but render it through an app-owned `WorkspaceHomeSlot` module rather than wiring the home content directly into shell internals.
+
+Rules:
+
+1. Downstream apps can replace `apps/web/src/workspace-home.tsx` to own their business home or workbench.
+2. The qitu shell still owns authentication, navigation, settings, account, members, and route protection.
+3. Technical operational pages such as audit remain under `/settings/audit`, not foregrounded on the default home surface.
+4. The default starter home may show generic source intake, import job, and confirmation state, but it must not encode downstream business metrics or reports.
+
+Reason:
+
+Downstream products need a real first screen, but qitu should not guess business dashboards or make audit logs feel like the product home. A narrow home slot gives downstream apps a stable replacement point while preserving the reusable shell, settings, and intake routes.
+
+### 2026-07-01: Local Smoke Cleanup Is Local-Only
+
+Decision:
+
+Add an operator command for removing local browser-smoke and demo intake rows from `qitu-dev --local`, with a dry-run mode.
+
+Rules:
+
+1. Cleanup targets only local D1 through Wrangler `qitu-dev --local`.
+2. Matching is limited to smoke/demo file prefixes and browser-smoke reviewer accounts.
+3. The command deletes dependent local rows in an order that keeps source/job/review/advisory/auth artifacts together.
+4. The command must not be adapted for preview or production cleanup.
+5. Remote remediation stays manual and reviewed through failed-job snapshots, app/API retry paths, and the DLQ runbook.
+
+Reason:
+
+Browser smoke and local demo runs intentionally exercise real app paths, so repeated local validation can clutter product-facing source, job, audit, member, and email lists. A narrow local cleanup command keeps development databases usable without creating a dangerous remote data-deletion primitive.
+
+### 2026-07-01: First Admin Invitation Operator Command
+
+Decision:
+
+Add `vp run ops:create-admin-invite` as the reviewed operator path for first-admin creation and admin-access recovery.
+
+Rules:
+
+1. The command creates a pending `admin` invitation and an `invitation.created` audit event.
+2. The command must not insert directly into `users` or `password_credentials`.
+3. Preview and production require an explicit app origin through `QITU_PREVIEW_APP_URL`, `QITU_PRODUCTION_APP_URL`, `QITU_PUBLIC_APP_URL`, or `--app-url`.
+4. The successful command prints a one-time invitation URL as its operational artifact; operators must treat it as a secret and send it through an approved private channel.
+5. `--dry-run` validates target/email/app URL without writing to D1 or printing a usable token.
+
+Reason:
+
+Production hygiene is incomplete if the first operator has to improvise raw SQL or re-enable local bootstrap. A narrow command keeps the deployed onboarding path invitation-only while avoiding direct user/password creation and preserving normal password setup, session creation, and audit semantics.
+
+### 2026-07-01: Source List Batch Confirmation Actions
+
+Decision:
+
+Make the source-file list a routine intake action surface by adding source selection plus list-level confirmation and commit actions.
+
+Rules:
+
+1. Source rows can be selected with the shared `@qitu/ui` `Checkbox` primitive.
+2. The action bar uses the shared `BatchActionBar` primitive, keeping row/list density in qitu UI tokens.
+3. Source-list confirmation maps selected or all pending source jobs to the existing backend `confirm-pending` route.
+4. Source-list commit maps selected or all confirmed source jobs to the existing `commit` route.
+5. Row-level exception handling remains available through details and the confirmation console.
+
+Reason:
+
+The source list is the natural place for routine intake work. Moving common confirm/commit actions there prevents users from opening every import job for normal cases while preserving the confirmation console for exceptions and detailed inspection.
+
+### 2026-07-01: Audit Date Range Uses Shared DateField
+
+Decision:
+
+Use the shared `@qitu/ui` `DateField` primitive for audit date-range filters, and back it with Worker-side ISO date-time filtering on `/api/audit-events`.
+
+Rules:
+
+1. App pages must not reintroduce native `type="date"` inputs when a qitu `DateField` is available.
+2. Date-only UI values are converted by the app into ISO date-time query boundaries before calling the API.
+3. The Worker validates audit date filters and returns a structured `invalid_audit_date_filter` error for invalid values.
+4. Browser smoke must open the custom date picker in dark mode so token/theme regressions are visible.
+5. The audit filter remains operational scaffold functionality and must not encode downstream business reporting semantics.
+
+Reason:
+
+The audit page is a business-neutral place to prove that custom date picking, popover layering, dark-mode styling, and backend filtering work as a reusable primitive. Covering it in smoke tests turns DateField from an exported component into a governed app pattern.
+
+### 2026-07-01: Release Gate Script Is Plan-First
+
+Decision:
+
+Add `vp run release:preview` and `vp run release:production` as plan-first release gate entrypoints. The scripts execute remote operations only when the operator adds `--yes`.
+
+Rules:
+
+1. The release gate sequence is `verify:kit`, target deploy dry-run, target remote D1 migration, failed-job snapshot, target deploy, and post-deploy health check.
+2. Running the command without `--yes` prints the plan and exits without touching remote resources.
+3. Executing the gate requires a target app URL through `QITU_PREVIEW_APP_URL`, `QITU_PRODUCTION_APP_URL`, `QITU_PUBLIC_APP_URL`, or `QITU_HEALTH_URL`.
+4. The script prints command names and required env var names, not secret values.
+5. Remote migrations remain explicit reviewed steps inside the gate; they are not hidden inside the lower-level deploy command.
+
+Reason:
+
+Deployability should be repeatable without asking operators to remember a raw Wrangler sequence. Keeping the release gate plan-first makes the intended path discoverable while preserving a deliberate confirmation point before preview or production state changes.
+
+### 2026-07-01: Intake Upload Queue Collapses After Successful Uploads
+
+Decision:
+
+After source files exist and no upload failures are waiting for action, render the intake upload area as a compact add-files entry instead of a full empty dropzone.
+
+Rules:
+
+1. Successful and duplicate upload queue entries are removed after the workspace reloads.
+2. Failed upload entries remain in the queue with their per-file error and retry action.
+3. The full dropzone remains the empty-state intake surface before any source files exist.
+4. Adding files after sources exist appends to the queue and expands the queue surface while files are pending.
+5. The compact surface uses the shared `UploadQueue` primitive and qitu density tokens, not page-local card styling.
+
+Reason:
+
+Once a user has source data, the primary workspace is the source list. Keeping a large empty upload dropzone above existing sources makes the scaffold feel unfinished; collapsing it keeps routine intake available without letting upload chrome dominate the list.
+
+### 2026-07-01: Intake Lists Use Layout-Matched ListFrame States
+
+Decision:
+
+Add a shared `ListFrame` primitive for source and import lists so empty, loading, and ready states share the same list container, row density, and spacing.
+
+Rules:
+
+1. Source and import intake lists render through `ListFrame` instead of a generic centered empty card.
+2. Ready states render the real row components inside the same `qitu-list-frame` container used by empty/loading states.
+3. Empty states render row-like list-state content, preserving list width and rhythm for screenshot-oriented checks.
+4. `ListFrame` stays business-neutral and owns only list state structure, not source/import domain behavior.
+5. Browser smoke measures source-list empty and ready frames in the same viewport to catch layout drift.
+
+Reason:
+
+Downstream products quickly diverge from generic placeholder layouts. A shared list-state primitive keeps qitu's intake lists visually stable across empty and populated states, and gives regression tests a concrete structure to verify instead of relying on text-only assertions.
 
 ## Pending
 

@@ -52,7 +52,7 @@ export async function generateLocalImportReviewAdvisory(
 ): Promise<AdvisoryArtifact> {
   const now = new Date().toISOString();
   const summary = [
-    `${input.recordCount} staged record(s) are available for review.`,
+    `${input.recordCount} staged record(s) are available for confirmation.`,
     `${input.issueCount} issue(s) are open.`,
     `${input.pendingCount} pending, ${input.approvedCount} approved, ${input.rejectedCount} rejected, ${input.committedCount} committed.`,
     "This advisory is informational and cannot commit data.",
@@ -64,8 +64,8 @@ export async function generateLocalImportReviewAdvisory(
     status: "suggested",
     importJobId: input.importJobId,
     provider: "local",
-    model: "deterministic-review-summary",
-    promptVersion: "local.import-review.v1",
+    model: "deterministic-confirmation-summary",
+    promptVersion: "local.import-confirmation.v1",
     summary,
     output: {
       recordCount: input.recordCount,
@@ -76,7 +76,7 @@ export async function generateLocalImportReviewAdvisory(
         rejected: input.rejectedCount,
         committed: input.committedCount,
       },
-      humanGate: "Reviewer approval is still required before commit.",
+      humanGate: "Human confirmation is still required before commit.",
     },
     createdAt: now,
     createdBy: input.createdBy,

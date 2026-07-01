@@ -19,6 +19,7 @@ import {
   bootstrapLocalReviewer,
   commitImportJob,
   confirmAiAdvisory,
+  confirmPendingStagedRecords,
   confirmPasswordReset,
   createInvitation,
   dismissAiAdvisory,
@@ -81,22 +82,18 @@ import type {
   ReviewIssue,
   SourceFile,
   StagedRecord,
+  UploadQueueEntry,
 } from "./types";
-import {
-  AccountPage,
-  AuditPage,
-  ImportsPage,
-  OverviewPage,
-  SourcesPage,
-  UsersPage,
-} from "./workspace-pages";
+import { AccountPage, AuditPage, ImportsPage, SourcesPage, UsersPage } from "./workspace-pages";
+import { WorkspaceHomeSlot } from "./workspace-home";
 
 const defaultAuthForm = {
-  email: "reviewer@example.com",
-  displayName: "Reviewer",
-  password: "correct horse battery staple",
+  email: "",
+  displayName: "",
+  password: "",
   resetToken: "",
 };
+const localDemoPassword = "correct horse battery staple";
 
 const defaultInvitationForm = {
   email: "new-user@example.com",
@@ -106,6 +103,8 @@ const defaultInvitationForm = {
 const defaultAuditFilters = {
   action: "",
   actorId: "",
+  occurredAfter: "",
+  occurredBefore: "",
   subjectId: "",
   subjectKind: "",
 };
@@ -143,7 +142,7 @@ const localDemoProfiles = {
     email: "admin@example.com",
   },
   reviewer: {
-    displayName: "Reviewer",
+    displayName: "Operator",
     email: "reviewer@example.com",
   },
 } as const;
@@ -211,6 +210,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [sourceFiles, setSourceFiles] = useState<SourceFile[]>([]);
+  const [uploadQueue, setUploadQueue] = useState<UploadQueueEntry[]>([]);
   const [importJobs, setImportJobs] = useState<ImportJobListItem[]>([]);
   const [importJobEvents, setImportJobEvents] = useState<ImportJobEvent[]>([]);
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
@@ -451,6 +451,13 @@ export function App() {
       />
     </>
   ) : null;
+  const localSetupAvailable = runtimeEnvironment === "local";
+
+  useEffect(() => {
+    if (!localSetupAvailable && authMode === "setup") {
+      setAuthMode("login");
+    }
+  }, [authMode, localSetupAvailable]);
 
   function navigate(path: AppNavigationPath, options: { replace?: boolean } = {}) {
     if (location.pathname === path) return;
@@ -665,6 +672,7 @@ export function App() {
     setReviewRecords([]);
     setReviewIssues([]);
     setAiAdvisories([]);
+    setUploadQueue([]);
     setImportJobEvents([]);
     setSelectedJobId(null);
     loadedJobDataIdRef.current = null;
@@ -705,7 +713,26 @@ export function App() {
       ...current,
       displayName: profile.displayName,
       email: profile.email,
+      password: current.password || localDemoPassword,
     }));
+  }
+
+  function selectAuthMode(mode: "login" | "setup" | "reset") {
+    if (mode === "setup" && !localSetupAvailable) {
+      return;
+    }
+
+    setAuthMode(mode);
+    if (mode === "setup") {
+      const profile = localDemoProfiles[setupRole];
+      setAuthForm((current) => ({
+        ...current,
+        displayName: profile.displayName,
+        email: profile.email,
+        password: current.password || localDemoPassword,
+        resetToken: "",
+      }));
+    }
   }
 
   async function handleInviteAccept(event: FormEvent<HTMLFormElement>) {
@@ -843,34 +870,131 @@ export function App() {
     }
   }
 
+  function handleUploadFilesSelected(files: FileList | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) return;
+
+    setUploadQueue((current) => [...current, ...createUploadQueueEntries(selectedFiles)]);
+    setNotice({
+      key: "notice.filesQueued",
+      values: { count: String(selectedFiles.length) },
+    });
+    if (uploadInputRef.current) {
+      uploadInputRef.current.value = "";
+    }
+  }
+
   async function handleUploadSelected() {
-    const file = uploadInputRef.current?.files?.[0];
-    if (!file) {
+    const queued = uploadQueue.filter((item) => item.status === "queued");
+    if (queued.length > 0) {
+      await uploadQueueEntries(queued);
+      return;
+    }
+
+    const selectedFiles = Array.from(uploadInputRef.current?.files ?? []);
+    if (selectedFiles.length === 0) {
       setError(t("notice.noFileChosen"));
       return;
     }
 
-    await uploadFile(file);
+    const entries = createUploadQueueEntries(selectedFiles);
+    setUploadQueue((current) => [...current, ...entries]);
+    if (uploadInputRef.current) {
+      uploadInputRef.current.value = "";
+    }
+    await uploadQueueEntries(entries);
   }
 
   async function handleUploadSample() {
     const file = new File(["label,value\nSample Record,1.1992\n"], `sample-${Date.now()}.txt`, {
       type: "text/plain",
     });
-    await uploadFile(file);
+    const entries = createUploadQueueEntries([file]);
+    setUploadQueue((current) => [...current, ...entries]);
+    await uploadQueueEntries(entries);
   }
 
-  async function uploadFile(file: File) {
-    await runAction(async () => {
-      const upload = await uploadSourceFile({
-        file,
-        workspaceId: "default",
-      });
-      setNotice({
-        key: upload.duplicate ? "notice.duplicateSource" : "notice.sourceUploaded",
-      });
-      await loadWorkspace(upload.importJobId);
-    });
+  async function retryUploadItem(itemId: string) {
+    const item = uploadQueue.find((entry) => entry.id === itemId);
+    if (!item) return;
+    await uploadQueueEntries([item]);
+  }
+
+  function removeUploadItem(itemId: string) {
+    setUploadQueue((current) => current.filter((item) => item.id !== itemId));
+  }
+
+  async function uploadQueueEntries(entries: UploadQueueEntry[]) {
+    setIsBusy(true);
+    setError(null);
+
+    let lastImportJobId: string | null = null;
+    let duplicateCount = 0;
+    let failedCount = 0;
+    let uploadedCount = 0;
+    const completedEntryIds: string[] = [];
+
+    try {
+      for (const entry of entries) {
+        updateUploadQueueEntry(entry.id, {
+          error: undefined,
+          status: "uploading",
+        });
+
+        try {
+          const upload = await uploadSourceFile({
+            file: entry.file,
+            workspaceId: "default",
+          });
+          lastImportJobId = upload.importJobId;
+          completedEntryIds.push(entry.id);
+          uploadedCount += 1;
+          if (upload.duplicate) duplicateCount += 1;
+          updateUploadQueueEntry(entry.id, {
+            importJobId: upload.importJobId,
+            status: upload.duplicate ? "duplicate" : "uploaded",
+          });
+        } catch (caught) {
+          failedCount += 1;
+          updateUploadQueueEntry(entry.id, {
+            error: errorMessage(caught),
+            status: "failed",
+          });
+        }
+      }
+
+      if (lastImportJobId) {
+        await loadWorkspace(lastImportJobId);
+      }
+
+      if (completedEntryIds.length > 0) {
+        const completedEntryIdSet = new Set(completedEntryIds);
+        setUploadQueue((current) => current.filter((item) => !completedEntryIdSet.has(item.id)));
+      }
+
+      if (failedCount > 0) {
+        setError(t("notice.uploadBatchFailed", { count: String(failedCount) }));
+      }
+      if (uploadedCount > 0) {
+        setNotice({
+          key:
+            duplicateCount > 0 && duplicateCount === uploadedCount
+              ? "notice.duplicateSource"
+              : "notice.sourceUploaded",
+        });
+      }
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  function updateUploadQueueEntry(
+    itemId: string,
+    patch: Partial<Omit<UploadQueueEntry, "file" | "id">>,
+  ) {
+    setUploadQueue((current) =>
+      current.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
+    );
   }
 
   async function selectJob(jobId: string) {
@@ -924,6 +1048,58 @@ export function App() {
     });
   }
 
+  async function confirmPendingRecords() {
+    if (!selectedJobId) return;
+
+    const pendingRecords = reviewRecords.filter((record) => record.reviewStatus === "pending");
+    if (pendingRecords.length === 0) return;
+
+    await runAction(async () => {
+      const response = await confirmPendingStagedRecords({
+        jobId: selectedJobId,
+        note: "Confirmed in web console.",
+      });
+      const updatedRecords = new Map(response.records.map((record) => [record.id, record]));
+
+      setReviewRecords((current) =>
+        current.map((record) => updatedRecords.get(record.id) ?? record),
+      );
+      setNotice({
+        key: "notice.recordsConfirmed",
+        values: { count: String(response.confirmedCount) },
+      });
+      await loadWorkspace(selectedJobId);
+    });
+  }
+
+  async function confirmSourceJobs(jobIds: string[]) {
+    const uniqueJobIds = [...new Set(jobIds)];
+    if (uniqueJobIds.length === 0) return;
+
+    await runAction(async () => {
+      let confirmedCount = 0;
+      for (const jobId of uniqueJobIds) {
+        const response = await confirmPendingStagedRecords({
+          jobId,
+          note: "Confirmed from source list.",
+        });
+        confirmedCount += response.confirmedCount;
+      }
+
+      setNotice({
+        key: "notice.sourceJobsConfirmed",
+        values: {
+          count: String(uniqueJobIds.length),
+          records: String(confirmedCount),
+        },
+      });
+      await loadWorkspace(uniqueJobIds.at(-1), {
+        loadSelectedJobData: selectedJobDataNeededForRoute(route),
+        updateReviewNotice: route === "reviews",
+      });
+    });
+  }
+
   async function commitApproved() {
     if (!selectedJobId) return;
 
@@ -931,6 +1107,26 @@ export function App() {
       await commitImportJob(selectedJobId);
       setNotice({ key: "notice.recordsCommitted" });
       await loadWorkspace(selectedJobId);
+    });
+  }
+
+  async function commitSourceJobs(jobIds: string[]) {
+    const uniqueJobIds = [...new Set(jobIds)];
+    if (uniqueJobIds.length === 0) return;
+
+    await runAction(async () => {
+      for (const jobId of uniqueJobIds) {
+        await commitImportJob(jobId);
+      }
+
+      setNotice({
+        key: "notice.sourceJobsCommitted",
+        values: { count: String(uniqueJobIds.length) },
+      });
+      await loadWorkspace(uniqueJobIds.at(-1), {
+        loadSelectedJobData: selectedJobDataNeededForRoute(route),
+        updateReviewNotice: route === "reviews",
+      });
     });
   }
 
@@ -1071,31 +1267,37 @@ export function App() {
             title={t("auth.loginTitle")}
           />
 
-          <div className="qitu-segment-track mt-6 grid grid-cols-3 gap-2">
+          <div
+            className={`qitu-segment-track mt-6 grid gap-2 ${
+              localSetupAvailable ? "grid-cols-3" : "grid-cols-2"
+            }`}
+          >
             <button
               className={tabClass(authMode === "login")}
-              onClick={() => setAuthMode("login")}
+              onClick={() => selectAuthMode("login")}
               type="button"
             >
               {t("auth.loginTab")}
             </button>
             <button
               className={tabClass(authMode === "reset")}
-              onClick={() => setAuthMode("reset")}
+              onClick={() => selectAuthMode("reset")}
               type="button"
             >
               {t("auth.resetTab")}
             </button>
-            <button
-              className={tabClass(authMode === "setup")}
-              onClick={() => setAuthMode("setup")}
-              type="button"
-            >
-              {t("auth.setupTab")}
-            </button>
+            {localSetupAvailable ? (
+              <button
+                className={tabClass(authMode === "setup")}
+                onClick={() => selectAuthMode("setup")}
+                type="button"
+              >
+                {t("auth.setupTab")}
+              </button>
+            ) : null}
           </div>
 
-          {authMode === "setup" ? (
+          {authMode === "setup" && localSetupAvailable ? (
             <div className="mt-4">
               <div className="mb-3 flex items-center gap-2">
                 <StatusBadge tone="warning">{t("auth.localDemo")}</StatusBadge>
@@ -1125,7 +1327,7 @@ export function App() {
           <form
             className="mt-5 space-y-4"
             onSubmit={
-              authMode === "setup"
+              authMode === "setup" && localSetupAvailable
                 ? handleLocalSetup
                 : authMode === "reset"
                   ? handlePasswordReset
@@ -1138,7 +1340,7 @@ export function App() {
               type="email"
               value={authForm.email}
             />
-            {authMode === "setup" ? (
+            {authMode === "setup" && localSetupAvailable ? (
               <Field
                 label={t("field.displayName")}
                 onChange={(value) => setAuthForm((current) => ({ ...current, displayName: value }))}
@@ -1161,7 +1363,7 @@ export function App() {
             {error ? <ErrorText>{error}</ErrorText> : null}
             <Button className="w-full" disabled={isBusy} size="lg" type="submit">
               <AnimatedIcon name={authMode === "login" ? "login" : "audit"} size={15} />
-              {authMode === "setup"
+              {authMode === "setup" && localSetupAvailable
                 ? setupRole === "admin"
                   ? t("action.useLocalDemoAdmin")
                   : t("action.useLocalDemoReviewer")
@@ -1200,13 +1402,17 @@ export function App() {
           subNavigation={navigationModel.subNavigation}
           onCommand={openSearch}
           onCommitApproved={() => void commitApproved()}
+          onConfirmPendingRecords={() => void confirmPendingRecords()}
           onConfirmAdvisory={(advisoryId) => void confirmAdvisory(advisoryId)}
           onDecide={(recordId, status) => void decide(recordId, status)}
           onDismissAdvisory={(advisoryId) => void dismissAdvisory(advisoryId)}
           onGenerateAdvisory={() => void generateAdvisory()}
           onProcessLocalQueue={() => void processLocalQueue()}
+          onRemoveUploadItem={removeUploadItem}
           onRetrySelectedJob={() => void retrySelectedJob()}
+          onRetryUploadItem={(itemId) => void retryUploadItem(itemId)}
           onSelectJob={(jobId) => void selectJob(jobId)}
+          onUploadFilesSelected={handleUploadFilesSelected}
           onUploadSample={() => void handleUploadSample()}
           onUploadSelected={() => void handleUploadSelected()}
           reviewIssues={reviewIssues}
@@ -1217,6 +1423,7 @@ export function App() {
           selectedJob={selectedJob}
           selectedJobId={selectedJobId}
           sourceFiles={sourceFiles}
+          uploadQueue={uploadQueue}
           uploadInputRef={uploadInputRef}
           user={user}
         />
@@ -1236,8 +1443,7 @@ export function App() {
         onCommand={openSearch}
       >
         {route === "overview" ? (
-          <OverviewPage
-            auditEvents={auditEvents}
+          <WorkspaceHomeSlot
             importJobs={importJobs}
             onNavigate={(path) => navigate(path)}
             sourceFiles={sourceFiles}
@@ -1246,12 +1452,20 @@ export function App() {
         ) : null}
         {route === "sources" ? (
           <SourcesPage
+            canCommitImports={permissions.canCommitImports}
+            canDecideReviews={permissions.canDecideReviews}
             canUploadSources={permissions.canUploadSources}
             importJobs={importJobs}
             isBusy={isBusy}
+            onCommitSourceJobs={(jobIds) => void commitSourceJobs(jobIds)}
+            onConfirmSourceJobs={(jobIds) => void confirmSourceJobs(jobIds)}
+            onRemoveUploadItem={removeUploadItem}
+            onRetryUploadItem={(itemId) => void retryUploadItem(itemId)}
+            onUploadFilesSelected={handleUploadFilesSelected}
             onUploadSample={() => void handleUploadSample()}
             onUploadSelected={() => void handleUploadSelected()}
             sourceFiles={sourceFiles}
+            uploadQueue={uploadQueue}
             uploadInputRef={uploadInputRef}
           />
         ) : null}
@@ -1654,15 +1868,34 @@ function hasAuditFilters(filters: AuditFilters): boolean {
 function auditFilterQuery(filters: AuditFilters): {
   action?: string;
   actorId?: string;
+  occurredAfter?: string;
+  occurredBefore?: string;
   subjectId?: string;
   subjectKind?: string;
 } {
   return {
     ...(filters.action.trim() ? { action: filters.action.trim() } : {}),
     ...(filters.actorId.trim() ? { actorId: filters.actorId.trim() } : {}),
+    ...(filters.occurredAfter.trim()
+      ? { occurredAfter: startOfDateUtc(filters.occurredAfter.trim()) }
+      : {}),
+    ...(filters.occurredBefore.trim()
+      ? { occurredBefore: dayAfterDateUtc(filters.occurredBefore.trim()) }
+      : {}),
     ...(filters.subjectId.trim() ? { subjectId: filters.subjectId.trim() } : {}),
     ...(filters.subjectKind.trim() ? { subjectKind: filters.subjectKind.trim() } : {}),
   };
+}
+
+function startOfDateUtc(dateValue: string): string {
+  return `${dateValue}T00:00:00.000Z`;
+}
+
+function dayAfterDateUtc(dateValue: string): string {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  const date = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1));
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString();
 }
 
 function buildWebPermissions(user: ApiUser): WebPermissions {
@@ -1685,6 +1918,17 @@ function canUse(user: ApiUser, permission: Permission): boolean {
     },
     permission,
   );
+}
+
+function createUploadQueueEntries(files: File[]): UploadQueueEntry[] {
+  return files.map((file) => ({
+    file,
+    id:
+      typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `upload-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    status: "queued",
+  }));
 }
 
 function errorMessage(error: unknown): string {

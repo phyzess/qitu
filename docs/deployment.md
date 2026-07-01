@@ -3,7 +3,7 @@
 Status: draft  
 Date: 2026-06-27
 
-This runbook prepares a real Cloudflare account for `qitu`. It does not deploy automatically because account IDs, resource IDs, verified senders, and final hostnames are environment-specific.
+This runbook prepares a real Cloudflare account for `qitu`. It keeps resource creation and remote migration explicit because account IDs, resource IDs, verified senders, and final hostnames are environment-specific.
 
 ## 1. Dry Run
 
@@ -23,6 +23,15 @@ vp run deploy:production:dry-run
 ```
 
 `apps/worker/wrangler.jsonc` serves the built React app as same-origin Worker Static Assets for preview and production. API routes still run through the Worker first for `/api/*` and `/health`, so the web app can keep relative API URLs and HttpOnly cookies without adding CORS.
+
+Run a target health check after any deployed Worker is reachable:
+
+```sh
+QITU_PREVIEW_APP_URL=https://preview.example.com vp run health:preview
+QITU_PRODUCTION_APP_URL=https://app.example.com vp run health:production
+```
+
+The health check requests `/health`, verifies the `qitu-worker` response contract, and confirms the reported runtime environment is `preview` or `production`. It does not read or print secrets.
 
 ## 2. Required Resources
 
@@ -95,16 +104,78 @@ Before a real deployment:
 5. Confirm `PUBLIC_APP_URL` matches the deployed web origin.
 6. Confirm provider secrets exist if optional real AI providers are enabled.
 7. Confirm `MAIL_FROM` uses a verified Cloudflare Email sender.
-8. Confirm invitation bootstrap routes are disabled outside `APP_ENV=local`.
+8. Confirm invitation bootstrap routes and the login-page setup UI are disabled outside `APP_ENV=local`.
 9. Confirm the target queue has a dead-letter queue.
 10. Run the failed-job snapshot for the target environment.
+11. Run the target deploy command, which rebuilds, deploys, and health-checks the deployed URL.
+
+The release gate script codifies the reviewed sequence above. By default it prints the plan only:
+
+```sh
+vp run release:preview
+vp run release:production
+```
+
+Execute the full gate only after the target app URL, remote resource IDs, migrations, email sender, queue DLQ, and operator approval have been reviewed:
+
+```sh
+QITU_PREVIEW_APP_URL=https://preview.example.com \
+  vp run release:preview -- --yes
+
+QITU_PRODUCTION_APP_URL=https://app.example.com \
+  vp run release:production -- --yes
+```
+
+The full gate runs `verify:kit`, target deploy dry-run, target remote D1 migration, failed-job snapshot, deploy, and post-deploy health check. Use `--failed-job-limit 100` if the operator snapshot needs a larger review window.
 
 ```sh
 vp run ops:failed-jobs -- preview --limit 50
 vp run ops:failed-jobs -- production --limit 50
 ```
 
-## 6. DLQ And Failed Job Recovery
+Use the explicit target deploy command only after the gate above is green:
+
+```sh
+QITU_PREVIEW_APP_URL=https://preview.example.com vp run deploy:preview
+QITU_PRODUCTION_APP_URL=https://app.example.com vp run deploy:production
+```
+
+The deploy scripts do not apply remote D1 migrations automatically. Run `vp run db:migrate:preview` or `vp run db:migrate:production` as a reviewed step before deploying code that depends on a schema change.
+
+Local smoke/demo cleanup is intentionally local-only:
+
+```sh
+vp run ops:cleanup-local-smoke -- --dry-run
+vp run ops:cleanup-local-smoke
+```
+
+Do not adapt this command for preview or production cleanup. Remote recovery should go through reviewed app/API actions and the DLQ runbook.
+
+## 6. First Admin Runbook
+
+Preview and production must use invitation-only onboarding. Do not enable local bootstrap routes, do not expose the `Setup` tab, and do not publish demo credentials outside local development.
+
+For a new environment:
+
+1. Apply the remote D1 migrations.
+2. Create a one-time admin invitation with the operator command for the target environment.
+3. Send the generated invitation URL to the first operator through an approved private channel.
+4. Have the operator accept the invitation, set a password, and create any additional admins through `/settings/members`.
+5. Revoke unused invitations after the first operator account is active.
+
+```sh
+QITU_PREVIEW_APP_URL=https://preview.example.com \
+  vp run ops:create-admin-invite -- preview --email first-admin@example.com
+
+QITU_PRODUCTION_APP_URL=https://app.example.com \
+  vp run ops:create-admin-invite -- production --email first-admin@example.com
+```
+
+Use `--dry-run` first when validating the target and app URL. The successful command prints a one-time invitation URL; treat that URL as a secret operational artifact and do not paste it into issue trackers, docs, logs, or chat rooms that are not approved for secrets.
+
+If all admin access is lost, repeat the same one-time admin invitation process instead of re-enabling local bootstrap in a deployed environment. The operator command still creates an invitation, not a user/password directly, so the first recovered admin accepts the invite through the normal password setup, session, and audit path.
+
+## 7. DLQ And Failed Job Recovery
 
 Use `docs/operations/dlq-remediation.md` when Queue messages reach a dead-letter queue or import jobs appear stuck. The baseline recovery path is deliberately manual:
 
@@ -115,7 +186,7 @@ Use `docs/operations/dlq-remediation.md` when Queue messages reach a dead-letter
 
 The starter does not attach an automatic DLQ consumer. Add one only after a real production queue proves that manual recovery is insufficient.
 
-## 7. Known Gaps
+## 8. Known Gaps
 
 Before production use, add:
 

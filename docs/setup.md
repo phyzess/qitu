@@ -84,6 +84,15 @@ The local env also defines:
 | `PUBLIC_APP_URL`  | `http://localhost:5173` | Used to build invite/reset links.      |
 | `MAIL_FROM`       | `noreply@example.com`   | Replace with a verified sender domain. |
 
+For local port conflicts, the dev wrappers also honor:
+
+| Variable              | Default                  | Notes                                       |
+| --------------------- | ------------------------ | ------------------------------------------- |
+| `QITU_WEB_PORT`       | `5173`                   | Vite web dev port.                          |
+| `QITU_WORKER_PORT`    | `8787`                   | Wrangler Worker dev port.                   |
+| `QITU_WORKER_ORIGIN`  | derived from Worker port | Vite proxy target for `/api` and `/health`. |
+| `QITU_PUBLIC_APP_URL` | `PUBLIC_APP_URL`         | Local Worker app URL override for links.    |
+
 Generate Worker types:
 
 ```sh
@@ -115,6 +124,10 @@ This starts both the web app on `http://localhost:5173` and the Worker API on
 `http://localhost:8787`. Use this as the default development command because the
 web app proxies `/api` and `/health` to the Worker.
 
+If either port is busy, set `QITU_WEB_PORT` or `QITU_WORKER_PORT`. When changing
+the web port for invite/reset-link testing, also set `QITU_PUBLIC_APP_URL` to the
+same web origin so the Worker generates matching local links.
+
 Start only the web app when you are intentionally running or mocking the Worker separately:
 
 ```sh
@@ -143,7 +156,7 @@ email: admin@example.com
 password: correct horse battery staple
 ```
 
-On a fresh local D1 database, use the `Setup` tab to create or reset a local-only reviewer or admin account and sign in. After that, the same credentials work through the `Login` tab. The reviewer account exercises the review workflow, and the admin account exercises member and invitation settings. The bootstrap routes are disabled outside `APP_ENV=local`.
+On a fresh local D1 database, use the `Setup` tab to create or reset a local-only reviewer or admin account and sign in. The web app shows this tab only when `/health` reports `APP_ENV=local`; preview and production login pages must not expose local setup or demo credentials. After local setup, the same credentials work through the `Login` tab. The reviewer account exercises the review workflow, and the admin account exercises member and invitation settings. The bootstrap routes are disabled outside `APP_ENV=local`.
 
 ## 7. Validation
 
@@ -196,6 +209,20 @@ This uses the official Cloudflare Vitest pool. It is intentionally small and cur
 
 If the machine cannot install dependencies because of network policy, record the install failure and keep using `smoke` and document-level checks until dependencies are available.
 
+Deployment release gates:
+
+```sh
+vp run release:preview
+vp run release:production
+```
+
+These commands print the reviewed release plan by default. Add `-- --yes` only when you intend to execute the target gate against Cloudflare:
+
+```sh
+QITU_PREVIEW_APP_URL=https://preview.example.com vp run release:preview -- --yes
+QITU_PRODUCTION_APP_URL=https://app.example.com vp run release:production -- --yes
+```
+
 ## 8. Operations
 
 List failed or suspicious import jobs without changing data:
@@ -207,6 +234,34 @@ vp run ops:failed-jobs -- production --limit 50
 ```
 
 Use `docs/operations/dlq-remediation.md` for DLQ triage and retry rules. Retry through the app/API, not direct SQL.
+
+Clean local smoke/demo rows from local D1 after repeated browser runs:
+
+```sh
+vp run ops:cleanup-local-smoke -- --dry-run
+vp run ops:cleanup-local-smoke
+```
+
+This command only targets `qitu-dev --local` rows with smoke/demo file and browser-smoke user prefixes. It does not operate on preview or production.
+
+Create a one-time first-admin invitation through the audited operator path:
+
+```sh
+vp run ops:create-admin-invite -- local --email first-admin@example.com --dry-run
+vp run ops:create-admin-invite -- local --email first-admin@example.com
+```
+
+For preview and production, pass the target origin with `QITU_PREVIEW_APP_URL` or `QITU_PRODUCTION_APP_URL`. The successful command prints a one-time invitation URL; handle it as a secret.
+
+Check a running Worker without exposing secrets:
+
+```sh
+vp run health
+QITU_PREVIEW_APP_URL=https://preview.example.com vp run health:preview
+QITU_PRODUCTION_APP_URL=https://app.example.com vp run health:production
+```
+
+The preview and production commands require the deployed app origin because qitu does not guess account-specific hostnames.
 
 ## 9. First Feature
 

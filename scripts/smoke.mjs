@@ -47,6 +47,14 @@ function collectMatches(source, pattern) {
   return values;
 }
 
+function forbiddenTerm(...parts) {
+  return new RegExp(`\\b${parts.join("")}\\b`, "i");
+}
+
+function caseSensitiveForbiddenTerm(...parts) {
+  return new RegExp(`\\b${parts.join("")}\\b`);
+}
+
 const packageJson = JSON.parse(text("package.json"));
 const componentsConfig = JSON.parse(text("components.json"));
 const workerPackageJson = JSON.parse(text("apps/worker/package.json"));
@@ -72,20 +80,27 @@ const workerAiAdvisoryStore = text("apps/worker/src/ai-advisory-store.ts");
 const workerEmailDelivery = text("apps/worker/src/email-delivery.ts");
 const workerImportAdapters = text("apps/worker/src/import-adapters.ts");
 const workerImportJobRunner = text("apps/worker/src/import-job-runner.ts");
+const webApp = text("apps/web/src/app.tsx");
 const webSources = sourceTextUnder("apps/web/src");
 const webAuthRoute = text("apps/web/src/auth-route.ts");
 const webApi = text("apps/web/src/api.ts");
 const webTypes = text("apps/web/src/types.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
+const workspaceHome = text("apps/web/src/workspace-home.tsx");
 const workerIntegration = text("scripts/worker-integration.mjs");
 const devAllScript = text("scripts/dev-all.mjs");
 const opsFailedJobs = text("scripts/ops-failed-jobs.mjs");
+const cleanupLocalSmoke = text("scripts/cleanup-local-smoke.mjs");
+const operatorAdminInvitation = text("scripts/operator-admin-invitation.mjs");
+const releaseGate = text("scripts/release-gate.mjs");
+const healthCheck = text("scripts/health-check.mjs");
 const packageInterfaceTests = text("scripts/package-interface-tests.mjs");
 const browserSmoke = text("scripts/browser-smoke.mjs");
 const i18nCheck = text("scripts/i18n-check.mjs");
 const wranglerDevLocalScript = text("scripts/wrangler-dev-local.mjs");
 const wranglerTypesScript = text("scripts/wrangler-types.mjs");
 const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
+const wranglerDeployScript = text("scripts/wrangler-deploy.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
 const workflow = text(".github/workflows/verify.yml");
 const envExample = text(".env.example");
@@ -112,6 +127,32 @@ const dlqRunbook = text("docs/operations/dlq-remediation.md");
 const readmeZh = text("README.zh-CN.md");
 const docsZh = text("docs/zh-CN.md");
 const legacyImportAdapterName = "Domain" + "ImportAdapter";
+const businessNeutralityText = [
+  workerSources,
+  webSources,
+  uiSources,
+  importPipeline,
+  chartsPackage,
+  templateFeature,
+  templateFeatureRegistry,
+  exampleImportReview,
+  exampleJsonRecords,
+  workerIntegration,
+  readme,
+  deployment,
+  text("docs/architecture/package-boundaries.md"),
+  text("docs/architecture/ui-design-system.md"),
+  text("docs/decisions/decision-log.md"),
+].join("\n");
+const forbiddenBusinessTerms = [
+  caseSensitiveForbiddenTerm("F", "OF"),
+  caseSensitiveForbiddenTerm("N", "AV"),
+  forbiddenTerm("valu", "ation"),
+  forbiddenTerm("port", "folio"),
+  forbiddenTerm("watch", "list"),
+  forbiddenTerm("simu", "lation"),
+  forbiddenTerm("Wen", "yao"),
+];
 const chineseDocs = [
   "README.zh-CN.md",
   "docs/zh-CN.md",
@@ -157,12 +198,21 @@ assert(
   devAllScript.includes('"@qitu/web"') &&
     devAllScript.includes('"@qitu/worker"') &&
     browserSmoke.includes("findOpenPort") &&
+    browserSmoke.includes("QITU_WEB_PORT") &&
+    browserSmoke.includes("QITU_PUBLIC_APP_URL") &&
     browserSmoke.includes("QITU_WORKER_PORT") &&
     browserSmoke.includes("QITU_WORKER_ORIGIN") &&
+    wranglerDevLocalScript.includes("QITU_PUBLIC_APP_URL") &&
+    wranglerDevLocalScript.includes("PUBLIC_APP_URL:") &&
+    webViteConfig.includes("QITU_WEB_PORT") &&
     webViteConfig.includes("QITU_WORKER_ORIGIN") &&
     webViteConfig.includes("QITU_WORKER_PORT") &&
     !browserSmoke.includes("http://127.0.0.1:8787${path}"),
   "browser smoke and Vite proxy must share the same Worker origin instead of hard-coding port 8787.",
+);
+assert(
+  forbiddenBusinessTerms.every((pattern) => !pattern.test(businessNeutralityText)),
+  "qitu core sources, examples, scripts, and architecture docs must stay free of downstream business vocabulary.",
 );
 assert(
   packageJson.devDependencies.typescript === "7.0.1-rc",
@@ -183,7 +233,22 @@ assert(
   packageJson.scripts["deploy:production:dry-run"],
   "package.json must expose deploy:production:dry-run.",
 );
+assert(packageJson.scripts["deploy:preview"], "package.json must expose deploy:preview.");
+assert(packageJson.scripts["deploy:production"], "package.json must expose deploy:production.");
+assert(packageJson.scripts["release:preview"], "package.json must expose release:preview.");
+assert(packageJson.scripts["release:production"], "package.json must expose release:production.");
+assert(packageJson.scripts.health, "package.json must expose health.");
+assert(packageJson.scripts["health:preview"], "package.json must expose health:preview.");
+assert(packageJson.scripts["health:production"], "package.json must expose health:production.");
 assert(packageJson.scripts["ops:failed-jobs"], "package.json must expose ops:failed-jobs.");
+assert(
+  packageJson.scripts["ops:cleanup-local-smoke"],
+  "package.json must expose ops:cleanup-local-smoke.",
+);
+assert(
+  packageJson.scripts["ops:create-admin-invite"],
+  "package.json must expose ops:create-admin-invite.",
+);
 assert(packageJson.scripts["db:migrate:preview"], "package.json must expose db:migrate:preview.");
 assert(
   packageJson.scripts["db:migrate:production"],
@@ -218,6 +283,13 @@ assert(
   "root package scripts must expose the shadcn registry workflow.",
 );
 assert(
+  exists("apps/web/src/workspace-home.tsx") &&
+    webApp.includes("WorkspaceHomeSlot") &&
+    workspaceHome.includes("WorkspaceHomeProps") &&
+    !workspaceHome.includes("auditEvents"),
+  "apps/web must expose an app-owned workspace home slot that does not foreground audit events.",
+);
+assert(
   exists("components.json") &&
     componentsConfig.style === "base-nova" &&
     componentsConfig.rsc === false &&
@@ -237,12 +309,49 @@ assert(
     uiSources.includes("@base-ui/react/menu") &&
     uiSources.includes("@base-ui/react/field") &&
     uiSources.includes("@base-ui/react/input") &&
-    uiSources.includes("@base-ui/react/select"),
+    uiSources.includes("@base-ui/react/select") &&
+    uiSources.includes("@base-ui/react/checkbox") &&
+    uiSources.includes("@base-ui/react/drawer") &&
+    uiSources.includes("@base-ui/react/popover"),
   "@qitu/ui primitives must be backed by Base UI source imports.",
 );
 assert(
   !webSources.includes("@base-ui/react") && !webSources.includes("@base-ui-components/react"),
   "apps/web must consume qitu UI primitives instead of importing Base UI directly.",
+);
+assert(
+  uiSources.includes("export const Table") &&
+    uiSources.includes("export const TableCell") &&
+    uiSources.includes("export function Calendar") &&
+    uiSources.includes("export function DateField") &&
+    uiSources.includes("export function SegmentedControl") &&
+    uiSources.includes("export function ConfirmDialog") &&
+    uiSources.includes("export function BatchActionBar") &&
+    uiSources.includes("export function ListFrame") &&
+    uiSources.includes("export function UploadQueue") &&
+    uiSources.includes("qitu-list-frame") &&
+    uiSources.includes("qitu-list-state-row") &&
+    uiSources.includes("qitu-upload-compact") &&
+    webSources.includes("<DateField") &&
+    webSources.includes("TableCell") &&
+    webSources.includes("<ListFrame") &&
+    webSources.includes("uploadQueue") &&
+    webSources.includes("compact={compactUpload}") &&
+    webApp.includes("completedEntryIds") &&
+    !webSources.includes("<table") &&
+    !webSources.includes("<thead") &&
+    !webSources.includes("<tbody") &&
+    !webSources.includes('type="date"') &&
+    !webSources.includes('type="checkbox"'),
+  "apps/web must use shared qitu primitives for tables, date fields, and checkboxes once those primitives exist.",
+);
+assert(
+  webApi.includes("occurredAfter") &&
+    webApi.includes("occurredBefore") &&
+    workerSources.includes("invalid_audit_date_filter") &&
+    workerSources.includes("occurred_at >= ?") &&
+    workerSources.includes("occurred_at < ?"),
+  "audit filters must use shared DateField values backed by Worker ISO date-range filtering.",
 );
 assert(
   !uiSources.includes("@base-ui-components/react") &&
@@ -285,11 +394,52 @@ assert(
   "remote dry-run scripts must build web assets before Worker deploy dry-run.",
 );
 assert(
+  packageJson.scripts["deploy:preview"].includes("vp run -r build") &&
+    packageJson.scripts["deploy:preview"].includes("health:preview") &&
+    packageJson.scripts["deploy:production"].includes("vp run -r build") &&
+    packageJson.scripts["deploy:production"].includes("health:production"),
+  "remote deploy scripts must build web assets, deploy the Worker, and run target health checks.",
+);
+assert(
+  exists("scripts/release-gate.mjs") &&
+    packageJson.scripts["release:preview"].includes("release-gate.mjs preview") &&
+    packageJson.scripts["release:production"].includes("release-gate.mjs production") &&
+    releaseGate.includes("verify:kit") &&
+    releaseGate.includes("deploy:preview:dry-run") &&
+    releaseGate.includes("deploy:production:dry-run") &&
+    releaseGate.includes("db:migrate:preview") &&
+    releaseGate.includes("db:migrate:production") &&
+    releaseGate.includes("ops:failed-jobs") &&
+    releaseGate.includes("deploy:production") &&
+    releaseGate.includes("--yes") &&
+    releaseGate.includes("Plan only"),
+  "release gate must codify verify, dry-run, remote migration, failed-job snapshot, deploy, and health-check flow behind explicit --yes execution.",
+);
+assert(
   exists("scripts/wrangler-deploy-dry-run.mjs") &&
     workerPackageJson.scripts["deploy:dry-run"].includes("wrangler-deploy-dry-run.mjs") &&
     workerPackageJson.scripts["deploy:preview:dry-run"].includes("wrangler-deploy-dry-run.mjs") &&
     workerPackageJson.scripts["deploy:production:dry-run"].includes("wrangler-deploy-dry-run.mjs"),
   "worker dry-run scripts must use the Wrangler dry-run wrapper so successful dry-runs exit cleanly.",
+);
+assert(
+  exists("scripts/wrangler-deploy.mjs") &&
+    workerPackageJson.scripts["deploy:preview"].includes("wrangler-deploy.mjs") &&
+    workerPackageJson.scripts["deploy:production"].includes("wrangler-deploy.mjs") &&
+    wranglerDeployScript.includes('"deploy"') &&
+    wranglerDeployScript.includes("WRANGLER_DEPLOY_TIMEOUT_MS") &&
+    wranglerDeployScript.includes("wrangler-deploy-dry-run.mjs"),
+  "worker deploy scripts must use the guarded Wrangler deploy wrapper for real target deploys.",
+);
+assert(
+  exists("scripts/health-check.mjs") &&
+    healthCheck.includes("/health") &&
+    healthCheck.includes("qitu-worker") &&
+    healthCheck.includes("environment") &&
+    healthCheck.includes("QITU_PREVIEW_APP_URL") &&
+    healthCheck.includes("QITU_PRODUCTION_APP_URL") &&
+    healthCheck.includes("QITU_HEALTH_TIMEOUT_MS"),
+  "health check script must verify the qitu Worker /health contract without requiring secrets.",
 );
 assert(
   workflow.includes("pnpm exec vp run verify:kit") &&
@@ -362,12 +512,18 @@ for (const path of chineseDocs) {
 assert(exists("scripts/doctor.mjs"), "scripts/doctor.mjs must exist.");
 assert(exists("scripts/setup-local.mjs"), "scripts/setup-local.mjs must exist.");
 assert(exists("scripts/worker-integration.mjs"), "scripts/worker-integration.mjs must exist.");
+assert(exists("scripts/health-check.mjs"), "scripts/health-check.mjs must exist.");
 assert(
   exists("scripts/package-interface-tests.mjs"),
   "scripts/package-interface-tests.mjs must exist.",
 );
 assert(exists("scripts/browser-smoke.mjs"), "scripts/browser-smoke.mjs must exist.");
 assert(exists("scripts/ops-failed-jobs.mjs"), "scripts/ops-failed-jobs.mjs must exist.");
+assert(exists("scripts/cleanup-local-smoke.mjs"), "scripts/cleanup-local-smoke.mjs must exist.");
+assert(
+  exists("scripts/operator-admin-invitation.mjs"),
+  "scripts/operator-admin-invitation.mjs must exist.",
+);
 assert(exists("apps/worker/vitest.config.ts"), "worker Vitest runtime config must exist.");
 assert(exists("apps/worker/test/tsconfig.json"), "worker runtime test tsconfig must exist.");
 assert(exists("apps/worker/test/worker-runtime.test.ts"), "worker runtime smoke test must exist.");
@@ -632,6 +788,16 @@ assert(
     workerSources.includes("returnToken: isLocalRuntime(context)"),
   "invitation creation and demo user bootstraps must stay local-only and separate from authenticated invitation creation.",
 );
+const defaultAuthFormSource = webApp.match(/const defaultAuthForm = \{[\s\S]*?\};/)?.[0] ?? "";
+assert(
+  defaultAuthFormSource.includes('email: ""') &&
+    defaultAuthFormSource.includes('password: ""') &&
+    !defaultAuthFormSource.includes("reviewer@example.com") &&
+    webApp.includes('runtimeEnvironment === "local"') &&
+    webApp.includes('authMode === "setup" && localSetupAvailable') &&
+    webApp.includes("selectAuthMode"),
+  "production auth UI must not prefill demo credentials and setup UI must be gated by local runtime.",
+);
 assert(
   workerSources.includes("requirePermission(context") &&
     workerSources.includes('action: "rbac.denied"') &&
@@ -781,7 +947,9 @@ assert(
     webSources.includes("Event stream") &&
     webSources.includes("Audit timeline") &&
     webSources.includes("AI advisory") &&
-    webSources.includes("Commit approved") &&
+    webSources.includes("Commit confirmed") &&
+    webSources.includes("Confirm selected") &&
+    webSources.includes("Commit selected") &&
     webSources.includes("TimeSeriesChart") &&
     webSources.includes("Source files") &&
     webSources.includes("Process local queue") &&
@@ -832,6 +1000,7 @@ assert(
     workerIntegration.includes("ai_advisory.confirmed") &&
     workerIntegration.includes("/retry") &&
     workerIntegration.includes("/review") &&
+    workerIntegration.includes("/review/confirm-pending") &&
     workerIntegration.includes("/approve") &&
     workerIntegration.includes("/commit") &&
     workerIntegration.includes("admin can list invitations") &&
@@ -851,22 +1020,43 @@ assert(
     packageInterfaceTests.includes("passwordResetTokens") &&
     packageInterfaceTests.includes("emailMessages") &&
     packageInterfaceTests.includes("formatPlural") &&
-    packageInterfaceTests.includes("localeCandidatesFromAcceptLanguage"),
-  "package interface tests must exercise import-pipeline helpers, db schema exports, and i18n helpers.",
+    packageInterfaceTests.includes("localeCandidatesFromAcceptLanguage") &&
+    packageInterfaceTests.includes("apiErrorFromResponse") &&
+    packageInterfaceTests.includes("Backend validation failed.") &&
+    packageInterfaceTests.includes("apiNetworkError"),
+  "package interface tests must exercise import-pipeline helpers, db schema exports, i18n helpers, and web API error parsing.",
+);
+assert(
+  webApi.includes("confirmPendingStagedRecords") &&
+    webApi.includes("/review/confirm-pending") &&
+    webApp.includes("confirmPendingStagedRecords"),
+  "web batch confirmation must call the backend confirm-pending route instead of looping per record.",
 );
 assert(
   browserSmoke.includes('spawn(vp, ["run", "dev:all"]') &&
     browserSmoke.includes("chromium.launch") &&
+    browserSmoke.includes("assertProductionLoginHygiene") &&
+    browserSmoke.includes('environment: "production"') &&
+    browserSmoke.includes('getByRole("button", { name: "Setup" })') &&
+    browserSmoke.includes('getByLabel("Email", { exact: true })') &&
+    browserSmoke.includes('toHaveValue("")') &&
     browserSmoke.includes("/api/bootstrap/invitations") &&
     browserSmoke.includes("/api/auth/password-reset/request") &&
     browserSmoke.includes("Accept invitation") &&
     browserSmoke.includes("Reset password") &&
     browserSmoke.includes("setInputFiles") &&
+    browserSmoke.includes("browser-smoke-appended") &&
+    browserSmoke.includes("Workspace home") &&
+    browserSmoke.includes("Remove upload") &&
+    browserSmoke.includes("Object key") &&
+    browserSmoke.includes("Close details") &&
     browserSmoke.includes("Process local queue") &&
-    browserSmoke.includes("Commit approved") &&
+    browserSmoke.includes("Confirm selected") &&
+    browserSmoke.includes("Commit selected") &&
+    browserSmoke.includes("Commit confirmed") &&
     browserSmoke.includes("ai_advisory.confirmed") &&
     browserSmoke.includes('getByRole("menu", { name: "Language" })') &&
-    browserSmoke.includes('"rejected"') &&
+    browserSmoke.includes('"excluded"') &&
     browserSmoke.includes("import_job.committed") &&
     browserSmoke.includes("import_review.record_rejected"),
   "Browser smoke must start dev:all and exercise emailed invite/reset links, upload, local queue drain, commit, reject, and audit in a real browser.",
@@ -911,6 +1101,28 @@ assert(
     !opsFailedJobs.includes("spawnSync") &&
     opsFailedJobs.includes('"success": true'),
   "ops:failed-jobs must release Wrangler D1 execute after the success marker.",
+);
+assert(
+  cleanupLocalSmoke.includes("qitu-dev") &&
+    cleanupLocalSmoke.includes("--local") &&
+    cleanupLocalSmoke.includes("browser-smoke-%") &&
+    cleanupLocalSmoke.includes("reviewer-%@example.com") &&
+    cleanupLocalSmoke.includes("--dry-run") &&
+    !cleanupLocalSmoke.includes("production"),
+  "ops:cleanup-local-smoke must only clean local smoke/demo rows and support dry-run.",
+);
+assert(
+  operatorAdminInvitation.includes("qitu-preview") &&
+    operatorAdminInvitation.includes("qitu-production") &&
+    operatorAdminInvitation.includes("QITU_PRODUCTION_APP_URL") &&
+    operatorAdminInvitation.includes("INSERT INTO invitations") &&
+    operatorAdminInvitation.includes("INSERT INTO audit_events") &&
+    operatorAdminInvitation.includes('role: "admin"') &&
+    operatorAdminInvitation.includes("hashSecret") &&
+    operatorAdminInvitation.includes("--dry-run") &&
+    !operatorAdminInvitation.includes("password_credentials") &&
+    !operatorAdminInvitation.includes("INSERT INTO users"),
+  "ops:create-admin-invite must create an audited admin invitation without directly creating users or passwords.",
 );
 assert(
   text("apps/worker/vitest.config.ts").includes("cloudflareTest") &&

@@ -96,7 +96,7 @@ Output:
 2. Do not invent Cloudflare limits without checking docs.
 3. Do not silently change architecture decisions.
 4. Do not add business-specific code to core packages.
-5. Do not implement AI paths that bypass human review.
+5. Do not implement AI paths that bypass human confirmation.
 6. Do not add new frameworks without a decision record.
 
 ## 6. Handoff Format

@@ -6,15 +6,24 @@ import {
   Button,
   DataState,
   Input,
+  ListFrame,
   MetricStrip,
   SectionHeader,
   StatusBadge,
   Surface,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   Timeline,
+  UploadQueue,
   type AppShellNavItem,
   type MetricItem,
   type StatusBadgeTone,
   type TimelineItem,
+  type UploadQueueItem,
 } from "@qitu/ui";
 import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
 import { ErrorText } from "./app-ui";
@@ -28,6 +37,7 @@ import type {
   ReviewIssue,
   SourceFile,
   StagedRecord,
+  UploadQueueEntry,
 } from "./types";
 
 export type ReviewCounts = {
@@ -55,14 +65,18 @@ export function ReviewConsole(props: {
   navigation: AppShellNavItem[];
   notice: string;
   onCommitApproved: () => void;
+  onConfirmPendingRecords: () => void;
   onConfirmAdvisory: (advisoryId: string) => void;
   onCommand: () => void;
   onDecide: (recordId: string, status: "approved" | "rejected") => void;
   onDismissAdvisory: (advisoryId: string) => void;
   onGenerateAdvisory: () => void;
   onProcessLocalQueue: () => void;
+  onRemoveUploadItem: (itemId: string) => void;
   onRetrySelectedJob: () => void;
+  onRetryUploadItem: (itemId: string) => void;
   onSelectJob: (jobId: string) => void;
+  onUploadFilesSelected: (files: FileList | null) => void;
   onUploadSample: () => void;
   onUploadSelected: () => void;
   reviewIssues: ReviewIssue[];
@@ -74,10 +88,11 @@ export function ReviewConsole(props: {
   selectedJobId: string | null;
   sourceFiles: SourceFile[];
   subNavigation: AppShellNavItem[];
+  uploadQueue: UploadQueueEntry[];
   uploadInputRef: RefObject<HTMLInputElement | null>;
   user: ApiUser;
 }) {
-  const { formatStatus, formatTime, t } = useI18n();
+  const { formatBytes, formatStatus, formatTime, t } = useI18n();
   const jobBySourceId = useMemo(() => {
     return new Map(props.importJobs.map((job) => [job.sourceFileId, job]));
   }, [props.importJobs]);
@@ -143,6 +158,7 @@ export function ReviewConsole(props: {
       }),
     [formatStatus, formatTime, props.importJobEvents, t],
   );
+  const compactUpload = props.sourceFiles.length > 0 && props.uploadQueue.length === 0;
 
   return (
     <AppShell
@@ -193,8 +209,64 @@ export function ReviewConsole(props: {
               title={t("sources.title")}
             />
             <div className="mt-[var(--qitu-space-s1)] space-y-3">
-              <Input ref={props.uploadInputRef} type="file" />
-              <div className="flex flex-wrap gap-2">
+              <Input
+                className="hidden"
+                disabled={!props.canUploadSources}
+                multiple
+                ref={props.uploadInputRef}
+                type="file"
+                onChange={(event) => props.onUploadFilesSelected(event.currentTarget.files)}
+              />
+              <UploadQueue
+                compact={compactUpload}
+                compactAction={
+                  compactUpload ? (
+                    <>
+                      <Button
+                        disabled={props.isBusy || !props.canUploadSources}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                        onClick={() => props.uploadInputRef.current?.click()}
+                      >
+                        <FileUp size={14} /> {t("action.chooseFiles")}
+                      </Button>
+                      <Button
+                        disabled={props.isBusy || !props.canUploadSources}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                        onClick={props.onUploadSample}
+                      >
+                        <FileUp size={14} /> {t("action.uploadSample")}
+                      </Button>
+                    </>
+                  ) : null
+                }
+                compactDescription={t("sources.compactUploadDescription")}
+                compactTitle={t("sources.compactUploadTitle")}
+                emptyDescription={t("sources.uploadQueueEmptyDescription")}
+                emptyTitle={t("sources.uploadQueueEmptyTitle")}
+                items={uploadQueueItems(props.uploadQueue, formatBytes)}
+                labels={{
+                  remove: t("action.removeUpload"),
+                  retry: t("action.retryUpload"),
+                }}
+                statusLabel={formatStatus}
+                onFilesDrop={props.canUploadSources ? props.onUploadFilesSelected : undefined}
+                onRemove={props.onRemoveUploadItem}
+                onRetry={props.onRetryUploadItem}
+              />
+              <div className={compactUpload ? "hidden" : "flex flex-wrap gap-2"}>
+                <Button
+                  disabled={props.isBusy || !props.canUploadSources}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                  onClick={() => props.uploadInputRef.current?.click()}
+                >
+                  <FileUp size={14} /> {t("action.chooseFiles")}
+                </Button>
                 <Button
                   disabled={props.isBusy || !props.canUploadSources}
                   size="sm"
@@ -219,21 +291,19 @@ export function ReviewConsole(props: {
               </div>
             ) : null}
             <div className="mt-[var(--qitu-space-s1)]">
-              <DataState
+              <ListFrame
                 description={t("sources.emptyDescription")}
                 state={props.sourceFiles.length === 0 ? "empty" : "ready"}
                 title={t("sources.emptyTitle")}
               >
-                <div className="space-y-2">
-                  {props.sourceFiles.map((file) => (
-                    <SourceFileItem
-                      file={file}
-                      job={jobBySourceId.get(file.id) ?? null}
-                      key={file.id}
-                    />
-                  ))}
-                </div>
-              </DataState>
+                {props.sourceFiles.map((file) => (
+                  <SourceFileItem
+                    file={file}
+                    job={jobBySourceId.get(file.id) ?? null}
+                    key={file.id}
+                  />
+                ))}
+              </ListFrame>
             </div>
           </Surface>
 
@@ -255,22 +325,20 @@ export function ReviewConsole(props: {
               title={t("imports.title")}
             />
             <div className="mt-[var(--qitu-space-s1)]">
-              <DataState
+              <ListFrame
                 description={t("imports.emptyDescription")}
                 state={props.importJobs.length === 0 ? "empty" : "ready"}
                 title={t("imports.emptyTitle")}
               >
-                <div className="space-y-2">
-                  {props.importJobs.map((job) => (
-                    <JobStep
-                      active={job.id === props.selectedJobId}
-                      job={job}
-                      key={job.id}
-                      onSelect={() => props.onSelectJob(job.id)}
-                    />
-                  ))}
-                </div>
-              </DataState>
+                {props.importJobs.map((job) => (
+                  <JobStep
+                    active={job.id === props.selectedJobId}
+                    job={job}
+                    key={job.id}
+                    onSelect={() => props.onSelectJob(job.id)}
+                  />
+                ))}
+              </ListFrame>
               {!props.canProcessImports ? (
                 <div className="mt-3">
                   <PermissionHint label={t("permission.importProcess")} />
@@ -309,6 +377,14 @@ export function ReviewConsole(props: {
               >
                 <AnimatedIcon name="database" size={14} /> {t("action.commitApproved")}
               </Button>
+              <Button
+                disabled={!props.canDecideReviews || props.counts.pending === 0 || props.isBusy}
+                size="sm"
+                variant="secondary"
+                onClick={props.onConfirmPendingRecords}
+              >
+                <Check size={14} /> {t("action.confirmPending")}
+              </Button>
             </div>
           </div>
           {!props.canCommit && props.selectedJobId && props.counts.approved > 0 ? (
@@ -323,7 +399,7 @@ export function ReviewConsole(props: {
           ) : null}
 
           <div className="overflow-x-auto px-3 pb-4">
-            <table className="w-full min-w-[560px] table-fixed border-separate border-spacing-y-2 text-left">
+            <Table>
               <colgroup>
                 <col className="w-[22%]" />
                 <col className="w-[24%]" />
@@ -331,26 +407,26 @@ export function ReviewConsole(props: {
                 <col className="w-[12%]" />
                 <col className="w-[14%]" />
               </colgroup>
-              <thead>
-                <tr className="text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-                  <th className="px-3 py-2 font-medium">{t("review.record")}</th>
-                  <th className="px-3 py-2 font-medium">{t("review.payload")}</th>
-                  <th className="px-3 py-2 font-medium">{t("review.issue")}</th>
-                  <th className="px-3 py-2 font-medium">{t("review.status")}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t("review.decision")}</th>
-                </tr>
-              </thead>
-              <tbody>
+              <TableHeader>
+                <TableRow className="text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
+                  <TableHead>{t("review.record")}</TableHead>
+                  <TableHead>{t("review.payload")}</TableHead>
+                  <TableHead>{t("review.issue")}</TableHead>
+                  <TableHead>{t("review.status")}</TableHead>
+                  <TableHead className="text-right">{t("review.decision")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {props.reviewRecords.length === 0 ? (
-                  <tr>
-                    <td colSpan={5}>
+                  <TableRow>
+                    <TableCell colSpan={5}>
                       <DataState
                         description={t("review.emptyStagedDescription")}
                         state="empty"
                         title={t("review.emptyStagedTitle")}
                       />
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   props.reviewRecords.map((record) => (
                     <ReviewRow
@@ -363,8 +439,8 @@ export function ReviewConsole(props: {
                     />
                   ))
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         </Surface>
 
@@ -515,31 +591,31 @@ function ReviewRow(props: {
   const disabled = props.record.reviewStatus === "committed" || !props.canDecide;
 
   return (
-    <tr>
-      <td className="qitu-table-cell rounded-l-[var(--qitu-radius-md)] px-3 py-3 align-top">
+    <TableRow>
+      <TableCell edge="start">
         <div className="text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
           {props.record.sourceRowKey}
         </div>
         <div className="mt-1 max-w-[180px] truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
           {props.record.stagedRecordKey}
         </div>
-      </td>
-      <td className="qitu-table-cell px-3 py-3 align-top">
+      </TableCell>
+      <TableCell>
         <div className="qitu-number max-w-[160px] truncate text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)]">
           {payloadSummary(props.record.payload)}
         </div>
-      </td>
-      <td className="qitu-table-cell max-w-[190px] px-3 py-3 align-top">
+      </TableCell>
+      <TableCell className="max-w-[190px]">
         <div className="text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
           {props.issue?.message ?? t("review.noIssue")}
         </div>
-      </td>
-      <td className="qitu-table-cell px-3 py-3 align-top">
+      </TableCell>
+      <TableCell>
         <StatusBadge tone={statusTone(props.record.reviewStatus)}>
           {formatStatus(props.record.reviewStatus)}
         </StatusBadge>
-      </td>
-      <td className="qitu-table-cell rounded-r-[var(--qitu-radius-md)] px-3 py-3 text-right align-top">
+      </TableCell>
+      <TableCell className="text-right" edge="end">
         <div className="flex justify-end gap-2">
           <Button
             aria-label={t("action.rejectRecord")}
@@ -564,8 +640,8 @@ function ReviewRow(props: {
             <Check size={14} />
           </Button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -580,6 +656,19 @@ function Guardrail(props: { label: string; state: "active" }) {
       <StatusBadge tone={props.state}>{formatStatus(props.state)}</StatusBadge>
     </div>
   );
+}
+
+function uploadQueueItems(
+  queue: UploadQueueEntry[],
+  formatBytes: (value: number | null) => string,
+): UploadQueueItem[] {
+  return queue.map((item) => ({
+    error: item.error,
+    id: item.id,
+    meta: formatBytes(item.file.size),
+    name: item.file.name,
+    status: item.status,
+  }));
 }
 
 function PermissionHint(props: { label: string }) {

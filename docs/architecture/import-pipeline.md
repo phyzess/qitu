@@ -7,7 +7,7 @@ Date: 2026-06-27
 
 The import pipeline is the central reusable workflow in `qitu`.
 
-It turns unknown or semi-structured inputs into reviewed, auditable, business-owned data.
+It turns unknown or semi-structured inputs into confirmed, auditable, business-owned data.
 
 ## 2. Flow
 
@@ -18,7 +18,7 @@ source file
 -> queue
 -> feature parser
 -> feature staging
--> human review
+-> human confirmation
 -> feature commit
 -> audit_events
 ```
@@ -48,7 +48,7 @@ Business-owned feature code owns:
 5. Validation rules.
 6. `commitApproved` logic.
 7. Business-owned tables.
-8. Review UI copy.
+8. Confirmation UI copy.
 
 ## 5. Import Feature Adapter
 
@@ -70,9 +70,9 @@ type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
 
 The adapter is intentionally narrow. It does not prescribe where app-owned feature code lives.
 
-`CommitApprovedContext` must include the import job, reviewer identity, approved staged record keys, and an idempotency key. This prevents an adapter from treating commit as a raw data write detached from review.
+`CommitApprovedContext` must include the import job, confirmer identity, approved staged record keys, and an idempotency key. This prevents an adapter from treating commit as a raw data write detached from confirmation.
 
-## 6. Review Decision
+## 6. Confirmation Decision
 
 Review decisions should be explicit and auditable:
 

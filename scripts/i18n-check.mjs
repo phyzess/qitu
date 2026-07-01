@@ -111,10 +111,10 @@ for (const forbidden of [
   "document.",
   "window.",
   "apps/",
-  "Reviewer access",
+  "Operator access",
   "Accept invitation",
   "Source files",
-  "Review console",
+  "Confirmation console",
 ]) {
   assert(
     !packageI18n.includes(forbidden),
@@ -166,19 +166,19 @@ for (const key of enKeys) {
 for (const phrase of [
   "Accept invitation",
   "Reset password",
-  "Reviewer access",
+  "Operator access",
   "Source files",
   "Process local queue",
-  "Commit approved",
+  "Commit confirmed",
   "Members and invitations",
   "Audit timeline",
   "AI advisory",
-  "Review console",
+  "Confirmation console",
   "Staged records",
   "Event stream",
   "Upload selected",
-  "Reject record",
-  "Approve record",
+  "Exclude record",
+  "Confirm record",
   "Retry job",
 ]) {
   assert(

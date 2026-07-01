@@ -1,17 +1,28 @@
-import { type FormEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 import {
   AnimatedIcon,
+  BatchActionBar,
   Button,
+  Checkbox,
   DataState,
+  DateField,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerRoot,
+  DrawerTitle,
   Input,
+  ListFrame,
   MetricStrip,
   SectionHeader,
   StatusBadge,
   Surface,
   Timeline,
+  UploadQueue,
   type MetricItem,
   type StatusBadgeTone,
   type TimelineItem,
+  type UploadQueueItem,
 } from "@qitu/ui";
 import { ArrowRight, Check, Clock3, FileUp, X } from "lucide-react";
 import { routePath, type AppNavigationPath } from "./app-routes";
@@ -24,12 +35,20 @@ import type {
   ImportJobListItem,
   InvitationSummary,
   SourceFile,
+  UploadQueueEntry,
 } from "./types";
 
 type WorkspaceReviewCounts = {
   approvedForCommit: number;
   failed: number;
   reviewQueue: number;
+};
+
+export type WorkspaceHomeProps = {
+  importJobs: ImportJobListItem[];
+  onNavigate: (path: AppNavigationPath) => void;
+  sourceFiles: SourceFile[];
+  workspaceReviewCounts: WorkspaceReviewCounts;
 };
 
 type InvitationForm = {
@@ -40,17 +59,13 @@ type InvitationForm = {
 type AuditFilters = {
   action: string;
   actorId: string;
+  occurredAfter: string;
+  occurredBefore: string;
   subjectId: string;
   subjectKind: string;
 };
 
-export function OverviewPage(props: {
-  auditEvents: AuditEvent[];
-  importJobs: ImportJobListItem[];
-  onNavigate: (path: AppNavigationPath) => void;
-  sourceFiles: SourceFile[];
-  workspaceReviewCounts: WorkspaceReviewCounts;
-}) {
+export function OverviewPage(props: WorkspaceHomeProps) {
   const { formatDateTime, t } = useI18n();
   const metrics: MetricItem[] = [
     {
@@ -85,88 +100,123 @@ export function OverviewPage(props: {
             })
           : undefined,
     },
-    {
-      id: "audit",
-      label: t("overview.metricAuditEvents"),
-      value: props.auditEvents.length,
-    },
   ];
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="space-y-[var(--qitu-layout-gutter)]">
-        <Surface className="p-[var(--qitu-space-s1)]">
-          <SectionHeader
-            description={t("overview.description")}
-            icon={<AnimatedIcon name="activity" size={16} />}
-            title={t("overview.title")}
-          />
-          <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
-        </Surface>
-
-        <Surface className="p-[var(--qitu-space-s1)]">
-          <SectionHeader
-            icon={<AnimatedIcon name="reviews" size={16} />}
-            title={t("overview.workflowTitle")}
-          />
-          <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-3">
-            <WorkflowTarget
-              description={t("overview.workflowSourcesDescription")}
-              icon={<AnimatedIcon name="files" size={16} />}
-              label={t("nav.sources")}
-              onClick={() => props.onNavigate(routePath("sources"))}
-              status={t("overview.workflowSourcesStatus", { count: props.sourceFiles.length })}
-            />
-            <WorkflowTarget
-              description={t("overview.workflowImportsDescription")}
-              icon={<AnimatedIcon name="database" size={16} />}
-              label={t("nav.imports")}
-              onClick={() => props.onNavigate(routePath("imports"))}
-              status={t("overview.workflowImportsStatus", { count: props.importJobs.length })}
-            />
-            <WorkflowTarget
-              description={t("overview.workflowReviewsDescription")}
-              icon={<AnimatedIcon name="reviews" size={16} />}
-              label={t("nav.reviews")}
-              onClick={() => props.onNavigate(routePath("reviews"))}
-              status={t("overview.workflowReviewsStatus", {
-                count: props.workspaceReviewCounts.reviewQueue,
-              })}
-            />
-          </div>
-        </Surface>
-      </section>
-
-      <Surface as="aside" className="p-[var(--qitu-space-s1)]">
-        <SectionHeader icon={<AnimatedIcon name="audit" size={16} />} title={t("audit.recent")} />
-        <Timeline
-          className="mt-[var(--qitu-space-s1)]"
-          emptyLabel={t("audit.empty")}
-          emptyTitle={t("empty.noEvents")}
-          items={props.auditEvents
-            .slice(0, 8)
-            .map((event) => auditTimelineItem(event, formatDateTime))}
+    <div className="space-y-[var(--qitu-layout-gutter)]">
+      <Surface className="p-[var(--qitu-space-s1)]">
+        <SectionHeader
+          description={t("overview.description")}
+          icon={<AnimatedIcon name="workbench" size={16} />}
+          title={t("overview.title")}
         />
+      </Surface>
+
+      <Surface className="p-[var(--qitu-space-s1)]">
+        <MetricStrip items={metrics} />
+      </Surface>
+
+      <Surface className="p-[var(--qitu-space-s1)]">
+        <SectionHeader
+          icon={<AnimatedIcon name="reviews" size={16} />}
+          title={t("overview.workflowTitle")}
+        />
+        <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-3">
+          <WorkflowTarget
+            description={t("overview.workflowSourcesDescription")}
+            icon={<AnimatedIcon name="files" size={16} />}
+            label={t("nav.sources")}
+            onClick={() => props.onNavigate(routePath("sources"))}
+            status={t("overview.workflowSourcesStatus", { count: props.sourceFiles.length })}
+          />
+          <WorkflowTarget
+            description={t("overview.workflowImportsDescription")}
+            icon={<AnimatedIcon name="database" size={16} />}
+            label={t("nav.imports")}
+            onClick={() => props.onNavigate(routePath("imports"))}
+            status={t("overview.workflowImportsStatus", { count: props.importJobs.length })}
+          />
+          <WorkflowTarget
+            description={t("overview.workflowReviewsDescription")}
+            icon={<AnimatedIcon name="reviews" size={16} />}
+            label={t("nav.reviews")}
+            onClick={() => props.onNavigate(routePath("reviews"))}
+            status={t("overview.workflowReviewsStatus", {
+              count: props.workspaceReviewCounts.reviewQueue,
+            })}
+          />
+        </div>
       </Surface>
     </div>
   );
 }
 
 export function SourcesPage(props: {
+  canCommitImports: boolean;
+  canDecideReviews: boolean;
   canUploadSources: boolean;
   importJobs: ImportJobListItem[];
   isBusy: boolean;
+  onCommitSourceJobs: (jobIds: string[]) => void;
+  onConfirmSourceJobs: (jobIds: string[]) => void;
+  onRemoveUploadItem: (itemId: string) => void;
+  onRetryUploadItem: (itemId: string) => void;
+  onUploadFilesSelected: (files: FileList | null) => void;
   onUploadSample: () => void;
   onUploadSelected: () => void;
   sourceFiles: SourceFile[];
+  uploadQueue: UploadQueueEntry[];
   uploadInputRef: RefObject<HTMLInputElement | null>;
 }) {
-  const { t } = useI18n();
+  const { formatBytes, formatStatus, t } = useI18n();
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedSourceIds, setSelectedSourceIds] = useState<string[]>([]);
   const jobsBySourceId = new Map<string, ImportJobListItem[]>();
   for (const job of props.importJobs) {
     const jobs = jobsBySourceId.get(job.sourceFileId) ?? [];
     jobs.push(job);
     jobsBySourceId.set(job.sourceFileId, jobs);
+  }
+  const sourceIds = new Set(props.sourceFiles.map((source) => source.id));
+  const selectedSourceIdSet = new Set(selectedSourceIds.filter((id) => sourceIds.has(id)));
+  const selectedPendingJobIds = jobIdsForSources(
+    props.importJobs,
+    selectedSourceIdSet,
+    "needs_review",
+  );
+  const allPendingJobIds = props.importJobs
+    .filter((job) => job.status === "needs_review")
+    .map((job) => job.id);
+  const selectedConfirmedJobIds = jobIdsForSources(
+    props.importJobs,
+    selectedSourceIdSet,
+    "approved",
+  );
+  const allConfirmedJobIds = props.importJobs
+    .filter((job) => job.status === "approved")
+    .map((job) => job.id);
+  const selectedCount = selectedSourceIdSet.size;
+  const selectedSource =
+    props.sourceFiles.find((source) => source.id === selectedSourceId) ??
+    props.sourceFiles[0] ??
+    null;
+  const selectedSourceJobs = selectedSource ? (jobsBySourceId.get(selectedSource.id) ?? []) : [];
+  const compactUpload = props.sourceFiles.length > 0 && props.uploadQueue.length === 0;
+
+  useEffect(() => {
+    setSelectedSourceIds((current) => current.filter((sourceId) => sourceIds.has(sourceId)));
+  }, [props.sourceFiles]);
+
+  function toggleSourceSelection(sourceId: string, selected: boolean) {
+    setSelectedSourceIds((current) => {
+      const next = new Set(current);
+      if (selected) {
+        next.add(sourceId);
+      } else {
+        next.delete(sourceId);
+      }
+      return [...next];
+    });
   }
 
   return (
@@ -177,9 +227,65 @@ export function SourcesPage(props: {
           icon={<AnimatedIcon name="files" size={16} />}
           title={t("sources.title")}
         />
-        <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-          <Input ref={props.uploadInputRef} type="file" />
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-[var(--qitu-space-s1)] grid gap-3">
+          <Input
+            className="hidden"
+            disabled={!props.canUploadSources}
+            multiple
+            ref={props.uploadInputRef}
+            type="file"
+            onChange={(event) => props.onUploadFilesSelected(event.currentTarget.files)}
+          />
+          <UploadQueue
+            compact={compactUpload}
+            compactAction={
+              compactUpload ? (
+                <>
+                  <Button
+                    disabled={props.isBusy || !props.canUploadSources}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                    onClick={() => props.uploadInputRef.current?.click()}
+                  >
+                    <FileUp size={14} /> {t("action.chooseFiles")}
+                  </Button>
+                  <Button
+                    disabled={props.isBusy || !props.canUploadSources}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                    onClick={props.onUploadSample}
+                  >
+                    <FileUp size={14} /> {t("action.uploadSample")}
+                  </Button>
+                </>
+              ) : null
+            }
+            compactDescription={t("sources.compactUploadDescription")}
+            compactTitle={t("sources.compactUploadTitle")}
+            emptyDescription={t("sources.uploadQueueEmptyDescription")}
+            emptyTitle={t("sources.uploadQueueEmptyTitle")}
+            items={uploadQueueItems(props.uploadQueue, formatBytes)}
+            labels={{
+              remove: t("action.removeUpload"),
+              retry: t("action.retryUpload"),
+            }}
+            statusLabel={formatStatus}
+            onFilesDrop={props.canUploadSources ? props.onUploadFilesSelected : undefined}
+            onRemove={props.onRemoveUploadItem}
+            onRetry={props.onRetryUploadItem}
+          />
+          <div className={compactUpload ? "hidden" : "flex flex-wrap gap-2"}>
+            <Button
+              disabled={props.isBusy || !props.canUploadSources}
+              size="sm"
+              type="button"
+              variant="ghost"
+              onClick={() => props.uploadInputRef.current?.click()}
+            >
+              <FileUp size={14} /> {t("action.chooseFiles")}
+            </Button>
             <Button
               disabled={props.isBusy || !props.canUploadSources}
               size="sm"
@@ -204,17 +310,74 @@ export function SourcesPage(props: {
           </div>
         ) : null}
         <div className="mt-[var(--qitu-space-s1)]">
-          <DataState
+          <ListFrame
             description={t("sources.emptyDescription")}
             state={props.sourceFiles.length === 0 ? "empty" : "ready"}
             title={t("sources.emptyTitle")}
           >
-            <div className="grid gap-3 lg:grid-cols-2">
-              {props.sourceFiles.map((file) => (
-                <SourceFileRow file={file} jobs={jobsBySourceId.get(file.id) ?? []} key={file.id} />
-              ))}
-            </div>
-          </DataState>
+            <BatchActionBar
+              actions={[
+                {
+                  disabled:
+                    props.isBusy ||
+                    !props.canDecideReviews ||
+                    selectedCount === 0 ||
+                    selectedPendingJobIds.length === 0,
+                  icon: <Check size={14} />,
+                  id: "confirm-selected",
+                  label: t("action.confirmSelectedSources"),
+                  onSelect: () => props.onConfirmSourceJobs(selectedPendingJobIds),
+                },
+                {
+                  disabled:
+                    props.isBusy || !props.canDecideReviews || allPendingJobIds.length === 0,
+                  icon: <Check size={14} />,
+                  id: "confirm-all",
+                  label: t("action.confirmAllPendingSources"),
+                  onSelect: () => props.onConfirmSourceJobs(allPendingJobIds),
+                  variant: "ghost",
+                },
+                {
+                  disabled:
+                    props.isBusy ||
+                    !props.canCommitImports ||
+                    selectedCount === 0 ||
+                    selectedConfirmedJobIds.length === 0,
+                  icon: <AnimatedIcon name="database" size={14} />,
+                  id: "commit-selected",
+                  label: t("action.commitSelectedSources"),
+                  onSelect: () => props.onCommitSourceJobs(selectedConfirmedJobIds),
+                },
+                {
+                  disabled:
+                    props.isBusy || !props.canCommitImports || allConfirmedJobIds.length === 0,
+                  icon: <AnimatedIcon name="database" size={14} />,
+                  id: "commit-all",
+                  label: t("action.commitAllConfirmedSources"),
+                  onSelect: () => props.onCommitSourceJobs(allConfirmedJobIds),
+                  variant: "ghost",
+                },
+              ]}
+              clearLabel={t("action.clearSelection")}
+              selectedCount={selectedCount}
+              summary={t("sources.batchSummary", {
+                confirmed: String(allConfirmedJobIds.length),
+                pending: String(allPendingJobIds.length),
+                selected: String(selectedCount),
+              })}
+              onClear={() => setSelectedSourceIds([])}
+            />
+            {props.sourceFiles.map((file) => (
+              <SourceFileRow
+                file={file}
+                jobs={jobsBySourceId.get(file.id) ?? []}
+                key={file.id}
+                selected={selectedSourceIdSet.has(file.id)}
+                onOpenDetails={() => setSelectedSourceId(file.id)}
+                onSelectedChange={(selected) => toggleSourceSelection(file.id, selected)}
+              />
+            ))}
+          </ListFrame>
         </div>
       </Surface>
 
@@ -230,6 +393,20 @@ export function SourcesPage(props: {
           <Guardrail label={t("guardrail.importQueued")} />
         </div>
       </Surface>
+      <DrawerRoot
+        open={Boolean(selectedSourceId)}
+        onOpenChange={(open) => !open && setSelectedSourceId(null)}
+      >
+        <DrawerContent>
+          {selectedSource ? (
+            <SourceDetailsDrawer
+              file={selectedSource}
+              jobs={selectedSourceJobs}
+              onClose={() => setSelectedSourceId(null)}
+            />
+          ) : null}
+        </DrawerContent>
+      </DrawerRoot>
     </div>
   );
 }
@@ -296,23 +473,21 @@ export function ImportsPage(props: {
           title={t("imports.title")}
         />
         <div className="mt-[var(--qitu-space-s1)]">
-          <DataState
+          <ListFrame
             description={t("imports.emptyDescription")}
             state={props.importJobs.length === 0 ? "empty" : "ready"}
             title={t("imports.emptyTitle")}
           >
-            <div className="space-y-2">
-              {props.importJobs.map((job) => (
-                <ImportJobRow
-                  active={job.id === props.selectedJobId}
-                  job={job}
-                  key={job.id}
-                  onOpenReview={() => props.onOpenReview(job.id)}
-                  onSelect={() => props.onSelectJob(job.id)}
-                />
-              ))}
-            </div>
-          </DataState>
+            {props.importJobs.map((job) => (
+              <ImportJobRow
+                active={job.id === props.selectedJobId}
+                job={job}
+                key={job.id}
+                onOpenReview={() => props.onOpenReview(job.id)}
+                onSelect={() => props.onSelectJob(job.id)}
+              />
+            ))}
+          </ListFrame>
           {!props.canProcessImports ? (
             <div className="mt-3">
               <PermissionHint label={t("permission.importProcess")} />
@@ -434,7 +609,7 @@ export function AuditPage(props: {
   onFiltersChange: (filters: AuditFilters) => void;
   onSelectEvent: (eventId: string) => void;
 }) {
-  const { formatDateTime, formatTime, t } = useI18n();
+  const { formatDateTime, formatTime, localeMeta, t } = useI18n();
   const selectedEvent =
     props.auditEvents.find((event) => event.id === props.selectedEventId) ??
     props.auditEvents[0] ??
@@ -455,7 +630,7 @@ export function AuditPage(props: {
             title={t("audit.title")}
           />
           <form
-            className="mt-[var(--qitu-space-s1)] grid gap-3 lg:grid-cols-4"
+            className="mt-[var(--qitu-space-s1)] grid gap-3 lg:grid-cols-6"
             onSubmit={submitFilters}
           >
             <Field
@@ -483,7 +658,33 @@ export function AuditPage(props: {
               onChange={(subjectId) => props.onFiltersChange({ ...props.filters, subjectId })}
               value={props.filters.subjectId}
             />
-            <div className="flex flex-wrap gap-2 lg:col-span-4">
+            <DateField
+              label={t("audit.filterOccurredAfter")}
+              labels={{
+                nextMonth: t("calendar.nextMonth"),
+                previousMonth: t("calendar.previousMonth"),
+              }}
+              locale={localeMeta.intlLocale}
+              placeholder={t("audit.filterDatePlaceholder")}
+              value={props.filters.occurredAfter}
+              onChange={(occurredAfter) =>
+                props.onFiltersChange({ ...props.filters, occurredAfter })
+              }
+            />
+            <DateField
+              label={t("audit.filterOccurredBefore")}
+              labels={{
+                nextMonth: t("calendar.nextMonth"),
+                previousMonth: t("calendar.previousMonth"),
+              }}
+              locale={localeMeta.intlLocale}
+              placeholder={t("audit.filterDatePlaceholder")}
+              value={props.filters.occurredBefore}
+              onChange={(occurredBefore) =>
+                props.onFiltersChange({ ...props.filters, occurredBefore })
+              }
+            />
+            <div className="flex flex-wrap gap-2 lg:col-span-6">
               <Button disabled={props.isBusy} size="sm" type="submit">
                 <AnimatedIcon name="search" size={14} /> {t("action.applyFilters")}
               </Button>
@@ -822,14 +1023,25 @@ function WorkflowTarget(props: {
   );
 }
 
-function SourceFileRow(props: { file: SourceFile; jobs: ImportJobListItem[] }) {
+function SourceFileRow(props: {
+  file: SourceFile;
+  jobs: ImportJobListItem[];
+  onOpenDetails: () => void;
+  onSelectedChange: (selected: boolean) => void;
+  selected: boolean;
+}) {
   const { formatBytes, formatDateTime, formatStatus, t } = useI18n();
   const latestJob = props.jobs[0] ?? null;
   const status = latestJob?.status ?? "stored";
 
   return (
-    <div className="qitu-surface-subtle p-3">
-      <div className="flex items-start justify-between gap-3">
+    <div className="qitu-surface-subtle flex flex-wrap items-start gap-3 p-3">
+      <Checkbox
+        aria-label={t("sources.selectSource", { filename: props.file.filename })}
+        checked={props.selected}
+        onCheckedChange={(checked) => props.onSelectedChange(checked === true)}
+      />
+      <div className="min-w-0 flex-1">
         <div className="min-w-0">
           <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
             {props.file.filename}
@@ -838,10 +1050,7 @@ function SourceFileRow(props: { file: SourceFile; jobs: ImportJobListItem[] }) {
             {formatBytes(props.file.size)} · {formatDateTime(props.file.uploadedAt)}
           </div>
         </div>
-        <StatusBadge tone={statusTone(status)}>{formatStatus(status)}</StatusBadge>
-      </div>
-      <div className="mt-3 grid gap-2 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
           <StatusBadge tone="neutral">
             {t("sources.jobCount", { count: String(props.jobs.length) })}
           </StatusBadge>
@@ -849,15 +1058,118 @@ function SourceFileRow(props: { file: SourceFile; jobs: ImportJobListItem[] }) {
             {latestJob ? t("sources.latestJob", { id: latestJob.id }) : t("sources.noImportJob")}
           </span>
         </div>
-        <div className="qitu-number truncate">
-          {t("sources.contentType", { value: props.file.contentType })}
+      </div>
+      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        <StatusBadge tone={statusTone(status)}>{formatStatus(status)}</StatusBadge>
+        <Button size="sm" variant="ghost" onClick={props.onOpenDetails}>
+          {t("action.viewDetails")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SourceDetailsDrawer(props: {
+  file: SourceFile;
+  jobs: ImportJobListItem[];
+  onClose: () => void;
+}) {
+  const { formatBytes, formatDateTime, formatStatus, t } = useI18n();
+
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <DrawerTitle className="truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
+            {props.file.filename}
+          </DrawerTitle>
+          <DrawerDescription className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
+            {t("sources.detailsDescription")}
+          </DrawerDescription>
         </div>
-        <div className="qitu-number truncate">
-          {t("sources.contentHash", { value: props.file.contentHash ?? t("common.none") })}
+        <DrawerClose
+          render={
+            <Button
+              aria-label={t("action.closeDetails")}
+              className="size-8 px-0"
+              size="sm"
+              title={t("action.closeDetails")}
+              variant="ghost"
+              onClick={props.onClose}
+            >
+              <X size={14} />
+            </Button>
+          }
+        />
+      </div>
+
+      <div className="mt-[var(--qitu-space-s1)] grid gap-2">
+        <RuntimeRow label={t("sources.uploadedAt")} value={formatDateTime(props.file.uploadedAt)} />
+        <RuntimeRow label={t("sources.fileSize")} value={formatBytes(props.file.size)} />
+        <RuntimeRow label={t("sources.contentTypeLabel")} value={props.file.contentType} />
+        <RuntimeRow
+          label={t("sources.contentHashLabel")}
+          value={props.file.contentHash ?? t("common.none")}
+        />
+        <RuntimeRow label={t("sources.objectKey")} value={props.file.objectKey} />
+      </div>
+
+      <div className="mt-[var(--qitu-space-s1)]">
+        <SectionHeader title={t("sources.importJobs")} />
+        <div className="mt-3 grid gap-2">
+          {props.jobs.length === 0 ? (
+            <DataState
+              description={t("sources.noImportJob")}
+              state="empty"
+              title={t("sources.noImportJobsTitle")}
+            />
+          ) : (
+            props.jobs.map((job) => (
+              <div className="qitu-surface-subtle p-3" key={job.id}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="qitu-number truncate text-[length:var(--qitu-text-label-13)] font-medium leading-[var(--qitu-leading-label-13)]">
+                      {job.id}
+                    </div>
+                    <div className="qitu-number mt-1 text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
+                      {formatDateTime(job.updatedAt)}
+                    </div>
+                  </div>
+                  <StatusBadge tone={statusTone(job.status)}>
+                    {formatStatus(job.status)}
+                  </StatusBadge>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function uploadQueueItems(
+  queue: UploadQueueEntry[],
+  formatBytes: (value: number | null) => string,
+): UploadQueueItem[] {
+  return queue.map((item) => ({
+    error: item.error,
+    id: item.id,
+    meta: formatBytes(item.file.size),
+    name: item.file.name,
+    status: item.status,
+  }));
+}
+
+function jobIdsForSources(
+  jobs: ImportJobListItem[],
+  sourceIds: Set<string>,
+  status: string,
+): string[] {
+  if (sourceIds.size === 0) return [];
+  return jobs
+    .filter((job) => sourceIds.has(job.sourceFileId) && job.status === status)
+    .map((job) => job.id);
 }
 
 function ImportJobRow(props: {
@@ -1009,16 +1321,6 @@ function PermissionHint(props: { label: string }) {
       <StatusBadge tone="neutral">{t("permission.readOnly")}</StatusBadge>
     </div>
   );
-}
-
-function auditTimelineItem(event: AuditEvent, formatTime: (value: string) => string): TimelineItem {
-  return {
-    id: event.id,
-    title: event.action,
-    description: `${event.subject.kind}:${event.subject.id}`,
-    time: formatTime(event.occurredAt),
-    tone: timelineTone(event.action),
-  };
 }
 
 function importJobTimelineItem(

@@ -205,6 +205,19 @@ app.get("/api/audit-events", async (context) => {
   const subjectKind = context.req.query("subjectKind") ?? null;
   const actorId = context.req.query("actorId") ?? null;
   const action = context.req.query("action") ?? null;
+  const occurredAfter = parseIsoDateTimeQuery(context.req.query("occurredAfter"));
+  const occurredBefore = parseIsoDateTimeQuery(context.req.query("occurredBefore"));
+  if (occurredAfter === false || occurredBefore === false) {
+    return context.json(
+      {
+        error: {
+          code: "invalid_audit_date_filter",
+          message: "Audit date filters must be valid ISO date-time values.",
+        },
+      },
+      400,
+    );
+  }
   const limit = parseQueryLimit(context.req.query("limit"), 50);
   const result = await context.env.DB.prepare(
     `
@@ -222,11 +235,27 @@ app.get("/api/audit-events", async (context) => {
         AND (? IS NULL OR subject_kind = ?)
         AND (? IS NULL OR actor_id = ?)
         AND (? IS NULL OR action = ?)
+        AND (? IS NULL OR occurred_at >= ?)
+        AND (? IS NULL OR occurred_at < ?)
       ORDER BY occurred_at DESC
       LIMIT ?
     `,
   )
-    .bind(subjectId, subjectId, subjectKind, subjectKind, actorId, actorId, action, action, limit)
+    .bind(
+      subjectId,
+      subjectId,
+      subjectKind,
+      subjectKind,
+      actorId,
+      actorId,
+      action,
+      action,
+      occurredAfter,
+      occurredAfter,
+      occurredBefore,
+      occurredBefore,
+      limit,
+    )
     .all<AuditEventRow>();
 
   return context.json({
@@ -963,6 +992,12 @@ function publicAuditEvent(row: AuditEventRow): Record<string, unknown> {
     metadata: row.metadata_json ? parseJsonValue(row.metadata_json) : {},
     occurredAt: row.occurred_at,
   };
+}
+
+function parseIsoDateTimeQuery(value: string | undefined): string | null | false {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? false : new Date(timestamp).toISOString();
 }
 
 function parseJsonValue(value: string): unknown {

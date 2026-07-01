@@ -145,6 +145,10 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
     return recordReviewDecisionResponse(context, "reject");
   });
 
+  app.post("/api/import-jobs/:jobId/review/confirm-pending", async (context) => {
+    return confirmPendingReviewRecordsResponse(context);
+  });
+
   app.post("/api/import-jobs/:jobId/commit", async (context) => {
     const current = await readCurrentUser(context);
     if (!current) {
@@ -370,6 +374,157 @@ export function registerImportReviewRoutes(app: Hono<{ Bindings: Env }>): void {
         }),
       ),
     });
+  });
+}
+
+async function confirmPendingReviewRecordsResponse(context: AppContext): Promise<Response> {
+  const current = await readCurrentUser(context);
+  if (!current) {
+    return authError(context, "unauthorized", "Login is required.", 401);
+  }
+  const denied = await requirePermission(context, current, "review:decide");
+  if (denied) return denied;
+
+  const input = await parseRequestJson(context, ReviewDecisionInputSchema);
+  if (!input.ok) return input.response;
+
+  const jobId = context.req.param("jobId");
+  if (!jobId) {
+    return authError(context, "import_job_not_found", "Import job was not found.", 404);
+  }
+
+  const job = await readImportJobReview(context.env, jobId);
+  if (!job) {
+    return authError(context, "import_job_not_found", "Import job was not found.", 404);
+  }
+
+  const recordsResult = await context.env.DB.prepare(
+    `
+      SELECT
+        id,
+        import_job_id,
+        source_file_id,
+        staged_record_key,
+        source_row_key,
+        payload_json,
+        review_status,
+        committed_record_id,
+        created_at,
+        updated_at
+      FROM example_staged_records
+      WHERE import_job_id = ?
+        AND review_status = 'pending'
+      ORDER BY created_at ASC
+    `,
+  )
+    .bind(jobId)
+    .all<ExampleStagedRecordRow>();
+  const pendingRecords = recordsResult.results;
+
+  if (pendingRecords.length === 0) {
+    return context.json({
+      importJobId: jobId,
+      status: job.status,
+      confirmedCount: 0,
+      records: [],
+      duplicate: true,
+    });
+  }
+
+  const now = new Date().toISOString();
+  const note = input.value.note ?? null;
+  const action: ReviewRecordDecisionAction = "approve";
+  const targetStatus = stagedStatusForReviewAction(action);
+  const decisionId = crypto.randomUUID();
+  const summary = await readReviewStatusSummary(context.env, jobId);
+  adjustReviewStatus(summary, "pending", -pendingRecords.length);
+  adjustReviewStatus(summary, targetStatus, pendingRecords.length);
+  const jobStatus = jobStatusForReviewSummary(summary);
+  const updatedRecords = pendingRecords.map((record) => ({
+    ...record,
+    review_status: targetStatus,
+    updated_at: now,
+  }));
+
+  await context.env.DB.batch([
+    context.env.DB.prepare(
+      `
+        INSERT INTO import_review_decisions (
+          id, import_job_id, action, reviewer_user_id, note, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+    ).bind(decisionId, jobId, action, current.user.id, note, now),
+    ...pendingRecords.flatMap((record) => {
+      const recordDecisionId = crypto.randomUUID();
+      return [
+        context.env.DB.prepare(
+          `
+            INSERT INTO import_review_record_decisions (
+              id, decision_id, import_job_id, staged_record_key, action, note, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+        ).bind(recordDecisionId, decisionId, jobId, record.staged_record_key, action, note, now),
+        context.env.DB.prepare(
+          `
+            UPDATE example_staged_records
+            SET review_status = ?, updated_at = ?
+            WHERE id = ? AND review_status = 'pending'
+          `,
+        ).bind(targetStatus, now, record.id),
+        prepareAuditInsert(
+          context.env,
+          createAuditEvent({
+            action: `import_review.record_${targetStatus}`,
+            actor: {
+              id: current.user.id,
+              kind: "user",
+            },
+            subject: {
+              id: record.id,
+              kind: "example_staged_record",
+            },
+            metadata: {
+              importJobId: jobId,
+              stagedRecordKey: record.staged_record_key,
+              decisionId,
+              recordDecisionId,
+              batch: true,
+            },
+          }),
+        ),
+      ];
+    }),
+    context.env.DB.prepare(
+      `
+        UPDATE import_jobs
+        SET status = ?, updated_at = ?
+        WHERE id = ?
+      `,
+    ).bind(jobStatus, now, jobId),
+    prepareImportJobEventInsert(context.env, {
+      importJobId: jobId,
+      sourceFileId: job.source_file_id,
+      eventType: "import_review.records_approved",
+      statusTo: jobStatus,
+      actorUserId: current.user.id,
+      message: "Pending staged records approved.",
+      createdAt: now,
+      metadata: {
+        decisionId,
+        confirmedCount: pendingRecords.length,
+        stagedRecordKeys: pendingRecords.map((record) => record.staged_record_key),
+        targetReviewStatus: targetStatus,
+      },
+    }),
+  ]);
+
+  return context.json({
+    importJobId: jobId,
+    status: jobStatus,
+    confirmedCount: pendingRecords.length,
+    records: updatedRecords.map(publicExampleStagedRecord),
   });
 }
 

@@ -110,6 +110,30 @@ type RequestOptions = Omit<RequestInit, "credentials">;
 const localeStorageKey = "qitu.locale";
 const localeHeaderName = "x-qitu-locale";
 
+export type ApiErrorIssue = {
+  message: string;
+  path?: string;
+};
+
+export class ApiRequestError extends Error {
+  code: string | null;
+  issues: ApiErrorIssue[];
+  status: number;
+
+  constructor(input: {
+    code?: string | null;
+    issues?: ApiErrorIssue[];
+    message: string;
+    status: number;
+  }) {
+    super(input.message);
+    this.name = "ApiRequestError";
+    this.code = input.code ?? null;
+    this.issues = input.issues ?? [];
+    this.status = input.status;
+  }
+}
+
 export async function me(): Promise<MeResponse> {
   return apiJson<MeResponse>("/api/auth/me");
 }
@@ -365,6 +389,27 @@ export async function rejectStagedRecord(input: {
   return decideStagedRecord(input, "reject");
 }
 
+export async function confirmPendingStagedRecords(input: {
+  jobId: string;
+  note?: string;
+}): Promise<{
+  confirmedCount: number;
+  importJobId: string;
+  records: StagedRecord[];
+  status: string;
+  duplicate?: boolean;
+}> {
+  return apiJson(`/api/import-jobs/${input.jobId}/review/confirm-pending`, {
+    method: "POST",
+    body: JSON.stringify({
+      note: input.note,
+    }),
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+}
+
 export async function commitImportJob(jobId: string): Promise<{
   importJobId: string;
   status: string;
@@ -390,6 +435,8 @@ export async function listAuditEvents(
     subjectId?: string;
     subjectKind?: string;
     actorId?: string;
+    occurredAfter?: string;
+    occurredBefore?: string;
     limit?: number;
   } = {},
 ): Promise<AuditEventsResponse> {
@@ -398,6 +445,8 @@ export async function listAuditEvents(
   if (input.subjectId) search.set("subjectId", input.subjectId);
   if (input.subjectKind) search.set("subjectKind", input.subjectKind);
   if (input.actorId) search.set("actorId", input.actorId);
+  if (input.occurredAfter) search.set("occurredAfter", input.occurredAfter);
+  if (input.occurredBefore) search.set("occurredBefore", input.occurredBefore);
   if (input.limit) search.set("limit", String(input.limit));
   return apiJson<AuditEventsResponse>(withSearch("/api/audit-events", search));
 }
@@ -424,17 +473,76 @@ async function apiJson<T>(url: string, options: RequestOptions = {}): Promise<T>
     headers.set(localeHeaderName, locale);
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include",
+    });
+  } catch {
+    throw apiNetworkError();
+  }
 
   if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
+    throw await apiErrorFromResponse(response);
   }
 
   return response.json() as Promise<T>;
+}
+
+export async function apiErrorFromResponse(response: Response): Promise<ApiRequestError> {
+  const fallback = `Request failed with ${response.status}`;
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    return new ApiRequestError({
+      message: fallback,
+      status: response.status,
+    });
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return new ApiRequestError({
+      message: fallback,
+      status: response.status,
+    });
+  }
+
+  const error = isRecord(body) && isRecord(body.error) ? body.error : null;
+  const message = typeof error?.message === "string" ? error.message : fallback;
+  const code = typeof error?.code === "string" ? error.code : null;
+  const issues = Array.isArray(error?.issues)
+    ? error.issues.flatMap((issue): ApiErrorIssue[] => {
+        if (!isRecord(issue) || typeof issue.message !== "string") {
+          return [];
+        }
+
+        return [
+          {
+            message: issue.message,
+            ...(typeof issue.path === "string" ? { path: issue.path } : {}),
+          },
+        ];
+      })
+    : [];
+
+  return new ApiRequestError({
+    code,
+    issues,
+    message,
+    status: response.status,
+  });
+}
+
+export function apiNetworkError(): ApiRequestError {
+  return new ApiRequestError({
+    message: "Network request failed. Check the Worker connection and try again.",
+    status: 0,
+  });
 }
 
 function readLocalePreference(): string | null {
@@ -444,4 +552,8 @@ function readLocalePreference(): string | null {
 function withSearch(path: string, search: URLSearchParams): string {
   const query = search.toString();
   return query ? `${path}?${query}` : path;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

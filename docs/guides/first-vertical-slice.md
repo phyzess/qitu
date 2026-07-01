@@ -54,7 +54,7 @@ It also exposes performance and runtime constraints early.
 12. Approve staged records.
 13. Reject staged records.
 14. List/generate/confirm/dismiss AI advisories.
-15. Commit approved records.
+15. Commit confirmed records.
 16. List audit events.
 
 ## Minimum Worker Jobs
@@ -193,7 +193,7 @@ Deliver:
 1. Staging table.
 2. Approve/reject controls.
 3. Reviewer note.
-4. Commit approved records.
+4. Commit confirmed records.
 5. Audit trail.
 
 Validation:

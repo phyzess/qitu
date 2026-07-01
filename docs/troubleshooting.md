@@ -167,5 +167,5 @@ Rules:
 
 1. AI may suggest, classify, extract, or explain.
 2. AI output must be stored as advisory records.
-3. A human reviewer must confirm before business-owned records are committed.
-4. Audit events must link the reviewer, source file, advisory record, and commit.
+3. A human operator must confirm before business-owned records are committed.
+4. Audit events must link the confirmer, source file, advisory record, and commit.

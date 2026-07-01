@@ -209,6 +209,7 @@ Does not own:
 
 1. Business-specific pages.
 2. Business terminology.
+3. The downstream-owned `/workspace` home content.
 
 ### 2.13 `packages/design-system`
 
@@ -270,7 +271,7 @@ type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
 };
 ```
 
-`CommitApprovedContext` is provided by the app layer after human review. It carries reviewer identity, import job identity, approved staged record keys, and an idempotency key.
+`CommitApprovedContext` is provided by the app layer after human confirmation. It carries confirmer identity, import job identity, approved staged record keys, and an idempotency key.
 
 ## 4. Anti-Leakage Checks
 

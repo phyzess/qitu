@@ -28,10 +28,11 @@ try {
   const importPipeline = await server.ssrLoadModule("/packages/import-pipeline/src/index.ts");
   const db = await server.ssrLoadModule("/packages/db/src/index.ts");
   const i18n = await server.ssrLoadModule("/packages/i18n/src/index.ts");
+  const webApi = await server.ssrLoadModule("/apps/web/src/api.ts");
 
   assert(
     importPipeline.createManualReviewIssue().code === "manual_review_required",
-    "import-pipeline must create the default manual review issue.",
+    "import-pipeline must create the default confirmation gate issue.",
   );
   assert(
     importPipeline.stagedRecordKeyForSourceRow({
@@ -103,6 +104,49 @@ try {
       ],
     }) === "zh-CN",
     "i18n package must resolve locales from Accept-Language candidates.",
+  );
+  const structuredApiError = await webApi.apiErrorFromResponse(
+    new Response(
+      JSON.stringify({
+        error: {
+          code: "invalid_request",
+          message: "Backend validation failed.",
+          issues: [
+            {
+              message: "Email is required.",
+              path: "email",
+            },
+          ],
+        },
+      }),
+      {
+        headers: {
+          "content-type": "application/json",
+        },
+        status: 400,
+      },
+    ),
+  );
+  assert(
+    structuredApiError instanceof webApi.ApiRequestError &&
+      structuredApiError.message === "Backend validation failed." &&
+      structuredApiError.code === "invalid_request" &&
+      structuredApiError.issues[0]?.path === "email",
+    "web API client must preserve structured backend error messages, codes, and issues.",
+  );
+  const fallbackApiError = await webApi.apiErrorFromResponse(
+    new Response("bad gateway", {
+      status: 502,
+    }),
+  );
+  assert(
+    fallbackApiError.message === "Request failed with 502" && fallbackApiError.status === 502,
+    "web API client must fall back to HTTP status text for non-JSON errors.",
+  );
+  const networkApiError = webApi.apiNetworkError();
+  assert(
+    networkApiError.status === 0 && networkApiError.message.includes("Worker connection"),
+    "web API client must expose a stable network-style failure message.",
   );
 } finally {
   await server.close();

@@ -270,7 +270,7 @@ export async function processImportJob(env: Env, body: ImportJobMessage): Promis
         eventType: "import_job.needs_review",
         statusFrom: "processing",
         statusTo: "needs_review",
-        message: "Import job is ready for human review.",
+        message: "Import job is ready for human confirmation.",
         createdAt: stagedAt,
         metadata: {
           objectKey: body.objectKey,

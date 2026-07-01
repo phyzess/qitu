@@ -34,6 +34,37 @@ The root `components.json` is the executable shadcn contract. It uses
 Interactive qitu primitives are wrappers around `@base-ui/react`; app-owned pages
 must consume `@qitu/ui` and must not import Base UI directly.
 
+Primitive governance rules:
+
+1. When a common interactive primitive is missing, check the shadcn/Base UI registry first.
+2. Registry-backed or hand-written primitives must be wrapped in `packages/ui` and exported from `@qitu/ui` before app pages consume them.
+3. App pages must not silently fall back to raw `type="date"` inputs, raw checkbox controls, direct Base UI imports, or page-local table structures when qitu shared primitives exist.
+4. Bespoke primitives need a decision-log entry explaining why the registry or existing qitu primitive was insufficient.
+5. Shared primitives should keep business-neutral names and props such as source, file, job, status, action, value, and item.
+6. Density for lists, tables, cards, rows, and action bars belongs in reusable qitu tokens/classes, not page-local padding fixes.
+
+Current first-pass shared primitive surface:
+
+```text
+Button
+BatchActionBar
+Calendar
+Checkbox
+ConfirmDialog
+DateField
+Dialog
+Drawer
+Form/TextField/Input/SelectField
+ListFrame
+Menu
+Popover
+SegmentedControl
+StatusBadge
+Table
+UploadQueue
+Surface/DataState/MetricStrip/Timeline
+```
+
 ## 3. Package Split
 
 ```text

@@ -53,7 +53,9 @@ email: admin@example.com
 password: correct horse battery staple
 ```
 
-The bootstrap routes create or reset these users only when `APP_ENV=local` and immediately create a session. The reviewer account exercises the review workflow; the admin account exercises user and invitation management. Deployed environments must use invitation-only onboarding.
+The bootstrap routes create or reset these users only when `APP_ENV=local` and immediately create a session. The operator account exercises the confirmation workflow; the admin account exercises user and invitation management. Deployed environments must use invitation-only onboarding.
+
+The web login page follows the same rule. It only shows the local `Setup` tab and demo credential affordances after `/health` reports `APP_ENV=local`. Preview and production login pages must present only normal login and password-reset flows.
 
 ## 2.2 Member and Invitation Management
 
@@ -69,6 +71,8 @@ POST /api/invitations/:invitationId/revoke
 ```
 
 These routes require a current session and the `invitation:create` permission. In the starter RBAC map, that means `owner` and `admin` can list users, list invitations, create invitations, and revoke pending invitations. `reviewer` and `viewer` can still use the authenticated workbench, but member and invitation settings stay admin-only.
+
+For first-admin creation in a deployed environment, use `vp run ops:create-admin-invite` to seed a one-time admin invitation through an operator-reviewed process. Do not re-enable local bootstrap and do not insert a user/password directly; the first admin should still accept an invitation so password setup, session creation, and audit semantics stay aligned with the normal auth flow.
 
 Local development may return the generated invite URL for authenticated invitation creation. Non-local environments should rely on email delivery and must not expose plaintext invite tokens in API responses.
 

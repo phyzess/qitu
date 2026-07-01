@@ -53,7 +53,7 @@ invite -> register -> login -> upload -> import job -> queue -> staging -> revie
 11. List staging records。
 12. Approve/reject staged records。
 13. List/generate/confirm/dismiss AI advisories。
-14. Commit approved records。
+14. Commit confirmed records。
 15. List audit events。
 
 ## 5. 最小 Worker Jobs

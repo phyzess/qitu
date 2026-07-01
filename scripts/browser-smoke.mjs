@@ -4,7 +4,8 @@ import process from "node:process";
 import { chromium, expect } from "@playwright/test";
 
 const root = process.cwd();
-const webUrl = "http://localhost:5173";
+const webPort = process.env.QITU_WEB_PORT ?? (await findOpenPort());
+const webUrl = `http://localhost:${webPort}`;
 const workerPort = process.env.QITU_WORKER_PORT ?? (await findOpenPort());
 const workerUrl = `http://127.0.0.1:${workerPort}`;
 const workerHealthUrl = `${workerUrl}/health`;
@@ -18,6 +19,8 @@ const server = spawn(vp, ["run", "dev:all"], {
   env: {
     ...process.env,
     CI: "1",
+    QITU_PUBLIC_APP_URL: webUrl,
+    QITU_WEB_PORT: webPort,
     QITU_WORKER_ORIGIN: workerUrl,
     QITU_WORKER_PORT: workerPort,
   },
@@ -59,12 +62,19 @@ async function runBrowserSmoke() {
       height: 960,
     },
   });
+  await context.addInitScript(() => {
+    window.localStorage.setItem("qitu.theme", "dark");
+  });
   const page = await context.newPage();
 
   try {
+    await assertProductionLoginHygiene(context);
+    const emptySourceListWidth = await assertEmptyIntakeListLayout(context);
+
     const runId = Date.now();
     const email = `reviewer-${runId}@example.com`;
     const filename = `browser-smoke-${runId}.txt`;
+    const appendedFilename = `browser-smoke-appended-${runId}.txt`;
     const rejectedFilename = `browser-smoke-reject-${runId}.txt`;
     const failedFilename = `browser-smoke-failed-${runId}.json`;
     const content = `label,value\nbrowser-smoke-${runId},${runId}\n`;
@@ -99,7 +109,7 @@ async function runBrowserSmoke() {
     await page.getByLabel("Password", { exact: true }).fill(initialPassword);
     await page.getByRole("button", { name: "Accept invitation" }).click();
 
-    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace home" })).toBeVisible();
 
     const reset = await postWorkerJson("/api/auth/password-reset/request", {
       email,
@@ -114,18 +124,29 @@ async function runBrowserSmoke() {
     await page.getByLabel("Email", { exact: true }).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(resetPassword);
     await page.locator("form").getByRole("button", { name: "Login" }).click();
-    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace home" })).toBeVisible();
 
     await page.goto(`${webUrl}/workspace/reviews`, {
       waitUntil: "domcontentloaded",
     });
-    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Confirmation console" })).toBeVisible();
 
     await page.locator('input[type="file"]').setInputFiles({
       name: filename,
       mimeType: "text/plain",
       buffer: Buffer.from(content),
     });
+    await expect(page.getByText(filename, { exact: true })).toBeVisible();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: appendedFilename,
+      mimeType: "text/plain",
+      buffer: Buffer.from(`label,value\nbrowser-smoke-appended-${runId},${runId + 2}\n`),
+    });
+    await expect(page.getByText(appendedFilename, { exact: true })).toBeVisible();
+    await page
+      .getByRole("button", { name: new RegExp(`Remove upload ${escapeRegExp(appendedFilename)}`) })
+      .click();
+    await expect(page.getByText(appendedFilename, { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Upload selected" }).click();
     await expect(
       page.getByRole("button", { name: new RegExp(escapeRegExp(filename)) }),
@@ -136,7 +157,7 @@ async function runBrowserSmoke() {
     await drainButton.click();
 
     await expect(
-      page.getByText("Record was staged and requires human review before commit.", {
+      page.getByText("Record was staged and requires human confirmation before commit.", {
         exact: true,
       }),
     ).toBeVisible({
@@ -146,20 +167,43 @@ async function runBrowserSmoke() {
     await page.getByRole("button", { name: "Generate" }).click();
     await expect(page.getByText("This advisory is informational", { exact: false })).toBeVisible();
     await expect(
-      page.getByText("local/deterministic-review-summary", { exact: true }),
+      page.getByText("local/deterministic-confirmation-summary", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("suggested", { exact: true }).first()).toBeVisible();
-    await page.getByRole("button", { name: "Confirm" }).click();
+    await page.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect(page.getByText("confirmed", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("ai_advisory.confirmed", { exact: true }).first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Approve record", exact: true }).click();
-    await expect(
-      page.getByRole("table").getByText("approved", { exact: true }).first(),
-    ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Commit approved", exact: true })).toBeEnabled();
+    await page.goto(`${webUrl}/workspace/sources`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.locator('.qitu-upload-dropzone[data-compact="true"]')).toBeVisible();
+    await expect(page.getByText("Add more source files", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add files" }).first()).toBeVisible();
+    const readySourceList = page
+      .locator('.qitu-list-frame[data-state="ready"]')
+      .filter({ hasText: filename })
+      .first();
+    await expect(readySourceList).toBeVisible();
+    const readySourceListBox = await readySourceList.boundingBox();
+    if (!readySourceListBox) {
+      throw new Error("Unable to measure ready source list frame.");
+    }
+    if (Math.abs(readySourceListBox.width - emptySourceListWidth) > 2) {
+      throw new Error("Source list empty and ready states do not share the same layout width.");
+    }
+    let sourceRow = page.locator(".qitu-surface-subtle").filter({ hasText: filename }).first();
+    await sourceRow.getByRole("checkbox", { name: `Select ${filename}` }).click();
+    await expect(page.getByRole("button", { name: "Confirm selected" })).toBeEnabled();
+    await page.getByRole("button", { name: "Confirm selected" }).click();
+    await expect(sourceRow.getByText("confirmed", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Commit selected" })).toBeEnabled();
+    await page.getByRole("button", { name: "Commit selected" }).click();
+    await expect(sourceRow.getByText("committed", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Commit approved", exact: true }).click();
+    await page.goto(`${webUrl}/workspace/reviews`, {
+      waitUntil: "domcontentloaded",
+    });
     await expect(
       page.getByRole("button", { name: new RegExp(`${escapeRegExp(filename)}.*committed`) }),
     ).toBeVisible();
@@ -168,10 +212,32 @@ async function runBrowserSmoke() {
       page.getByText("import_review.record_committed", { exact: true }).first(),
     ).toBeVisible();
 
+    await page.goto(`${webUrl}/workspace/sources`, {
+      waitUntil: "domcontentloaded",
+    });
+    sourceRow = page.locator(".qitu-surface-subtle").filter({ hasText: filename }).first();
+    await sourceRow.getByRole("button", { name: "Details" }).click();
+    await expect(page.getByText("Object key", { exact: true })).toBeVisible();
+    await expect(page.getByText("Import jobs", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Close details" }).click();
+
     await page.goto(`${webUrl}/settings/audit`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByRole("heading", { name: "Audit timeline" })).toBeVisible();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await expect(page.locator('input[type="date"]')).toHaveCount(0);
+    const todayValue = await page.evaluate(() => new Date().toISOString().slice(0, 10));
+    const todayDay = String(Number(todayValue.slice(-2)));
+    await page.getByRole("button", { name: "Select date" }).first().click();
+    await expect(page.locator(".qitu-date-popover")).toBeVisible();
+    await expect(page.locator(".qitu-calendar")).toBeVisible();
+    await page
+      .locator("button.qitu-calendar-day:not([data-outside])")
+      .filter({ hasText: new RegExp(`^${todayDay}$`) })
+      .first()
+      .click();
+    await expect(page.locator(".qitu-date-popover")).toHaveCount(0);
     await page.getByLabel("Action", { exact: true }).fill("import_job.committed");
     await page.getByRole("button", { name: "Apply filters" }).click();
     await expect(page.getByText("import_job.committed", { exact: true }).first()).toBeVisible();
@@ -186,9 +252,7 @@ async function runBrowserSmoke() {
       buffer: Buffer.from(rejectedContent),
     });
     await page.getByRole("button", { name: "Upload selected" }).click();
-    await expect(
-      page.getByRole("button", { name: new RegExp(escapeRegExp(rejectedFilename)) }),
-    ).toBeVisible();
+    await expect(page.getByText(rejectedFilename, { exact: true })).toBeVisible();
 
     await page.goto(`${webUrl}/workspace/imports`, {
       waitUntil: "domcontentloaded",
@@ -201,31 +265,37 @@ async function runBrowserSmoke() {
     const committedImportRow = page
       .locator(".qitu-surface-subtle")
       .filter({ hasText: filename })
-      .filter({ has: page.getByRole("button", { name: "Reviews" }) })
+      .filter({ has: page.getByRole("button", { name: "Confirmations" }) })
       .first();
-    await committedImportRow.getByRole("button", { name: "Reviews" }).click();
-    await expect(page.getByRole("heading", { name: "Review console" })).toBeVisible();
+    await committedImportRow.getByRole("button", { name: "Confirmations" }).click();
+    await expect(page.getByRole("heading", { name: "Confirmation console" })).toBeVisible();
     await expect(
       page
         .getByRole("table")
         .getByText(new RegExp(`label: ${escapeRegExp(`browser-smoke-${runId}`)}`)),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: new RegExp(escapeRegExp(rejectedFilename)) }).click();
+    await page
+      .getByRole("button", {
+        name: new RegExp(`${escapeRegExp(rejectedFilename)}.*queued`),
+      })
+      .click();
     await drainButton.click();
     await expect(
-      page.getByText("Record was staged and requires human review before commit.", {
+      page.getByText("Record was staged and requires human confirmation before commit.", {
         exact: true,
       }),
     ).toBeVisible({
       timeout: 20_000,
     });
 
-    await page.getByRole("button", { name: "Reject record", exact: true }).click();
+    await page.getByRole("button", { name: "Exclude record", exact: true }).click();
     await expect(
-      page.getByRole("table").getByText("rejected", { exact: true }).first(),
+      page.getByRole("table").getByText("excluded", { exact: true }).first(),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Commit approved", exact: true })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Commit confirmed", exact: true }),
+    ).toBeDisabled();
     await expect(
       page.getByText("import_review.record_rejected", { exact: true }).first(),
     ).toBeVisible();
@@ -267,7 +337,7 @@ async function runBrowserSmoke() {
     await page.getByLabel("Email", { exact: true }).fill(adminEmail);
     await page.getByLabel("Password", { exact: true }).fill(initialPassword);
     await page.locator("form").getByRole("button", { name: "Login" }).click();
-    await expect(page.getByRole("heading", { name: "Workspace overview" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Workspace home" })).toBeVisible();
 
     await page.goto(`${webUrl}/settings/members`, {
       waitUntil: "domcontentloaded",
@@ -289,6 +359,104 @@ async function runBrowserSmoke() {
   } finally {
     await context.close();
     await browser.close();
+  }
+}
+
+async function assertProductionLoginHygiene(context) {
+  const page = await context.newPage();
+  await page.route("**/health", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        ok: true,
+        service: "qitu-worker",
+        environment: "production",
+      }),
+      contentType: "application/json",
+    });
+  });
+  await page.route("**/api/auth/me", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ user: null }),
+      contentType: "application/json",
+    });
+  });
+
+  try {
+    await page.goto(`${webUrl}/login`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Sign in to qitu" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Setup" })).toHaveCount(0);
+    await expect(page.getByText("local demo", { exact: true })).toHaveCount(0);
+    await expect(page.getByLabel("Email", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Password", { exact: true })).toHaveValue("");
+  } finally {
+    await page.close();
+  }
+}
+
+async function assertEmptyIntakeListLayout(context) {
+  const page = await context.newPage();
+  const mockUser = {
+    id: "empty-layout-user",
+    email: "empty-layout@example.com",
+    role: "reviewer",
+    displayName: "Empty Layout",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  await page.route("**/health", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        ok: true,
+        service: "qitu-worker",
+        environment: "local",
+      }),
+      contentType: "application/json",
+    });
+  });
+  await page.route("**/api/auth/me", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ user: mockUser }),
+      contentType: "application/json",
+    });
+  });
+  await page.route("**/api/source-files*", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ sourceFiles: [] }),
+      contentType: "application/json",
+    });
+  });
+  await page.route("**/api/import-jobs*", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ importJobs: [] }),
+      contentType: "application/json",
+    });
+  });
+  await page.route("**/api/audit-events*", async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ auditEvents: [] }),
+      contentType: "application/json",
+    });
+  });
+
+  try {
+    await page.goto(`${webUrl}/workspace/sources`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByRole("heading", { name: "Source files" })).toBeVisible();
+    const sourceList = page.locator('.qitu-list-frame[data-state="empty"]').first();
+    await expect(sourceList).toBeVisible();
+    await expect(sourceList.getByText("No source files", { exact: true })).toBeVisible();
+    await expect(sourceList.locator(".qitu-list-state-row")).toBeVisible();
+    const sourceListBox = await sourceList.boundingBox();
+    if (!sourceListBox) {
+      throw new Error("Unable to measure empty source list frame.");
+    }
+
+    return sourceListBox.width;
+  } finally {
+    await page.close();
   }
 }
 

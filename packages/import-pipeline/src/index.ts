@@ -102,7 +102,7 @@ export type ReviewStatusSummary = Record<StagedRecordStatus, number>;
 export function createManualReviewIssue(): ReviewIssue {
   return {
     code: "manual_review_required",
-    message: "Record was staged and requires human review before commit.",
+    message: "Record was staged and requires human confirmation before commit.",
     severity: "info",
   };
 }

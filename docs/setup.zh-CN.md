@@ -104,7 +104,7 @@ vp run dev:web
 vp run dev:worker
 ```
 
-显式的组合别名也仍然可用：
+显式别名也仍然可用：
 
 ```sh
 vp run dev:all

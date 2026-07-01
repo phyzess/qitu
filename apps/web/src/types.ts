@@ -30,6 +30,16 @@ export type SourceFile = {
   uploadedAt: string;
 };
 
+export type UploadQueueStatus = "queued" | "uploading" | "uploaded" | "duplicate" | "failed";
+
+export type UploadQueueEntry = {
+  error?: string | undefined;
+  file: File;
+  id: string;
+  importJobId?: string | undefined;
+  status: UploadQueueStatus;
+};
+
 export type ImportJobListItem = {
   id: string;
   sourceFileId: string;

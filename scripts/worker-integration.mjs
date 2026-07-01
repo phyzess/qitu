@@ -54,6 +54,54 @@ async function main() {
 
     await expectStatus(await client.post("/api/source-files", "unauthorized"), 401);
 
+    const previewEnv = await createTestEnv({
+      APP_ENV: "preview",
+      PUBLIC_APP_URL: "https://preview.example.com",
+    });
+    const previewClient = createClient(worker, previewEnv);
+    await expectApiError(
+      await previewClient.request("/api/bootstrap/invitations", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "preview-bootstrap@example.com",
+          role: "admin",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      }),
+      403,
+      "bootstrap_disabled",
+    );
+    await expectApiError(
+      await previewClient.request("/api/bootstrap/local-reviewer", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "preview-local-reviewer@example.com",
+          password: "correct horse battery staple",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      }),
+      403,
+      "bootstrap_disabled",
+    );
+    await expectApiError(
+      await previewClient.request("/api/bootstrap/local-admin", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "preview-local-admin@example.com",
+          password: "correct horse battery staple",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+      }),
+      403,
+      "bootstrap_disabled",
+    );
+
     const viewerClient = createClient(worker, env);
     const viewerBootstrap = await viewerClient.json("/api/bootstrap/invitations", {
       method: "POST",
@@ -258,7 +306,7 @@ async function main() {
     const accepted = await client.json(`/api/invitations/${bootstrap.inviteToken}/accept`, {
       method: "POST",
       body: JSON.stringify({
-        displayName: "Reviewer",
+        displayName: "Operator",
         password: "correct horse battery staple",
       }),
       headers: {
@@ -396,8 +444,8 @@ async function main() {
     });
     assert(advisory.advisory.status === "suggested", "AI advisory starts as suggested");
     assert(
-      advisory.advisory.output?.humanGate === "Reviewer approval is still required before commit.",
-      "AI advisory records the human review gate",
+      advisory.advisory.output?.humanGate === "Human confirmation is still required before commit.",
+      "AI advisory records the human confirmation gate",
     );
 
     const advisoryList = await client.json(`/api/import-jobs/${upload.importJobId}/advisories`);
@@ -446,7 +494,7 @@ async function main() {
 
     const invalidUpload = await client.json("/api/source-files", {
       method: "POST",
-      body: "label,value\nBad NAV,not-a-number\n",
+      body: "label,value\nBad Amount,not-a-number\n",
       headers: {
         "content-type": "text/plain",
         "x-filename": "fixture-invalid-number.txt",
@@ -468,12 +516,12 @@ async function main() {
     assert(invalidReview.job.status === "needs_review", "invalid number stays in review");
     assert(invalidReview.records.length === 1, "invalid fixture stages one record");
     assert(
-      invalidReview.records[0]?.payload?.normalizedLabel === "bad nav",
+      invalidReview.records[0]?.payload?.normalizedLabel === "bad amount",
       "invalid fixture still normalizes staged payload for review",
     );
     assert(
       invalidIssueCodes.has("manual_review_required") && invalidIssueCodes.has("invalid_number"),
-      "invalid fixture records both manual review and adapter validation issues",
+      "invalid fixture records both confirmation and adapter validation issues",
     );
     await expectStatus(
       await client.request(`/api/import-jobs/${invalidUpload.importJobId}/commit`, {
@@ -569,8 +617,8 @@ async function main() {
       (record) => record.reviewStatus === "pending",
     );
     assert(Boolean(remainingJsonRecord), "json partial commit leaves one record to review");
-    await client.json(
-      `/api/import-jobs/${jsonUpload.importJobId}/staged-records/${remainingJsonRecord.id}/approve`,
+    const jsonConfirmPending = await client.json(
+      `/api/import-jobs/${jsonUpload.importJobId}/review/confirm-pending`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -580,6 +628,11 @@ async function main() {
           "content-type": "application/json",
         },
       },
+    );
+    assert(jsonConfirmPending.confirmedCount === 1, "batch confirm approves pending json record");
+    assert(
+      jsonConfirmPending.records.every((record) => record.reviewStatus === "approved"),
+      "batch confirm returns approved staged records",
     );
     const jsonReviewAfterFinalApprove = await client.json(
       `/api/import-jobs/${jsonUpload.importJobId}/review`,
@@ -594,7 +647,7 @@ async function main() {
     assert(finalJsonCommit.status === "committed", "json job is committed after all rows finish");
     assert(finalJsonCommit.committedRecords.length === 1, "final json commit writes remaining row");
 
-    const retryUploadBody = "label,value\nRetry NAV,2.001\n";
+    const retryUploadBody = "label,value\nRetry Record,2.001\n";
     const retryUpload = await client.json("/api/source-files", {
       method: "POST",
       body: retryUploadBody,
@@ -699,6 +752,29 @@ async function main() {
         ),
       "audit list can filter by subject",
     );
+    const latestAuditEvent = audit.auditEvents[0];
+    const latestOccurredAt = Date.parse(latestAuditEvent.occurredAt);
+    const auditWindowStart = new Date(latestOccurredAt - 1_000).toISOString();
+    const auditWindowEnd = new Date(latestOccurredAt + 1_000).toISOString();
+    const dateRangeAudit = await client.json(
+      `/api/audit-events?occurredAfter=${encodeURIComponent(auditWindowStart)}&occurredBefore=${encodeURIComponent(auditWindowEnd)}`,
+    );
+    assert(
+      dateRangeAudit.auditEvents.some((event) => event.id === latestAuditEvent.id) &&
+        dateRangeAudit.auditEvents.every(
+          (event) => event.occurredAt >= auditWindowStart && event.occurredAt < auditWindowEnd,
+        ),
+      "audit list can filter by occurred-at date range",
+    );
+    const futureAudit = await client.json(
+      `/api/audit-events?occurredAfter=${encodeURIComponent("2999-01-01T00:00:00.000Z")}`,
+    );
+    assert(futureAudit.auditEvents.length === 0, "future audit date range returns no events");
+    await expectApiError(
+      await client.request("/api/audit-events?occurredAfter=not-a-date"),
+      400,
+      "invalid_audit_date_filter",
+    );
 
     console.log("Worker integration passed.");
   } finally {
@@ -706,7 +782,7 @@ async function main() {
   }
 }
 
-async function createTestEnv() {
+async function createTestEnv(overrides = {}) {
   const database = new DatabaseSync(":memory:");
   const migrationsPath = join(root, "apps", "worker", "migrations");
   const migrationNames = (await readdir(migrationsPath))
@@ -729,6 +805,7 @@ async function createTestEnv() {
     EMAIL: new FakeEmailSender(),
     SOURCE_FILES: sourceFiles,
     IMPORT_JOBS: importJobs,
+    ...overrides,
   };
 }
 
@@ -815,6 +892,12 @@ function splitSetCookie(header) {
 
 async function expectStatus(response, status) {
   assert(response.status === status, `expected ${status}, got ${response.status}`);
+}
+
+async function expectApiError(response, status, code) {
+  await expectStatus(response, status);
+  const body = await response.json();
+  assert(body?.error?.code === code, `expected API error code ${code}`);
 }
 
 function assert(condition, message) {

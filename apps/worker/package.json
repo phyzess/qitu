@@ -13,6 +13,8 @@
     "deploy:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env=\"\" --outdir ../../.tmp/worker-dry-run",
     "deploy:preview:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env preview --outdir ../../.tmp/worker-preview-dry-run",
     "deploy:production:dry-run": "node ../../scripts/wrangler-deploy-dry-run.mjs --env production --outdir ../../.tmp/worker-production-dry-run",
+    "deploy:preview": "node ../../scripts/wrangler-deploy.mjs --env preview",
+    "deploy:production": "node ../../scripts/wrangler-deploy.mjs --env production",
     "build": "vp run typecheck",
     "test:runtime": "vitest run --config vitest.config.ts",
     "typecheck": "vp run cf:typegen && tsc --noEmit -p tsconfig.json"

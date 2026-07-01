@@ -79,7 +79,7 @@ invite
 -> create import job
 -> process queue
 -> parse/stage records
--> human review
+-> human confirmation
 -> AI advisory
 -> approve/reject
 -> commit approved records
