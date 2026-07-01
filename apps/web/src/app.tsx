@@ -6,6 +6,7 @@ import {
   AppShell,
   Button,
   QituMark,
+  SegmentedControl,
   StatusBadge,
   Surface,
   type AppShellNavItem,
@@ -69,7 +70,6 @@ import {
   Field,
   Panel,
   SectionTitle,
-  tabClass,
   type WorkspaceRouteEntry,
 } from "./app-ui";
 import { ReviewConsole } from "./review-console";
@@ -1328,35 +1328,19 @@ export function App() {
             title={t("auth.loginTitle")}
           />
 
-          <div
-            className={`qitu-segment-track mt-6 grid gap-2 ${
-              localSetupAvailable ? "grid-cols-3" : "grid-cols-2"
-            }`}
-          >
-            <button
-              className={tabClass(authMode === "login")}
-              onClick={() => selectAuthMode("login")}
-              type="button"
-            >
-              {t("auth.loginTab")}
-            </button>
-            <button
-              className={tabClass(authMode === "reset")}
-              onClick={() => selectAuthMode("reset")}
-              type="button"
-            >
-              {t("auth.resetTab")}
-            </button>
-            {localSetupAvailable ? (
-              <button
-                className={tabClass(authMode === "setup")}
-                onClick={() => selectAuthMode("setup")}
-                type="button"
-              >
-                {t("auth.setupTab")}
-              </button>
-            ) : null}
-          </div>
+          <SegmentedControl
+            aria-label={t("auth.pageLabel")}
+            className={`mt-6 ${localSetupAvailable ? "grid-cols-3" : "grid-cols-2"}`}
+            items={[
+              { label: t("auth.loginTab"), value: "login" as const },
+              { label: t("auth.resetTab"), value: "reset" as const },
+              ...(localSetupAvailable
+                ? [{ label: t("auth.setupTab"), value: "setup" as const }]
+                : []),
+            ]}
+            value={authMode}
+            onValueChange={selectAuthMode}
+          />
 
           {authMode === "setup" && localSetupAvailable ? (
             <div className="mt-4">
@@ -1366,22 +1350,16 @@ export function App() {
                   {t("auth.localDemoDescription")}
                 </span>
               </div>
-              <div className="qitu-segment-track grid grid-cols-2 gap-2">
-                <button
-                  className={tabClass(setupRole === "reviewer")}
-                  onClick={() => selectSetupRole("reviewer")}
-                  type="button"
-                >
-                  {t("auth.reviewer")}
-                </button>
-                <button
-                  className={tabClass(setupRole === "admin")}
-                  onClick={() => selectSetupRole("admin")}
-                  type="button"
-                >
-                  {t("auth.admin")}
-                </button>
-              </div>
+              <SegmentedControl
+                aria-label={t("auth.localDemo")}
+                className="grid-cols-2"
+                items={[
+                  { label: t("auth.reviewer"), value: "reviewer" as const },
+                  { label: t("auth.admin"), value: "admin" as const },
+                ]}
+                value={setupRole}
+                onValueChange={selectSetupRole}
+              />
             </div>
           ) : null}
 

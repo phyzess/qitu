@@ -54,6 +54,22 @@ business workflows
 business reports
 ```
 
+## UI Component Workflow
+
+The UI baseline is shadcn/Base UI through the root `components.json` contract.
+
+Before adding or recreating a common UI control:
+
+1. Check the existing `@qitu/ui` exports and `docs/architecture/ui-design-system.md`.
+2. Search shadcn first with `vp run ui:search --query "<component or behavior>"`.
+3. Inspect the Base UI docs for a candidate with `vp run ui:docs <component>` and, when useful, preview registry output with `vp run ui:view <component>`.
+4. Prefer installing registry-backed components with `vp run ui:add <component> --dry-run`, then `vp run ui:add <component>` after reviewing the output.
+5. If shadcn has no exact component, compose existing shadcn/qitu primitives before writing a bespoke primitive.
+6. Wrap new primitives in `packages/ui`, export them from `@qitu/ui`, and keep app pages on `@qitu/ui`.
+7. Do not mimic shadcn styling by hand in app pages. Page-local Tailwind recipes are allowed only for feature layout that cannot be promoted to a reusable primitive.
+8. Direct Base UI imports, raw native control fallbacks, and page-local lookalike tables/menus/dialogs are not allowed when a qitu primitive exists.
+9. Bespoke primitives require a decision-log note explaining why the shadcn registry and existing qitu composition were insufficient.
+
 ## Agent Workflow
 
 Before implementing code:

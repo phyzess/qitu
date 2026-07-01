@@ -90,6 +90,21 @@ Date: 2026-06-27
 3. feature UI pages。
 4. 不把业务概念泄漏进 core packages。
 
+### 4.5 UI Component
+
+阅读：
+
+1. `docs/architecture/ui-design-system.zh-CN.md`
+2. `docs/architecture/package-boundaries.zh-CN.md`
+3. `docs/decisions/decision-log.zh-CN.md`
+
+输出：
+
+1. bespoke implementation 前先做 shadcn/Base UI registry discovery。
+2. 新增或修改的 primitive 封装在 `packages/ui`，并从 `@qitu/ui` 导出。
+3. App 页面消费 `@qitu/ui`，不直接 import Base UI，也不写页面级 shadcn lookalike。
+4. 当 primitive 成为必须使用的 paved path 时，补 smoke 或 package-interface coverage。
+
 ## 5. Agent 安全规则
 
 1. 不打印 secrets。
@@ -98,6 +113,7 @@ Date: 2026-06-27
 4. 不把业务代码加入 core packages。
 5. 不实现绕过人工 review 的 AI 路径。
 6. 不在没有 decision record 的情况下加入新框架。
+7. 没有先检查 shadcn/Base UI registry 与现有 qitu primitives 时，不在 app 页面手写 shadcn-style controls。
 
 ## 6. Handoff 格式
 

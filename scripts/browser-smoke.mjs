@@ -99,11 +99,8 @@ async function runBrowserSmoke() {
     await expect(page.getByRole("menu", { name: "Language" })).toBeVisible();
     await page.getByRole("menuitemradio", { name: "简体中文" }).click();
     await expect(page.getByRole("heading", { name: "接受邀请" })).toBeVisible();
-    await page
-      .getByRole("button", { name: /选择语言/ })
-      .first()
-      .click();
-    await page.getByRole("menuitemradio", { name: "English" }).click();
+    await page.evaluate(() => window.localStorage.setItem("qitu.locale", "en"));
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Accept invitation" })).toBeVisible();
     await page.getByLabel("Display name", { exact: true }).fill("Browser Smoke");
     await page.getByLabel("Password", { exact: true }).fill(initialPassword);

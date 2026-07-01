@@ -1,18 +1,20 @@
-import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { DrawerClose, DrawerContent, DrawerDescription, DrawerRoot, DrawerTitle } from "./drawer";
-
-type DrawerCloseRender = ComponentPropsWithoutRef<typeof DrawerClose>["render"];
 
 export function DetailDrawer(props: {
   children: ReactNode;
-  closeAction: DrawerCloseRender;
+  closeAction: ReactNode;
   description?: ReactNode;
   onOpenChange?: (open: boolean) => void;
   open: boolean;
   title: ReactNode;
 }) {
+  const rootProps = props.onOpenChange
+    ? { onOpenChange: props.onOpenChange, open: props.open }
+    : { open: props.open };
+
   return (
-    <DrawerRoot open={props.open} onOpenChange={props.onOpenChange}>
+    <DrawerRoot {...rootProps}>
       <DrawerContent>
         <div className="qitu-detail-drawer-header">
           <div className="qitu-detail-drawer-heading">
@@ -23,7 +25,7 @@ export function DetailDrawer(props: {
               </DrawerDescription>
             ) : null}
           </div>
-          <DrawerClose render={props.closeAction} />
+          <DrawerClose asChild>{props.closeAction}</DrawerClose>
         </div>
         {props.children}
       </DrawerContent>

@@ -57,6 +57,7 @@ function caseSensitiveForbiddenTerm(...parts) {
 
 const packageJson = JSON.parse(text("package.json"));
 const componentsConfig = JSON.parse(text("components.json"));
+const uiComponentsConfig = JSON.parse(text("packages/ui/components.json"));
 const workerPackageJson = JSON.parse(text("apps/worker/package.json"));
 const appTemplateManifest = JSON.parse(text("templates/app/manifest.json"));
 const workspace = text("pnpm-workspace.yaml");
@@ -290,9 +291,12 @@ assert(
   "tslib must stay pinned so the local shadcn CLI dependency chain can execute.",
 );
 assert(
-  packageJson.scripts["ui:add"] === "shadcn add --cwd ." &&
-    packageJson.scripts["ui:info"] === "shadcn info --cwd .",
-  "root package scripts must expose the shadcn registry workflow.",
+  packageJson.scripts["ui:add"] === "shadcn add --cwd packages/ui" &&
+    packageJson.scripts["ui:docs"] === "shadcn docs --cwd packages/ui --base base" &&
+    packageJson.scripts["ui:info"] === "shadcn info --cwd packages/ui" &&
+    packageJson.scripts["ui:search"] === "shadcn search @shadcn --cwd packages/ui" &&
+    packageJson.scripts["ui:view"] === "shadcn view --cwd packages/ui",
+  "root package scripts must expose the shadcn registry discovery and install workflow.",
 );
 assert(
   exists("apps/web/src/workspace-home.tsx") &&
@@ -323,9 +327,22 @@ assert(
   "components.json must configure shadcn base-nova output into packages/ui.",
 );
 assert(
+  exists("packages/ui/components.json") &&
+    uiComponentsConfig.style === "base-nova" &&
+    uiComponentsConfig.rsc === false &&
+    uiComponentsConfig.tsx === true &&
+    uiComponentsConfig.tailwind?.css === "src/styles.css" &&
+    uiComponentsConfig.aliases?.ui === "@/components",
+  "packages/ui/components.json must be the executable shadcn install target.",
+);
+assert(
   uiPackage.dependencies["@base-ui/react"] === "1.6.0" &&
+    uiPackage.dependencies.cmdk === "1.1.1" &&
+    uiPackage.dependencies["date-fns"] === "4.4.0" &&
+    uiPackage.dependencies["react-day-picker"] === "10.0.1" &&
+    uiPackage.dependencies.vaul === "1.1.2" &&
     !("@base-ui-components/react" in uiPackage.dependencies),
-  "@qitu/ui must use the shadcn Base UI package, not the old @base-ui-components RC package.",
+  "@qitu/ui must use exact shadcn registry dependencies, not the old @base-ui-components RC package.",
 );
 assert(
   uiSources.includes("@base-ui/react/button") &&
@@ -335,18 +352,55 @@ assert(
     uiSources.includes("@base-ui/react/input") &&
     uiSources.includes("@base-ui/react/select") &&
     uiSources.includes("@base-ui/react/checkbox") &&
-    uiSources.includes("@base-ui/react/drawer") &&
-    uiSources.includes("@base-ui/react/popover"),
-  "@qitu/ui primitives must be backed by Base UI source imports.",
+    uiSources.includes("@base-ui/react/popover") &&
+    uiSources.includes("react-day-picker") &&
+    uiSources.includes("cmdk") &&
+    uiSources.includes("vaul"),
+  "@qitu/ui primitives must be backed by installed shadcn registry dependencies.",
 );
 assert(
   !webSources.includes("@base-ui/react") && !webSources.includes("@base-ui-components/react"),
   "apps/web must consume qitu UI primitives instead of importing Base UI directly.",
 );
+const registryBackedUiFiles = [
+  "packages/ui/src/alert-dialog.tsx",
+  "packages/ui/src/badge.tsx",
+  "packages/ui/src/button.tsx",
+  "packages/ui/src/calendar.tsx",
+  "packages/ui/src/card.tsx",
+  "packages/ui/src/checkbox.tsx",
+  "packages/ui/src/command.tsx",
+  "packages/ui/src/dialog.tsx",
+  "packages/ui/src/drawer.tsx",
+  "packages/ui/src/dropdown-menu.tsx",
+  "packages/ui/src/input.tsx",
+  "packages/ui/src/input-group.tsx",
+  "packages/ui/src/popover.tsx",
+  "packages/ui/src/radio-group.tsx",
+  "packages/ui/src/select.tsx",
+  "packages/ui/src/separator.tsx",
+  "packages/ui/src/sheet.tsx",
+  "packages/ui/src/table.tsx",
+  "packages/ui/src/tabs.tsx",
+  "packages/ui/src/textarea.tsx",
+];
 assert(
-  uiSources.includes("export const Table") &&
-    uiSources.includes("export const TableCell") &&
-    uiSources.includes("export function Calendar") &&
+  registryBackedUiFiles.every((path) => exists(path)) &&
+    text("packages/ui/src/menu.tsx").includes("DropdownMenu") &&
+    text("packages/ui/src/segmented-control.tsx").includes("TabsTrigger") &&
+    text("packages/ui/src/confirm-dialog.tsx").includes("AlertDialog") &&
+    text("packages/ui/src/status-badge.tsx").includes("Badge") &&
+    text("packages/ui/src/date-field.tsx").includes("Calendar") &&
+    !text("packages/ui/src/date-field.tsx").includes("qitu-calendar-grid") &&
+    !text("packages/ui/src/form.tsx").includes("@base-ui/react/input") &&
+    !text("packages/ui/src/form.tsx").includes("@base-ui/react/select") &&
+    !text("packages/ui/src/list-frame.tsx").includes("@base-ui/react/button") &&
+    !text("packages/ui/src/shell.tsx").includes("<button") &&
+    uiStyles.includes("@theme inline") &&
+    uiStyles.includes("--color-popover: var(--qitu-color-popover);") &&
+    uiSources.includes("function Table") &&
+    uiSources.includes("function TableCell") &&
+    uiSources.includes("function Calendar") &&
     uiSources.includes("export function DateField") &&
     uiSources.includes("export function SegmentedControl") &&
     uiSources.includes("export function ConfirmDialog") &&
@@ -356,6 +410,7 @@ assert(
     uiSources.includes("export function DetailDrawer") &&
     uiSources.includes("export function FilterBar") &&
     uiSources.includes("export function ListFrame") &&
+    uiSources.includes("export function ListActionRow") &&
     uiSources.includes("export function UploadQueue") &&
     uiSources.includes("qitu-command-search-fixture") &&
     uiSources.includes("qitu-data-toolbar") &&
@@ -367,17 +422,25 @@ assert(
     webSources.includes("<FilterBar") &&
     webSources.includes("<DataToolbar") &&
     webSources.includes("<DetailDrawer") &&
+    webSources.includes("<ListActionRow") &&
     webSources.includes("TableCell") &&
     webSources.includes("<ListFrame") &&
+    webSources.includes("<SegmentedControl") &&
     webSources.includes("uploadQueue") &&
     webSources.includes("compact={compactUpload}") &&
     webApp.includes("completedEntryIds") &&
+    !webSources.includes("tabClass") &&
+    !webSources.includes("<button") &&
+    !webSources.includes("<input") &&
+    !webSources.includes("<select") &&
+    !webSources.includes("<textarea") &&
+    !webSources.includes("<dialog") &&
     !webSources.includes("<table") &&
     !webSources.includes("<thead") &&
     !webSources.includes("<tbody") &&
     !webSources.includes('type="date"') &&
     !webSources.includes('type="checkbox"'),
-  "apps/web must use shared qitu primitives for tables, date fields, and checkboxes once those primitives exist.",
+  "apps/web must use shared qitu primitives for common interactive controls once those primitives exist.",
 );
 assert(
   webApi.includes("occurredAfter") &&
@@ -506,8 +569,10 @@ assert(tsconfig.includes("tsconfig.base.json"), "root tsconfig must extend the b
 assert(
   baseTsconfig.includes('"@/components": ["./packages/ui/src"]') &&
     baseTsconfig.includes('"@/components/ui": ["./packages/ui/src"]') &&
-    baseTsconfig.includes('"@/lib/utils": ["./packages/ui/src/utils.ts"]'),
-  "base tsconfig must expose shadcn aliases to packages/ui.",
+    baseTsconfig.includes('"@/lib/utils": ["./packages/ui/src/utils.ts"]') &&
+    webViteConfig.includes('find: "@/components"') &&
+    webViteConfig.includes('find: "@/lib/utils"'),
+  "base tsconfig and web Vite config must expose shadcn aliases to packages/ui.",
 );
 assert(tsconfig.includes("./templates/feature"), "root tsconfig must reference templates/feature.");
 assert(tsconfig.includes("./packages/i18n"), "root tsconfig must reference packages/i18n.");

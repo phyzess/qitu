@@ -286,7 +286,3 @@ export function EmptyText(props: { children: ReactNode }) {
     </div>
   );
 }
-
-export function tabClass(active: boolean): string {
-  return ["qitu-segment-tab", active ? "qitu-segment-tab-active" : ""].join(" ");
-}

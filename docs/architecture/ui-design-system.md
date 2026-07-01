@@ -29,38 +29,55 @@ Extend UI inspiration for file/import/review surfaces
 visx-only chart primitives
 ```
 
-The root `components.json` is the executable shadcn contract. It uses
-`style: "base-nova"` and resolves registry output into `packages/ui/src`.
-Interactive qitu primitives are wrappers around `@base-ui/react`; app-owned pages
-must consume `@qitu/ui` and must not import Base UI directly.
+The root `components.json` records the workspace shadcn contract. The package-local
+`packages/ui/components.json` is the executable install target used by the root
+`vp run ui:*` scripts; it uses `style: "base-nova"` and resolves registry output
+into `packages/ui/src`. Interactive qitu primitives are registry-backed shadcn/Base
+UI components or thin compositions of those components; app-owned pages must
+consume `@qitu/ui` and must not import Base UI directly.
 
 Primitive governance rules:
 
 1. When a common interactive primitive is missing, check the shadcn/Base UI registry first.
-2. Registry-backed or hand-written primitives must be wrapped in `packages/ui` and exported from `@qitu/ui` before app pages consume them.
-3. App pages must not silently fall back to raw `type="date"` inputs, raw checkbox controls, direct Base UI imports, or page-local table structures when qitu shared primitives exist.
-4. Bespoke primitives need a decision-log entry explaining why the registry or existing qitu primitive was insufficient.
-5. Shared primitives should keep business-neutral names and props such as source, file, job, status, action, value, and item.
-6. Density for lists, tables, cards, rows, and action bars belongs in reusable qitu tokens/classes, not page-local padding fixes.
+2. Use `vp run ui:search --query "<component or behavior>"` to find candidates, `vp run ui:docs <component>` to inspect Base UI usage, and `vp run ui:view <component>` when the registry output needs review before install.
+3. Prefer installing registry-backed components with `vp run ui:add <component> --dry-run`, then `vp run ui:add <component>` after reviewing the output. The package-local shadcn config routes generated files into `packages/ui/src`.
+4. If no single registry component fits, compose existing shadcn/qitu primitives before writing a bespoke primitive.
+5. Registry-backed primitives and qitu-specific wrapper compositions must live in `packages/ui` and be exported from `@qitu/ui` before app pages consume them.
+6. App pages must not mimic shadcn styling by hand, directly import Base UI, or silently fall back to raw `type="date"` inputs, raw checkbox controls, page-local menus/dialogs, or page-local table structures when qitu shared primitives exist.
+7. Bespoke primitives need a decision-log entry explaining why the registry and existing qitu primitive composition were insufficient.
+8. Shared primitives should keep business-neutral names and props such as source, file, job, status, action, value, and item.
+9. Density for lists, tables, cards, rows, and action bars belongs in reusable qitu tokens/classes, not page-local padding fixes.
+10. Smoke or package-interface checks should guard newly paved primitives when app pages are expected to use them.
 
 Current first-pass shared primitive surface:
 
 ```text
-Button
+AlertDialog
+Badge
 BatchActionBar
+Button
 Calendar
+Card
 Checkbox
+Command
 ConfirmDialog
 DateField
 Dialog
 Drawer
 Form/TextField/Input/SelectField
+InputGroup
 ListFrame
+ListActionRow
 Menu
 Popover
+RadioGroup
+Separator
 SegmentedControl
+Sheet
 StatusBadge
 Table
+Tabs
+Textarea
 UploadQueue
 Surface/DataState/MetricStrip/Timeline
 ```

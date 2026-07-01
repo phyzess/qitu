@@ -108,5 +108,8 @@ Before merging feature code:
 4. Can another feature reuse the same import job lifecycle?
 5. Are commit operations audited?
 6. Are AI suggestions reviewable before commit?
+7. Do feature UI pages use existing `@qitu/ui` primitives, or is there a recorded reason to add a new shadcn/Base UI-backed primitive?
+8. Did any common control get hand-written as a shadcn lookalike instead of going through the registry-first workflow?
 
 If the answer to 1, 2, or 3 is yes, move the concept back into app-owned feature code.
+If the answer to 8 is yes, move the control into the shadcn/Base UI discovery and `@qitu/ui` wrapper flow before merging.

@@ -108,5 +108,8 @@ commit handler
 4. 第二个 feature 能否复用同一个 import job lifecycle？
 5. commit 是否写 audit？
 6. AI 建议是否必须 review 后才能 commit？
+7. feature UI 页面是否优先使用现有 `@qitu/ui` primitives，或已记录新增 shadcn/Base UI-backed primitive 的原因？
+8. 是否把常见 control 手写成 shadcn lookalike，而不是走 registry-first workflow？
 
 如果 1、2、3 任一为 yes，应把概念移回 app-owned feature code。
+如果 8 为 yes，合并前应先走 shadcn/Base UI discovery 与 `@qitu/ui` wrapper 流程。

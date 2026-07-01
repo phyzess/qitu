@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { AnimatedIcon } from "./animated-icon";
+import { Button } from "./button";
 import { CommandSearchFixture } from "./command-search-fixture";
 import { QituMark } from "./qitu-mark";
 import { cn } from "./utils";
@@ -106,15 +107,17 @@ export function AppShell({
 
           <div className="qitu-topbar-actions">
             {onCommand ? (
-              <button
+              <Button
                 aria-label={commandLabel}
                 className="qitu-command"
+                nativeButton
                 onClick={onCommand}
                 title={commandLabel}
                 type="button"
+                variant="ghost"
               >
                 {commandContent}
-              </button>
+              </Button>
             ) : (
               <div className="qitu-command" role="search" title={commandLabel}>
                 {commandContent}
@@ -159,16 +162,18 @@ function SubNavButton(props: { item: AppShellNavItem }) {
   }
 
   return (
-    <button
+    <Button
       aria-current={props.item.active ? "page" : undefined}
       className="qitu-subnav-button"
       data-active={props.item.active ? "true" : "false"}
       disabled={props.item.disabled}
+      nativeButton
       onClick={props.item.onSelect}
       type="button"
+      variant="ghost"
     >
       {content}
-    </button>
+    </Button>
   );
 }
 
@@ -222,23 +227,26 @@ function PrimaryNavButton(props: {
   }
 
   return (
-    <button
+    <Button
       aria-current={props.item.active ? "page" : undefined}
       aria-label={props.item.label}
       className={className}
       data-active={props.item.active ? "true" : "false"}
       disabled={props.item.disabled}
+      nativeButton
       onBlur={() => props.onFocusIndex(null)}
       onFocus={() => props.onFocusIndex(props.index)}
       onMouseEnter={() => props.onHoverIndex(props.index)}
       onClick={props.item.onSelect}
+      size="icon"
       title={props.item.label}
       type="button"
+      variant="ghost"
     >
       <span aria-hidden="true" className="qitu-primary-icon">
         {content}
       </span>
-    </button>
+    </Button>
   );
 }
 

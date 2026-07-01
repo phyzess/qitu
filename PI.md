@@ -10,6 +10,7 @@ The best contribution from a planning agent is not code. It is clarifying:
 2. Whether an abstraction is premature.
 3. Whether a decision should become a durable architecture rule.
 4. Whether the current plan helps future apps without slowing the first app.
+5. Whether UI proposals reuse shadcn/Base UI and qitu primitives before inventing app-local controls.
 
 ## Project Summary
 
@@ -67,3 +68,4 @@ Avoid:
 3. What is the simplest implementation that preserves the boundary?
 4. What decision should be written to the decision log?
 5. What should wait until a second feature proves the need?
+6. For UI work, does this need a new `@qitu/ui` primitive, an existing shadcn/Base UI component, or only app-owned layout?

@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle2, CircleDashed } from "lucide-react";
 import type { ReactNode } from "react";
+import { Button, type ButtonProps } from "./button";
 import { cn } from "./utils";
 
 export type ListFrameState = "loading" | "empty" | "error" | "partial" | "ready";
@@ -51,6 +52,25 @@ export function ListFrame(props: {
         {props.action ? <span className="shrink-0">{props.action}</span> : null}
       </div>
     </div>
+  );
+}
+
+export type ListActionRowProps = Omit<ButtonProps, "variant"> & {
+  active?: boolean | undefined;
+  variant?: "surface" | "card" | "inline" | undefined;
+};
+
+export function ListActionRow(props: ListActionRowProps) {
+  const { active, className, variant = "surface", ...buttonProps } = props;
+
+  return (
+    <Button
+      className={cn("qitu-list-action-row", active && "qitu-row-card-active", className)}
+      data-active={active ? "true" : undefined}
+      data-variant={variant}
+      nativeButton
+      {...buttonProps}
+    />
   );
 }
 

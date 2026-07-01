@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Badge } from "./badge";
 import { cn } from "./utils";
 
 export type StatusBadgeTone =
@@ -28,14 +29,15 @@ export type StatusBadgeProps = {
 
 export function StatusBadge({ children, className, tone = "neutral" }: StatusBadgeProps) {
   return (
-    <span
+    <Badge
+      variant="secondary"
       className={cn(
-        "inline-flex min-h-[22px] shrink-0 items-center whitespace-nowrap rounded-[var(--qitu-radius-md)] px-[var(--qitu-space-o3)] py-[var(--qitu-space-o0)] text-[10px] font-medium leading-4",
+        "min-h-[22px] rounded-[var(--qitu-radius-md)] px-[var(--qitu-space-o3)] py-[var(--qitu-space-o0)] text-[10px] leading-4",
         toneClass[tone],
         className,
       )}
     >
       {children}
-    </span>
+    </Badge>
   );
 }

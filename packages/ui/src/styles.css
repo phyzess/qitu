@@ -1,3 +1,28 @@
+@theme inline {
+  --color-background: var(--qitu-color-background);
+  --color-foreground: var(--qitu-color-foreground);
+  --color-card: var(--qitu-color-card);
+  --color-card-foreground: var(--qitu-color-card-foreground);
+  --color-popover: var(--qitu-color-popover);
+  --color-popover-foreground: var(--qitu-color-popover-foreground);
+  --color-primary: var(--qitu-color-primary);
+  --color-primary-foreground: var(--qitu-color-primary-foreground);
+  --color-secondary: var(--qitu-color-secondary);
+  --color-secondary-foreground: var(--qitu-color-secondary-foreground);
+  --color-muted: var(--qitu-color-muted-surface);
+  --color-muted-foreground: var(--qitu-color-muted-foreground);
+  --color-accent: var(--qitu-color-accent);
+  --color-accent-foreground: var(--qitu-color-accent-foreground);
+  --color-destructive: var(--qitu-color-destructive);
+  --color-destructive-foreground: var(--qitu-color-destructive-foreground);
+  --color-border: var(--qitu-color-border);
+  --color-input: var(--qitu-color-input);
+  --color-ring: var(--qitu-color-ring);
+  --radius-md: var(--qitu-radius-md);
+  --radius-lg: var(--qitu-radius-lg);
+  --radius-xl: var(--qitu-radius-xl);
+}
+
 .qitu-workbench {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -1219,124 +1244,6 @@ button.qitu-command {
   padding: var(--qitu-space-o3);
 }
 
-.qitu-calendar {
-  display: grid;
-  gap: var(--qitu-space-o3);
-  min-width: 0;
-}
-
-.qitu-calendar-header {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
-  align-items: center;
-  gap: var(--qitu-space-o2);
-}
-
-.qitu-calendar-month {
-  min-width: 0;
-  text-align: center;
-  color: var(--qitu-text);
-  font-size: var(--qitu-text-label-13);
-  font-weight: 600;
-  line-height: var(--qitu-leading-label-13);
-}
-
-.qitu-calendar-weekdays,
-.qitu-calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: var(--qitu-space-o1);
-}
-
-.qitu-calendar-weekdays {
-  color: var(--qitu-dim);
-  text-align: center;
-  font-size: var(--qitu-text-label-12);
-  line-height: var(--qitu-leading-label-12);
-}
-
-.qitu-calendar-day {
-  display: grid;
-  aspect-ratio: 1;
-  min-width: 0;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: var(--qitu-radius-sm);
-  color: var(--qitu-muted);
-  background: transparent;
-  font-size: var(--qitu-text-label-12);
-  line-height: var(--qitu-leading-label-12);
-  transition:
-    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
-    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard),
-    color var(--qitu-motion-fast) var(--qitu-ease-standard);
-}
-
-.qitu-calendar-day:hover,
-.qitu-calendar-day:focus-visible {
-  color: var(--qitu-text);
-  background: var(--qitu-surface-row-hover);
-  outline: none;
-}
-
-.qitu-calendar-day[data-outside="true"] {
-  color: color-mix(in oklch, var(--qitu-dim) 56%, transparent);
-}
-
-.qitu-calendar-day[data-selected="true"] {
-  color: var(--qitu-text);
-  background: var(--qitu-surface-row-active);
-  box-shadow: var(--qitu-shadow-active-ring);
-}
-
-.qitu-checkbox-field {
-  display: inline-flex;
-  min-width: 0;
-  align-items: center;
-  gap: var(--qitu-space-o2);
-  color: var(--qitu-text);
-  font-size: var(--qitu-text-label-13);
-  line-height: var(--qitu-leading-label-13);
-}
-
-.qitu-checkbox {
-  display: inline-grid;
-  width: 1rem;
-  height: 1rem;
-  flex: none;
-  place-items: center;
-  border: 1px solid color-mix(in oklch, var(--qitu-input-border) 72%, transparent);
-  border-radius: var(--qitu-radius-xs);
-  color: var(--qitu-color-primary-foreground);
-  background: var(--qitu-input-bg);
-  transition:
-    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
-    border-color var(--qitu-motion-fast) var(--qitu-ease-standard),
-    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard);
-}
-
-.qitu-checkbox:hover,
-.qitu-checkbox:focus-visible {
-  border-color: color-mix(in oklch, var(--qitu-color-ring) 50%, var(--qitu-line));
-  box-shadow: var(--qitu-shadow-focus-ring);
-  outline: none;
-}
-
-.qitu-checkbox[data-checked],
-.qitu-checkbox[data-indeterminate] {
-  border-color: transparent;
-  background: var(--qitu-color-primary);
-}
-
-.qitu-checkbox[data-disabled] {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-.qitu-checkbox-indicator {
-  display: inline-flex;
-}
-
 .qitu-upload-dropzone {
   min-height: 8rem;
   border: 1px dashed color-mix(in oklch, var(--qitu-line) 68%, transparent);
@@ -1388,6 +1295,50 @@ button.qitu-command {
 .qitu-list-frame {
   display: grid;
   gap: var(--qitu-space-o2);
+}
+
+.qitu-list-action-row {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: var(--qitu-radius-md);
+  color: var(--qitu-text);
+  text-align: left;
+  transition:
+    background-color var(--qitu-motion-fast) var(--qitu-ease-standard),
+    box-shadow var(--qitu-motion-fast) var(--qitu-ease-standard),
+    transform var(--qitu-motion-fast) var(--qitu-ease-standard);
+}
+
+.qitu-list-action-row[data-variant="surface"] {
+  background: var(--qitu-surface-row);
+  padding: var(--qitu-space-o3);
+}
+
+.qitu-list-action-row[data-variant="card"] {
+  min-height: 9rem;
+  background: var(--qitu-surface-row);
+  padding: var(--qitu-space-o5);
+}
+
+.qitu-list-action-row[data-variant="inline"] {
+  background: transparent;
+  padding: 0;
+}
+
+.qitu-list-action-row:hover,
+.qitu-list-action-row:focus-visible {
+  background: var(--qitu-surface-row-hover);
+  outline: none;
+}
+
+.qitu-list-action-row[data-variant="inline"]:hover,
+.qitu-list-action-row[data-variant="inline"]:focus-visible {
+  background: transparent;
+}
+
+.qitu-list-action-row[data-variant="card"]:active {
+  transform: scale(0.995);
 }
 
 .qitu-list-state-row {

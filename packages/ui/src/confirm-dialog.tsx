@@ -1,6 +1,13 @@
 import type { ReactNode } from "react";
-import { Button } from "./button";
-import { DialogClose, DialogContent, DialogDescription, DialogRoot, DialogTitle } from "./dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "./alert-dialog";
 import { cn } from "./utils";
 
 export function ConfirmDialog(props: {
@@ -17,27 +24,27 @@ export function ConfirmDialog(props: {
   tone?: "danger" | "neutral" | undefined;
 }) {
   return (
-    <DialogRoot open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className={cn("qitu-confirm-dialog", props.className)}>
-        <DialogTitle className="qitu-confirm-dialog-title">{props.title}</DialogTitle>
+    <AlertDialog open={props.open} onOpenChange={props.onOpenChange}>
+      <AlertDialogContent className={cn("qitu-confirm-dialog", props.className)}>
+        <AlertDialogTitle className="qitu-confirm-dialog-title">{props.title}</AlertDialogTitle>
         {props.description ? (
-          <DialogDescription className="qitu-confirm-dialog-description">
+          <AlertDialogDescription className="qitu-confirm-dialog-description">
             {props.description}
-          </DialogDescription>
+          </AlertDialogDescription>
         ) : null}
         {props.children}
-        <div className="mt-[var(--qitu-space-s1)] flex justify-end gap-2">
-          <DialogClose render={<Button variant="ghost">{props.cancelLabel}</Button>} />
-          <Button
+        <AlertDialogFooter className="mt-[var(--qitu-space-s1)]">
+          <AlertDialogCancel variant="ghost">{props.cancelLabel}</AlertDialogCancel>
+          <AlertDialogAction
             className={props.tone === "danger" ? "text-[var(--qitu-red)]" : undefined}
             disabled={props.disabled}
             variant="secondary"
             onClick={props.onConfirm}
           >
             {props.confirmLabel}
-          </Button>
-        </div>
-      </DialogContent>
-    </DialogRoot>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

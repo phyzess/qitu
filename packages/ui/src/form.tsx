@@ -1,19 +1,11 @@
 import { Field as BaseField } from "@base-ui/react/field";
-import { Input as BaseInput, type InputProps as BaseInputProps } from "@base-ui/react/input";
-import { Select as BaseSelect } from "@base-ui/react/select";
-import { Check, ChevronDown } from "lucide-react";
-import { forwardRef } from "react";
+import type { ChangeEvent, ComponentProps } from "react";
+import { Input as RegistryInput } from "./input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 import { cn } from "./utils";
 
-export type InputProps = Omit<BaseInputProps, "className"> & {
-  className?: string | undefined;
-};
-
-export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, ...props }, ref) => {
-  return <BaseInput ref={ref} className={cn("qitu-field-control", className)} {...props} />;
-});
-
-Input.displayName = "Input";
+export type InputProps = ComponentProps<typeof RegistryInput>;
+export { RegistryInput as Input };
 
 export function TextField(props: {
   className?: string | undefined;
@@ -25,10 +17,12 @@ export function TextField(props: {
   return (
     <BaseField.Root className={cn("qitu-form-field", props.className)}>
       <BaseField.Label className="qitu-form-label">{props.label}</BaseField.Label>
-      <Input
+      <RegistryInput
         type={props.type ?? "text"}
         value={props.value}
-        onValueChange={(value) => props.onChange(value)}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          props.onChange(event.currentTarget.value)
+        }
       />
     </BaseField.Root>
   );
@@ -44,7 +38,7 @@ export function SelectField(props: {
   return (
     <BaseField.Root className={cn("qitu-form-field", props.className)}>
       <BaseField.Label className="qitu-form-label">{props.label}</BaseField.Label>
-      <BaseSelect.Root
+      <Select
         items={props.options}
         modal={false}
         value={props.value}
@@ -52,38 +46,30 @@ export function SelectField(props: {
           if (value !== null) props.onChange(String(value));
         }}
       >
-        <BaseSelect.Trigger className="qitu-field-control qitu-select-trigger">
-          <BaseSelect.Value>
+        <SelectTrigger className="qitu-field-control qitu-select-trigger">
+          <SelectValue>
             {(value) =>
               props.options.find((option) => option.value === value)?.label ?? String(value ?? "")
             }
-          </BaseSelect.Value>
-          <BaseSelect.Icon className="qitu-select-icon">
-            <ChevronDown aria-hidden="true" size={14} />
-          </BaseSelect.Icon>
-        </BaseSelect.Trigger>
-        <BaseSelect.Portal>
-          <BaseSelect.Positioner className="qitu-overlay-positioner" align="start" sideOffset={6}>
-            <BaseSelect.Popup className="qitu-surface qitu-overlay-surface qitu-select-popup">
-              <BaseSelect.List className="qitu-select-list">
-                {props.options.map((option) => (
-                  <BaseSelect.Item
-                    className="qitu-panel-action qitu-select-item"
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                  >
-                    <BaseSelect.ItemText>{option.label}</BaseSelect.ItemText>
-                    <BaseSelect.ItemIndicator className="qitu-select-item-indicator">
-                      <Check aria-hidden="true" size={14} />
-                    </BaseSelect.ItemIndicator>
-                  </BaseSelect.Item>
-                ))}
-              </BaseSelect.List>
-            </BaseSelect.Popup>
-          </BaseSelect.Positioner>
-        </BaseSelect.Portal>
-      </BaseSelect.Root>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent
+          align="start"
+          className="qitu-surface qitu-overlay-surface qitu-select-popup"
+          sideOffset={6}
+        >
+          {props.options.map((option) => (
+            <SelectItem
+              className="qitu-panel-action qitu-select-item"
+              key={option.value}
+              label={option.label}
+              value={option.value}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </BaseField.Root>
   );
 }

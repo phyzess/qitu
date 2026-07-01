@@ -27,10 +27,58 @@ Extend UI for file/import/review surfaces
 visx-only chart primitives
 ```
 
-根目录 `components.json` 是可执行的 shadcn contract。它使用
-`style: "base-nova"`，并将 registry 输出解析到 `packages/ui/src`。
-qitu 的交互 primitives 封装 `@base-ui/react`；app-owned 页面必须消费
+根目录 `components.json` 记录 workspace shadcn contract。实际安装目标是
+`packages/ui/components.json`，root 的 `vp run ui:*` 脚本会指向这个
+package-local 配置；它使用 `style: "base-nova"`，并将 registry 输出解析到
+`packages/ui/src`。qitu 的交互 primitives 必须是 registry-backed
+shadcn/Base UI 组件，或由这些组件组成的薄封装；app-owned 页面必须消费
 `@qitu/ui`，不能直接 import Base UI。
+
+Primitive 治理规则：
+
+1. 缺少常见交互 primitive 时，先查 shadcn/Base UI registry。
+2. 用 `vp run ui:search --query "<component or behavior>"` 查候选组件，用 `vp run ui:docs <component>` 查看 Base UI 用法；需要先看生成结果时，用 `vp run ui:view <component>`。
+3. 优先用 `vp run ui:add <component> --dry-run` 预览 registry-backed 组件，确认后再执行 `vp run ui:add <component>`。package-local shadcn config 会把生成文件导入 `packages/ui/src`。
+4. 如果 registry 没有完全匹配的组件，先组合已有 shadcn/qitu primitives，再考虑 bespoke primitive。
+5. registry-backed primitives 和 qitu-specific wrapper compositions 都必须放在 `packages/ui`，并从 `@qitu/ui` 导出，app 页面才能使用。
+6. App 页面不能手工模仿 shadcn 样式，不能直接 import Base UI，也不能在 qitu shared primitive 已存在时退回 raw `type="date"`、raw checkbox、页面内 menu/dialog 或页面内 table。
+7. Bespoke primitive 必须在 decision log 说明为什么 registry 与现有 qitu primitive 组合不足。
+8. Shared primitive 使用 business-neutral 命名和 props，例如 source、file、job、status、action、value、item。
+9. list、table、card、row、action bar 的密度属于可复用 qitu tokens/classes，不属于页面级 padding patch。
+10. 当 app 页面必须使用新的 paved primitive 时，应补 smoke 或 package-interface 检查守住用法。
+
+当前第一批 shared primitive：
+
+```text
+AlertDialog
+Badge
+BatchActionBar
+Button
+Calendar
+Card
+Checkbox
+Command
+ConfirmDialog
+DateField
+Dialog
+Drawer
+Form/TextField/Input/SelectField
+InputGroup
+ListFrame
+ListActionRow
+Menu
+Popover
+RadioGroup
+Separator
+SegmentedControl
+Sheet
+StatusBadge
+Table
+Tabs
+Textarea
+UploadQueue
+Surface/DataState/MetricStrip/Timeline
+```
 
 ## 3. Package 分层
 

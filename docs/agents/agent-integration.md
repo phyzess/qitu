@@ -90,6 +90,21 @@ Output:
 3. Feature UI pages.
 4. No business leakage into core packages.
 
+### 4.5 UI Component Tasks
+
+Read:
+
+1. `docs/architecture/ui-design-system.md`
+2. `docs/architecture/package-boundaries.md`
+3. `docs/decisions/decision-log.md`
+
+Output:
+
+1. shadcn/Base UI registry discovery before bespoke implementation.
+2. New or changed primitives wrapped in `packages/ui` and exported from `@qitu/ui`.
+3. App pages consuming `@qitu/ui`, not direct Base UI imports or page-local shadcn lookalikes.
+4. Smoke or package-interface coverage when a primitive becomes a required paved path.
+
 ## 5. Agent Safety Rules
 
 1. Do not log secrets.
@@ -98,6 +113,7 @@ Output:
 4. Do not add business-specific code to core packages.
 5. Do not implement AI paths that bypass human confirmation.
 6. Do not add new frameworks without a decision record.
+7. Do not hand-write shadcn-style controls in app pages before checking the shadcn/Base UI registry and existing qitu primitives.
 
 ## 6. Handoff Format
 

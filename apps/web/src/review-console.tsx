@@ -6,6 +6,7 @@ import {
   Button,
   DataState,
   Input,
+  PanelActionButton,
   ListFrame,
   MetricStrip,
   SectionHeader,
@@ -555,28 +556,23 @@ function JobStep(props: { active: boolean; job: ImportJobListItem; onSelect: () 
   const { formatStatus, formatTime } = useI18n();
 
   return (
-    <button
-      className="qitu-panel-action w-full text-left"
+    <PanelActionButton
+      className="w-full"
       data-active={props.active ? "true" : undefined}
+      description={formatTime(props.job.updatedAt)}
+      icon={props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
+      label={props.job.sourceFile.filename}
       onClick={props.onSelect}
       type="button"
-    >
-      <div className="qitu-icon-chip size-7">
-        {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[length:var(--qitu-text-label-14)] font-medium leading-[var(--qitu-leading-label-14)]">
-          {props.job.sourceFile.filename}
-        </div>
-        <div className="qitu-number text-[length:var(--qitu-text-label-12)] leading-[var(--qitu-leading-label-12)] text-[var(--qitu-dim)]">
-          {formatTime(props.job.updatedAt)}
-        </div>
-      </div>
-      <StatusBadge tone={statusTone(props.job.status)}>
-        {formatStatus(props.job.status)}
-      </StatusBadge>
-      <ArrowRight size={14} className="shrink-0 text-[var(--qitu-dim)]" />
-    </button>
+      trailing={
+        <>
+          <StatusBadge tone={statusTone(props.job.status)}>
+            {formatStatus(props.job.status)}
+          </StatusBadge>
+          <ArrowRight size={14} className="shrink-0 text-[var(--qitu-dim)]" />
+        </>
+      }
+    ></PanelActionButton>
   );
 }
 

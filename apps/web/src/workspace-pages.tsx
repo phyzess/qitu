@@ -10,6 +10,7 @@ import {
   DetailDrawer,
   FilterBar,
   Input,
+  ListActionRow,
   ListFrame,
   MetricStrip,
   SectionHeader,
@@ -824,11 +825,8 @@ function AuditEventRow(props: {
   onSelect: () => void;
 }) {
   return (
-    <button
-      className={[
-        "qitu-surface-subtle w-full p-3 text-left transition-[background-color,box-shadow] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] hover:bg-[var(--qitu-surface-row-hover)]",
-        props.active ? "qitu-row-card-active" : "",
-      ].join(" ")}
+    <ListActionRow
+      className={["p-3", props.active ? "qitu-row-card-active" : ""].join(" ")}
       onClick={props.onSelect}
       type="button"
     >
@@ -850,7 +848,7 @@ function AuditEventRow(props: {
           </span>
         </div>
       </div>
-    </button>
+    </ListActionRow>
   );
 }
 
@@ -1024,11 +1022,7 @@ function WorkflowTarget(props: {
   status: string;
 }) {
   return (
-    <button
-      className="qitu-surface-subtle min-h-36 p-[var(--qitu-space-o5)] text-left transition-[background-color,border-color,transform] duration-[var(--qitu-motion-fast)] ease-[var(--qitu-ease-standard)] hover:bg-[var(--qitu-surface-row-hover)] active:scale-[0.995]"
-      onClick={props.onClick}
-      type="button"
-    >
+    <ListActionRow onClick={props.onClick} type="button" variant="card">
       <div className="flex items-start justify-between gap-3">
         <span className="text-[var(--qitu-brand-accent)]">{props.icon}</span>
         <StatusBadge tone="neutral">{props.status}</StatusBadge>
@@ -1039,7 +1033,7 @@ function WorkflowTarget(props: {
       <div className="mt-2 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-muted)]">
         {props.description}
       </div>
-    </button>
+    </ListActionRow>
   );
 }
 
@@ -1178,10 +1172,11 @@ function ImportJobRow(props: {
         props.active ? "qitu-row-card-active" : "",
       ].join(" ")}
     >
-      <button
+      <ListActionRow
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
         onClick={props.onSelect}
         type="button"
+        variant="inline"
       >
         <div className="qitu-icon-chip size-8">
           {props.job.status === "needs_review" ? <Clock3 size={14} /> : <Check size={14} />}
@@ -1194,7 +1189,7 @@ function ImportJobRow(props: {
             {formatDateTime(props.job.updatedAt)}
           </div>
         </div>
-      </button>
+      </ListActionRow>
       <StatusBadge tone={statusTone(props.job.status)}>
         {formatStatus(props.job.status)}
       </StatusBadge>

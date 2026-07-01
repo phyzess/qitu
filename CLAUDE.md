@@ -14,6 +14,7 @@ Claude Code should treat this repo as an architecture-first scaffold. The curren
 4. AI is advisory only.
 5. Imports go through staging and review before commit.
 6. Business-sensitive operations are audited.
+7. Common UI controls flow through shadcn/Base UI and `@qitu/ui`, not page-local lookalike styling.
 
 ## Before Code
 
@@ -48,6 +49,7 @@ docs
 7. Queues for async work.
 8. Valibot for runtime validation.
 9. Drizzle for schema/migrations.
+10. For common UI controls, search shadcn/Base UI first, install or compose inside `packages/ui`, and export through `@qitu/ui` before app pages consume the primitive.
 
 ## Avoid
 
@@ -57,6 +59,7 @@ docs
 4. Silent data overwrites.
 5. High-frequency logs in D1.
 6. Large raw blobs in D1.
+7. Hand-written shadcn-style Tailwind recipes in app pages when a registry-backed or qitu primitive can cover the control.
 
 ## Decision Hygiene
 

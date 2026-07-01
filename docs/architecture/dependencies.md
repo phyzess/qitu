@@ -45,6 +45,10 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 | `@tailwindcss/vite`        |  `4.3.1` | Tailwind Vite plugin                 |
 | `shadcn`                   | `4.11.0` | Component CLI and registry workflow  |
 | `@base-ui/react`           |  `1.6.0` | shadcn Base UI accessible primitives |
+| `cmdk`                     |  `1.1.1` | shadcn command palette primitive     |
+| `date-fns`                 |  `4.4.0` | shadcn calendar date helpers         |
+| `react-day-picker`         | `10.0.1` | shadcn calendar primitive            |
+| `vaul`                     |  `1.1.2` | shadcn drawer primitive              |
 | `lucide-react`             | `1.21.0` | Icons                                |
 | `clsx`                     |  `2.1.1` | Class composition                    |
 | `tailwind-merge`           |  `3.6.0` | Tailwind class merge                 |

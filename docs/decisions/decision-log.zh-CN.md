@@ -488,8 +488,8 @@ Decision:
 让 shadcn/Base UI 方向成为可执行契约，而不是只停留在文档里：
 
 1. 在 workspace root 固定 `shadcn@4.11.0`，并暴露 `vp run ui:add` / `vp run ui:info`。
-2. 根目录 `components.json` 使用 shadcn `base-nova` preset。
-3. 通过 root TypeScript aliases 将 shadcn registry 输出解析到 `packages/ui/src`。
+2. 根目录 `components.json` 记录 workspace shadcn contract，并新增 `packages/ui/components.json` 作为 package-local install target。
+3. 通过 package-local shadcn config 和 TypeScript aliases 将 shadcn registry 输出解析到 `packages/ui/src`。
 4. 使用 `shadcn@4.11.0 --base base` 实际生成的 Base UI package：`@base-ui/react@1.6.0`，不再使用旧的 `@base-ui-components/react` RC 包。
 5. App 页面继续只消费 `@qitu/ui`；Base UI imports 只属于 reusable qitu UI primitives。
 6. 如果 shadcn config、Base UI imports 或 package pins 偏离这个 contract，smoke checks 必须失败。
@@ -497,6 +497,29 @@ Decision:
 原因：
 
 此前实现只把 shadcn/Base UI 记录成方向，但 app code 仍在手写交互 primitives，旧 Base UI 依赖也没有真正使用。这让 design-system baseline 无法执行。Starter 需要可运行的 registry path、可访问 primitive backing，以及不让 app 页面绕过 `packages/ui` 的 package boundary。
+
+### UI Primitive Governance As Downstream Paved Road
+
+Decision:
+
+将 shared UI primitive governance 视为边界保护，而不是提前扩张 component library。
+
+规则：
+
+1. 缺少常见 primitive 时，先查 shadcn/Base UI registry，再考虑 custom implementation。
+2. 使用指向 `packages/ui` 的 root shadcn workflow 发现和检查候选组件：`vp run ui:search`、`vp run ui:docs`、`vp run ui:view`。
+3. 优先执行 `vp run ui:add <component> --dry-run` 预览，再执行 `vp run ui:add <component>`；不要在 app 页面复制“像 shadcn 的”Tailwind recipe。
+4. 如果没有单个 registry 组件完全匹配，先组合已有 shadcn/qitu primitives，再写 bespoke primitive。
+5. App 页面从 `@qitu/ui` import reusable controls；直接 Base UI imports 只属于 `packages/ui`。
+6. qitu 安装 registry-backed primitives：alert dialog、badge、button、calendar、card、checkbox、command、dialog、drawer、dropdown menu、input、input group、popover、radio group、select、separator、sheet、table、tabs、textarea，并在其上提供 `DateField`、`ConfirmDialog`、`SegmentedControl`、`StatusBadge`、`DetailDrawer`、`ListActionRow` 等 qitu-specific 薄封装。
+7. 一旦 qitu shared primitive 已存在，app 页面不能再引入 raw native date input、raw checkbox、页面内 lookalike menu/dialog 或页面内 table structure。
+8. qitu 提供小型 `DateField`，由 qitu `Popover` 加 shadcn `Calendar` 组合；calendar registry component 会带入所需的 `react-day-picker` 依赖。
+9. 页面需要 bespoke primitive 时，必须记录 registry 与现有 qitu wrapper composition 为什么不足。
+10. Primitive 命名和 props 保持 business-neutral，不能编码 downstream product vocabulary。
+
+原因：
+
+下游实践说明，如果等重复代码大量出现后才抽 shared primitive，产品页面会先堆出页面级 table、checkbox、date、drawer、action-bar 实现。对 reusable seed 来说，更稳妥的默认值是尽早提供小而业务中立的 paved road，并用 smoke checks 守住用法，让后续下游工作遵循 qitu 视觉与可访问性契约。
 
 ## Pending
 

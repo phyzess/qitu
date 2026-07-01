@@ -11,13 +11,12 @@ import {
   MenuGroupLabel,
   MenuRadioGroup,
   MenuRadioItem,
-  MenuRadioItemIndicator,
   MenuRoot,
   MenuTrigger,
   PanelActionButton,
   StatusBadge,
 } from "@qitu/ui";
-import { ArrowRight, Check, ChevronDown, X } from "lucide-react";
+import { ArrowRight, ChevronDown, X } from "lucide-react";
 import { routePath, type AppNavigationPath } from "./app-routes";
 import { localeOptions, useI18n, type Locale } from "./i18n";
 import { useTheme } from "./theme";
@@ -91,7 +90,7 @@ export function LanguageSelector(props: {
         <MenuRadioGroup
           value={locale}
           onValueChange={(value) => {
-            setLocale(value as Locale);
+            globalThis.setTimeout(() => setLocale(value as Locale), 0);
           }}
         >
           <MenuGroupLabel>{currentLabel}</MenuGroupLabel>
@@ -114,9 +113,6 @@ export function LanguageSelector(props: {
                     {option.id}
                   </span>
                 </span>
-                <MenuRadioItemIndicator>
-                  <Check className="shrink-0 text-[var(--qitu-chroma-active)]" size={14} />
-                </MenuRadioItemIndicator>
               </MenuRadioItem>
             );
           })}
@@ -169,7 +165,7 @@ export function WorkspaceSearchDialog(props: {
             className="qitu-command-input"
             placeholder={t("search.placeholder")}
             value={props.query}
-            onValueChange={props.onQueryChange}
+            onChange={(event) => props.onQueryChange(event.currentTarget.value)}
           />
           <DialogClose
             render={
