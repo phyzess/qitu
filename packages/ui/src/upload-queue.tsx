@@ -66,7 +66,7 @@ export function UploadQueue(props: {
             </div>
           </div>
           {props.compactAction ? (
-            <div className="flex shrink-0 flex-wrap gap-2">{props.compactAction}</div>
+            <div className="qitu-upload-compact-actions">{props.compactAction}</div>
           ) : null}
         </div>
       ) : props.items.length === 0 ? (

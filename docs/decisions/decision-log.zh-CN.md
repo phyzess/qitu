@@ -521,6 +521,30 @@ Decision:
 
 下游实践说明，如果等重复代码大量出现后才抽 shared primitive，产品页面会先堆出页面级 table、checkbox、date、drawer、action-bar 实现。对 reusable seed 来说，更稳妥的默认值是尽早提供小而业务中立的 paved road，并用 smoke checks 守住用法，让后续下游工作遵循 qitu 视觉与可访问性契约。
 
+### Static Demo Separate From Preview
+
+Decision:
+
+增加一个专门用于视觉评审和 walkthrough 的前端静态 `demo` 环境，并与 Worker-backed `preview`
+发布环境分离。
+
+规则：
+
+1. `demo` 使用 `VITE_QITU_API_MODE=mock` 构建 `apps/web`。
+2. Demo API 行为属于 app-owned web code，不进入 reusable `packages/*`。
+3. Demo state 使用浏览器 `localStorage` fixtures，不使用 Worker、D1、R2、Queue、Cloudflare
+   Email 或 secrets。
+4. Demo 部署到单独的 Cloudflare Pages project，例如 `qitu-demo`。
+5. `preview` 和 `production` 继续使用 Worker Static Assets 与真实 Cloudflare bindings。
+6. Demo 必须清楚显示 services、email 和 storage 都是 mock 状态。
+7. Demo 不能成为 Worker-backed 行为的 release gate。
+
+原因：
+
+`qitu` 需要一个在 provision 真实 Cloudflare resources 前就可分享的产品形态预览，但弱化现有
+`preview` gate 会模糊运维含义。Cloudflare Pages 静态 demo 能支持评审和采用，同时保留
+`preview` 作为接近生产的环境。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

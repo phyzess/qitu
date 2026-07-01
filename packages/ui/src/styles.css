@@ -1269,9 +1269,19 @@ button.qitu-command {
 
 .qitu-upload-compact {
   display: flex;
+  flex-wrap: wrap;
   min-width: 0;
   align-items: center;
   gap: var(--qitu-space-o3);
+}
+
+.qitu-upload-compact-actions {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--qitu-space-o2);
+  min-width: min(100%, 12rem);
 }
 
 .qitu-upload-empty {

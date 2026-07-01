@@ -46,6 +46,15 @@ admin@example.com
 correct horse battery staple
 ```
 
+For a frontend-only showcase that does not start the Worker or use Cloudflare bindings, run:
+
+```sh
+vp run dev:demo
+```
+
+The static demo uses browser-local mock data for auth, files, jobs, review, audit, email metadata,
+and AI advisory state. See `docs/demo.md`.
+
 The web app opens at `/login` when signed out. After login it lands on `/workspace`, an app-owned home slot that downstream products can replace without changing the shell, and keeps protected routes under two business-neutral roots:
 
 ```text
@@ -188,12 +197,13 @@ Start here:
 13. `docs/guides/add-feature.md`
 14. `docs/guides/first-vertical-slice.md`
 15. `docs/deployment.md`
-16. `docs/troubleshooting.md`
-17. `docs/release-notes.md`
-18. `docs/upgrade-notes.md`
-19. `docs/agents/agent-integration.md`
-20. `docs/decisions/decision-log.md`
-21. `docs/roadmap.md`
+16. `docs/demo.md`
+17. `docs/troubleshooting.md`
+18. `docs/release-notes.md`
+19. `docs/upgrade-notes.md`
+20. `docs/agents/agent-integration.md`
+21. `docs/decisions/decision-log.md`
+22. `docs/roadmap.md`
 
 Agent entrypoints:
 

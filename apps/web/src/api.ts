@@ -501,6 +501,11 @@ async function decideStagedRecord(
 }
 
 async function apiJson<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  if (import.meta.env.VITE_QITU_API_MODE === "mock") {
+    const { handleMockApiRequest } = await import("./mock-api");
+    return handleMockApiRequest<T>(url, options);
+  }
+
   const headers = new Headers(options.headers);
   const locale = readLocalePreference();
   if (locale && !headers.has(localeHeaderName)) {

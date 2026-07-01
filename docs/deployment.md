@@ -5,7 +5,33 @@ Date: 2026-06-27
 
 This runbook prepares a real Cloudflare account for `qitu`. It keeps resource creation and remote migration explicit because account IDs, resource IDs, verified senders, and final hostnames are environment-specific.
 
-## 1. Dry Run
+## 1. Static Demo
+
+The frontend-only demo deploys to a dedicated Cloudflare Pages project and does not require Worker
+bindings, D1, R2, Queue, Email, or secrets:
+
+```sh
+vp run build:demo
+vp exec wrangler pages project create qitu-demo --production-branch main
+vp run deploy:demo
+```
+
+The demo build sets `VITE_QITU_API_MODE=mock`, serves `apps/web/dist`, and stores fixture state in
+browser `localStorage`. Use it for visual review and walkthroughs only. Do not use it as a release
+gate for Worker-backed behavior.
+
+Recommended Pages shape:
+
+| Field         | Value               |
+| ------------- | ------------------- |
+| Project name  | `qitu-demo`         |
+| Build command | `vp run build:demo` |
+| Build output  | `apps/web/dist`     |
+| Bindings      | none                |
+
+See `docs/demo.md` for the full boundary and reset instructions.
+
+## 2. Dry Run
 
 Run a Worker bundle dry-run before touching remote resources:
 
@@ -46,7 +72,7 @@ Use `QITU_PREVIEW_WORKER_URL` or `QITU_PRODUCTION_WORKER_URL` only for optional 
 diagnostics during the release gate. Do not set `PUBLIC_APP_URL` to a workers.dev URL; invitation and
 password-reset links must use the public custom origin.
 
-## 2. Required Resources
+## 3. Required Resources
 
 The Worker expects:
 
@@ -82,7 +108,7 @@ attachments through the same `source_files -> import_jobs -> queue` path as manu
 attachments are recorded in `inbound_email_attachments` without adding business parsing logic to
 reusable packages.
 
-## 3. Secrets
+## 4. Secrets
 
 The current kit baseline uses deterministic local AI advisory generation and does not require model-provider secrets. Future provider adapters should set secrets through Wrangler or the Cloudflare dashboard:
 
@@ -95,7 +121,7 @@ Do not commit secret values into `.env`, `.dev.vars`, docs, or `wrangler.jsonc`.
 
 `EMAIL_DELIVERY_MODE`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_APP_NAME`, and `PUBLIC_APP_URL` are configuration values, not secrets. They still need environment-specific review before deployment.
 
-## 4. Remote Migration
+## 5. Remote Migration
 
 After resource IDs are set:
 
@@ -113,7 +139,7 @@ wrangler d1 migrations list qitu-preview --env preview --remote
 wrangler d1 execute qitu-preview --env preview --remote --command "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;"
 ```
 
-## 5. Deployment Gate
+## 6. Deployment Gate
 
 Before a real deployment:
 
@@ -174,7 +200,7 @@ vp run ops:cleanup-local-smoke
 
 Do not adapt this command for preview or production cleanup. Remote recovery should go through reviewed app/API actions and the DLQ runbook.
 
-## 6. First Admin Runbook
+## 7. First Admin Runbook
 
 Preview and production must use invitation-only onboarding. Do not enable local bootstrap routes, do not expose the `Setup` tab, and do not publish demo credentials outside local development.
 
@@ -201,7 +227,7 @@ The operator command rejects non-local `PUBLIC_APP_URL` values that are not HTTP
 
 If all admin access is lost, repeat the same one-time admin invitation process instead of re-enabling local bootstrap in a deployed environment. The operator command still creates an invitation, not a user/password directly, so the first recovered admin accepts the invite through the normal password setup, session, and audit path.
 
-## 7. DLQ And Failed Job Recovery
+## 8. DLQ And Failed Job Recovery
 
 Use `docs/operations/dlq-remediation.md` when Queue messages reach a dead-letter queue or import jobs appear stuck. The baseline recovery path is deliberately manual:
 
@@ -212,7 +238,7 @@ Use `docs/operations/dlq-remediation.md` when Queue messages reach a dead-letter
 
 The starter does not attach an automatic DLQ consumer. Add one only after a real production queue proves that manual recovery is insufficient.
 
-## 8. Known Gaps
+## 9. Known Gaps
 
 Before production use, add:
 

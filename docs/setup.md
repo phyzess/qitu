@@ -150,6 +150,16 @@ vp run dev:all
 
 `dev` and `dev:all` use the same small Node wrapper that runs the web and Worker dev servers concurrently and prefixes output by process.
 
+Start the frontend-only static demo when you want a shareable app walkthrough without a Worker,
+D1, R2, Queue, Email, or secrets:
+
+```sh
+vp run dev:demo
+vp run build:demo
+```
+
+The demo uses `VITE_QITU_API_MODE=mock` and browser-local fixtures. See `docs/demo.md`.
+
 Local auth starts with reusable demo users:
 
 ```text

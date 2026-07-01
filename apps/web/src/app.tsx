@@ -225,6 +225,13 @@ export function App() {
           setRuntimeEnvironment(session.runtimeEnvironment);
         }
         setUser(session.user);
+        if (!session.user && session.runtimeEnvironment === "demo") {
+          setAuthForm((current) => ({
+            ...current,
+            email: current.email || localDemoProfiles.admin.email,
+            password: current.password || localDemoPassword,
+          }));
+        }
         if (session.user) {
           await loadWorkspace(undefined, {
             loadSelectedJobData: selectedJobDataNeededForRoute(route),
@@ -232,9 +239,12 @@ export function App() {
           });
           if (cancelled) return;
           setNotice({
-            key: selectedJobDataNeededForRoute(route)
-              ? "notice.reviewQueueReady"
-              : "notice.workspaceReady",
+            key:
+              session.runtimeEnvironment === "demo"
+                ? "notice.demoReady"
+                : selectedJobDataNeededForRoute(route)
+                  ? "notice.reviewQueueReady"
+                  : "notice.workspaceReady",
           });
         }
       } catch (caught) {
@@ -755,7 +765,7 @@ export function App() {
       });
       resetSessionBootstrap();
       setUser(response.user);
-      setNotice({ key: "notice.signedIn" });
+      setNotice({ key: runtimeEnvironment === "demo" ? "notice.demoReady" : "notice.signedIn" });
       await loadWorkspace();
       navigate(defaultAuthenticatedPath, { replace: true });
     });

@@ -1034,6 +1034,30 @@ Reason:
 
 Real internal data apps often receive files by email. Adding a narrow inbound intake path extends qitu's source-first architecture without adding business parsers, workflow engines, or product-specific inbox semantics.
 
+### 2026-07-01: Static Demo Separate From Preview
+
+Decision:
+
+Add a dedicated frontend-only `demo` environment for visual review and walkthroughs, separate from
+the Worker-backed `preview` release environment.
+
+Rules:
+
+1. `demo` builds `apps/web` with `VITE_QITU_API_MODE=mock`.
+2. Demo API behavior lives in app-owned web code, not in reusable `packages/*`.
+3. Demo state uses browser `localStorage` fixtures and does not use Worker, D1, R2, Queue,
+   Cloudflare Email, or secrets.
+4. Demo deploys to a dedicated Cloudflare Pages project such as `qitu-demo`.
+5. `preview` and `production` continue to use Worker Static Assets and real Cloudflare bindings.
+6. Demo must display a clear runtime/notice that services, email, and storage are mocked.
+7. Demo must not become a release gate for Worker-backed behavior.
+
+Reason:
+
+`qitu` needs a shareable product-shape preview before real Cloudflare resources are provisioned, but
+weakening the existing `preview` gate would blur operational meaning. A static Cloudflare Pages demo
+supports review and adoption while preserving `preview` as the production-like environment.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

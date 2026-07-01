@@ -43,6 +43,15 @@ admin@example.com
 correct horse battery staple
 ```
 
+如果只想查看前端展示，不启动 Worker，也不使用 Cloudflare bindings：
+
+```sh
+vp run dev:demo
+```
+
+静态 demo 使用浏览器本地 mock 数据覆盖 auth、files、jobs、review、audit、email metadata 和 AI
+advisory 状态。详见 [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)。
+
 未登录时 web app 会进入 `/login`；登录后默认进入 `/workspace`，并把受保护路由收进两个业务中立的 roots：
 
 ```text
@@ -173,9 +182,10 @@ templates/
 6. [docs/architecture/package-boundaries.zh-CN.md](./docs/architecture/package-boundaries.zh-CN.md)
 7. [docs/architecture/import-pipeline.zh-CN.md](./docs/architecture/import-pipeline.zh-CN.md)
 8. [docs/deployment.zh-CN.md](./docs/deployment.zh-CN.md)
-9. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
-10. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
-11. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
+9. [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)
+10. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
+11. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
+12. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
 
 Agent 入口：
 

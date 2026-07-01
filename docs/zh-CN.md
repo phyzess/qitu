@@ -23,11 +23,12 @@ Date: 2026-06-27
 14. [guides/add-feature.zh-CN.md](./guides/add-feature.zh-CN.md)：添加业务 feature 的边界与方式。
 15. [guides/first-vertical-slice.zh-CN.md](./guides/first-vertical-slice.zh-CN.md)：首个端到端纵切。
 16. [deployment.zh-CN.md](./deployment.zh-CN.md)：Cloudflare 部署准备。
-17. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
-18. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
-19. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
-20. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
-21. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
+17. [demo.zh-CN.md](./demo.zh-CN.md)：前端静态 demo 与 Cloudflare Pages 展示环境。
+18. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
+19. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
+20. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
+21. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
+22. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
 
 ## 维护规则
 

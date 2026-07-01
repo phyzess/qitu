@@ -5,7 +5,32 @@ Date: 2026-06-27
 
 本文用于准备真实 Cloudflare account。它不会自动部署，因为 account IDs、resource IDs、verified senders 和最终 hostnames 都是环境相关的。
 
-## 1. Dry Run
+## 1. 静态 Demo
+
+前端静态 demo 部署到单独的 Cloudflare Pages project，不需要 Worker bindings、D1、R2、Queue、Email
+或 secrets：
+
+```sh
+vp run build:demo
+vp exec wrangler pages project create qitu-demo --production-branch main
+vp run deploy:demo
+```
+
+Demo build 设置 `VITE_QITU_API_MODE=mock`，服务 `apps/web/dist`，fixture state 存在浏览器
+`localStorage`。它只用于视觉评审和流程走查，不作为 Worker-backed 行为的发布 gate。
+
+推荐 Pages 形态：
+
+| 字段          | 值                  |
+| ------------- | ------------------- |
+| Project name  | `qitu-demo`         |
+| Build command | `vp run build:demo` |
+| Build output  | `apps/web/dist`     |
+| Bindings      | 无                  |
+
+完整边界和重置方式见 `docs/demo.zh-CN.md`。
+
+## 2. Dry Run
 
 触碰远端资源前，先执行 Worker bundle dry-run：
 
@@ -22,7 +47,7 @@ vp run deploy:production:dry-run
 
 `apps/worker/wrangler.jsonc` 在 preview/production 中使用 Worker Static Assets 托管 React build。`/api/*` 与 `/health` 仍然优先走 Worker，所以 web app 可以继续使用相对 API URL 和 HttpOnly cookies。
 
-## 2. 所需资源
+## 3. 所需资源
 
 Worker 需要：
 
@@ -51,7 +76,7 @@ wrangler queues create qitu-import-jobs-production-dlq
 
 Cloudflare Email Service 在 local 之外需要 verified sender。目标环境的 `MAIL_FROM` 必须是已验证地址，`PUBLIC_APP_URL` 必须匹配部署后的 web origin。
 
-## 3. Secrets
+## 4. Secrets
 
 当前 baseline 使用 deterministic local AI advisory generation，不需要 model-provider secrets。未来 provider adapters 应通过 Wrangler 或 Cloudflare dashboard 设置 secrets：
 
@@ -64,7 +89,7 @@ wrangler secret put PROVIDER_API_KEY --env production
 
 `MAIL_FROM`、`PUBLIC_APP_NAME`、`PUBLIC_APP_URL` 是配置值，不是 secrets，但部署前仍需按环境 review。
 
-## 4. Remote Migration
+## 5. Remote Migration
 
 资源 ID 配好后：
 
@@ -82,7 +107,7 @@ wrangler d1 migrations list qitu-preview --env preview --remote
 wrangler d1 execute qitu-preview --env preview --remote --command "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name;"
 ```
 
-## 5. Deployment Gate
+## 6. Deployment Gate
 
 真实部署前：
 
@@ -102,7 +127,7 @@ vp run ops:failed-jobs -- preview --limit 50
 vp run ops:failed-jobs -- production --limit 50
 ```
 
-## 6. DLQ 与失败任务恢复
+## 7. DLQ 与失败任务恢复
 
 当 Queue messages 进入 DLQ 或 import jobs 卡住时，使用 `docs/operations/dlq-remediation.zh-CN.md`。
 
@@ -115,7 +140,7 @@ Baseline 恢复路径故意是人工的：
 
 Starter 不挂自动 DLQ consumer。只有真实生产 Queue 证明人工恢复不够时，才增加自动化。
 
-## 7. Known Gaps
+## 8. Known Gaps
 
 生产使用前仍需：
 

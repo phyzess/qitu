@@ -112,6 +112,15 @@ vp run dev:all
 
 `dev` 和 `dev:all` 使用同一个很小的 Node wrapper，同时启动 web 和 Worker dev servers，并给输出加进程前缀。
 
+如果只需要一个可分享的前端静态 walkthrough，不启动 Worker，也不需要 D1、R2、Queue、Email 或 secrets：
+
+```sh
+vp run dev:demo
+vp run build:demo
+```
+
+Demo 使用 `VITE_QITU_API_MODE=mock` 和浏览器本地 fixtures。详见 `docs/demo.zh-CN.md`。
+
 本地 auth 提供可重复使用的 demo users：
 
 ```text

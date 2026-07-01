@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
+    "dev:demo": "VITE_QITU_API_MODE=mock vp dev --host 0.0.0.0",
     "build": "vp build",
+    "build:demo": "VITE_QITU_API_MODE=mock vp build",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
