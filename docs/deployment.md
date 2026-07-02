@@ -48,8 +48,9 @@ vp run deploy:preview:dry-run
 vp run deploy:production:dry-run
 ```
 
-Preview and production dry-runs also run `scripts/deploy-preflight.mjs`. The preflight prints a
-non-secret configuration summary and fails before bundling when:
+Preview and production dry-runs also run `scripts/deploy-preflight.mjs`, then confirm Cloudflare
+authentication with `wrangler whoami` before asking Wrangler to bundle the remote target. The
+preflight prints a non-secret configuration summary and fails before bundling when:
 
 1. `PUBLIC_APP_URL` is missing, not HTTPS, still points at `example.com`, points at localhost, or uses a `workers.dev` diagnostic URL.
 2. `EMAIL_DELIVERY_MODE` is not `send`.
@@ -153,8 +154,9 @@ Before a real deployment:
 8. Confirm invitation bootstrap routes and the login-page setup UI are disabled outside `APP_ENV=local`.
 9. Confirm the target queue has a dead-letter queue.
 10. Run the failed-job snapshot for the target environment.
-11. Run the target deploy command, which rebuilds, deploys, and health-checks the deployed URL.
-12. Optionally set `QITU_PREVIEW_WORKER_URL` or `QITU_PRODUCTION_WORKER_URL` to run a second internal Worker health check after the public custom-origin health check.
+11. Confirm `wrangler whoami` reports the expected Cloudflare account before deployment.
+12. Run the target deploy command, which rebuilds, deploys, prints the Worker version id, and health-checks the deployed URL.
+13. Optionally set `QITU_PREVIEW_WORKER_URL` or `QITU_PRODUCTION_WORKER_URL` to run a second internal Worker health check after the public custom-origin health check.
 
 The release gate script codifies the reviewed sequence above. By default it prints the plan only:
 
@@ -174,8 +176,10 @@ QITU_PRODUCTION_APP_URL=https://app.example.com \
 ```
 
 The full gate runs `verify:kit`, target deploy dry-run with preflight, target remote D1 migration,
-failed-job snapshot, deploy, public health check, and an optional internal Worker health check. Use
-`--failed-job-limit 100` if the operator snapshot needs a larger review window.
+failed-job snapshot, deploy, public health check, and an optional internal Worker health check. The
+remote dry-run and deploy wrappers run `wrangler whoami`; the deploy wrapper fails if Wrangler
+does not report a Worker version id after upload. Use `--failed-job-limit 100` if the operator
+snapshot needs a larger review window.
 
 ```sh
 vp run ops:failed-jobs -- preview --limit 50

@@ -545,6 +545,25 @@ Decision:
 `preview` gate 会模糊运维含义。Cloudflare Pages 静态 demo 能支持评审和采用，同时保留
 `preview` 作为接近生产的环境。
 
+### Downstream Kit Feedback Becomes Executable Guardrails
+
+Decision:
+
+将 downstream app 暴露出来的可复用工程经验提升为 qitu kit 级默认值，但不引入 downstream 业务语义。
+
+规则：
+
+1. UI primitive 来源记录在 `docs/architecture/ui-component-provenance.zh-CN.md` / `.md`，包括 registry-backed 来源、qitu composition、bespoke primitive 和维护规则。
+2. `dev:all` 在未固定端口时动态选择本地 web 与 Worker 端口，并把同一个 Worker origin 传给 Vite proxy 和 Worker 链接生成。
+3. `DateField` 使用 shadcn-backed `Calendar`，默认提供 month/year dropdown，并由 browser smoke 覆盖过去日期选择。
+4. Preview/production deploy wrapper 先用 `wrangler whoami` 确认 Cloudflare 登录；最终 deploy 必须输出 Worker version id。
+5. 新用户默认语言通过 app-owned `VITE_QITU_DEFAULT_LOCALE` 配置，不进入 reusable `packages/i18n` policy。
+6. Workbench 页面避免重复路由标题，优先展示实际工作结果；大表格先走 shared `TableScrollArea` primitive，再考虑 page-local table overflow。
+
+原因：
+
+下游项目最值得反哺 qitu 的不是业务规则，而是减少误配置的 paved road：可追踪 UI 来源、低摩擦本地启动、脆弱 primitive 的真实浏览器回归，以及可重复的 Cloudflare 发布门禁。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

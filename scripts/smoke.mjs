@@ -91,6 +91,7 @@ const webAuthRoute = text("apps/web/src/auth-route.ts");
 const webApi = text("apps/web/src/api.ts");
 const webAuditFilters = text("apps/web/src/audit-filters.ts");
 const webPermissions = text("apps/web/src/web-permissions.ts");
+const webReviewConsole = text("apps/web/src/review-console.tsx");
 const webTypes = text("apps/web/src/types.ts");
 const webUploadQueueState = text("apps/web/src/upload-queue-state.ts");
 const webViteConfig = text("apps/web/vite.config.ts");
@@ -111,8 +112,10 @@ const wranglerDevLocalScript = text("scripts/wrangler-dev-local.mjs");
 const wranglerTypesScript = text("scripts/wrangler-types.mjs");
 const wranglerD1MigrateLocalScript = text("scripts/wrangler-d1-migrate-local.mjs");
 const wranglerDeployScript = text("scripts/wrangler-deploy.mjs");
+const wranglerDeployDryRunScript = text("scripts/wrangler-deploy-dry-run.mjs");
 const wranglerConfig = text("apps/worker/wrangler.jsonc");
 const emailDeliverabilityDoc = text("docs/operations/email-deliverability.md");
+const uiComponentProvenanceDoc = text("docs/architecture/ui-component-provenance.md");
 const workflow = text(".github/workflows/verify.yml");
 const envExample = text(".env.example");
 const workerDevVarsExample = text("apps/worker/.dev.vars.example");
@@ -209,6 +212,11 @@ assert(
 assert(
   devAllScript.includes('"@qitu/web"') &&
     devAllScript.includes('"@qitu/worker"') &&
+    devAllScript.includes("findOpenPort") &&
+    devAllScript.includes("QITU_WEB_PORT") &&
+    devAllScript.includes("QITU_WORKER_PORT") &&
+    devAllScript.includes("QITU_WORKER_ORIGIN") &&
+    devAllScript.includes("QITU_PUBLIC_APP_URL") &&
     browserSmoke.includes("findOpenPort") &&
     browserSmoke.includes("QITU_WEB_PORT") &&
     browserSmoke.includes("QITU_PUBLIC_APP_URL") &&
@@ -219,8 +227,9 @@ assert(
     webViteConfig.includes("QITU_WEB_PORT") &&
     webViteConfig.includes("QITU_WORKER_ORIGIN") &&
     webViteConfig.includes("QITU_WORKER_PORT") &&
+    !devAllScript.includes("8787") &&
     !browserSmoke.includes("http://127.0.0.1:8787${path}"),
-  "browser smoke and Vite proxy must share the same Worker origin instead of hard-coding port 8787.",
+  "dev:all, browser smoke, and Vite proxy must share a dynamically assigned Worker origin instead of hard-coding port 8787.",
 );
 assert(
   forbiddenBusinessTerms.every((pattern) => !pattern.test(businessNeutralityText)),
@@ -362,6 +371,15 @@ assert(
   !webSources.includes("@base-ui/react") && !webSources.includes("@base-ui-components/react"),
   "apps/web must consume qitu UI primitives instead of importing Base UI directly.",
 );
+assert(
+  uiComponentProvenanceDoc.includes("UI Component Provenance") &&
+    uiComponentProvenanceDoc.includes("packages/ui/components.json") &&
+    uiComponentProvenanceDoc.includes("@base-ui/react") &&
+    uiComponentProvenanceDoc.includes("DateField") &&
+    uiComponentProvenanceDoc.includes("TableScrollArea") &&
+    uiComponentProvenanceDoc.includes("App pages consume `@qitu/ui`"),
+  "UI component provenance docs must record primitive sources, Base UI import boundaries, and maintenance rules.",
+);
 const registryBackedUiFiles = [
   "packages/ui/src/alert-dialog.tsx",
   "packages/ui/src/badge.tsx",
@@ -391,6 +409,9 @@ assert(
     text("packages/ui/src/confirm-dialog.tsx").includes("AlertDialog") &&
     text("packages/ui/src/status-badge.tsx").includes("Badge") &&
     text("packages/ui/src/date-field.tsx").includes("Calendar") &&
+    text("packages/ui/src/date-field.tsx").includes('captionLayout="dropdown"') &&
+    text("packages/ui/src/date-field.tsx").includes("startMonth") &&
+    text("packages/ui/src/date-field.tsx").includes("endMonth") &&
     !text("packages/ui/src/date-field.tsx").includes("qitu-calendar-grid") &&
     !text("packages/ui/src/form.tsx").includes("@base-ui/react/input") &&
     !text("packages/ui/src/form.tsx").includes("@base-ui/react/select") &&
@@ -400,6 +421,8 @@ assert(
     uiStyles.includes("--color-popover: var(--qitu-color-popover);") &&
     uiSources.includes("function Table") &&
     uiSources.includes("function TableCell") &&
+    uiSources.includes("function TableScrollArea") &&
+    uiSources.includes("qitu-table-scroll-area") &&
     uiSources.includes("function Calendar") &&
     uiSources.includes("export function DateField") &&
     uiSources.includes("export function SegmentedControl") &&
@@ -424,6 +447,7 @@ assert(
     webSources.includes("<DetailDrawer") &&
     webSources.includes("<ListActionRow") &&
     webSources.includes("TableCell") &&
+    webSources.includes("<TableScrollArea") &&
     webSources.includes("<ListFrame") &&
     webSources.includes("<SegmentedControl") &&
     webSources.includes("uploadQueue") &&
@@ -441,6 +465,12 @@ assert(
     !webSources.includes('type="date"') &&
     !webSources.includes('type="checkbox"'),
   "apps/web must use shared qitu primitives for common interactive controls once those primitives exist.",
+);
+assert(
+  webReviewConsole.includes('<TableScrollArea variant="bounded">') &&
+    !webReviewConsole.includes("overflow-x-auto px-3 pb-4") &&
+    browserSmoke.includes('.qitu-table-scroll-area[data-variant="bounded"]'),
+  "review console staged records must use the shared bounded TableScrollArea instead of page-local table overflow.",
 );
 assert(
   webApi.includes("occurredAfter") &&
@@ -853,6 +883,12 @@ assert(
   "i18n package must expose reusable translator, plural, relative-time, and locale negotiation helpers.",
 );
 assert(
+  webSources.includes("VITE_QITU_DEFAULT_LOCALE") &&
+    webSources.includes("qitu.locale") &&
+    !i18nPackage.includes("VITE_QITU_DEFAULT_LOCALE"),
+  "default web locale must be app-owned configuration, not a reusable i18n package policy.",
+);
+assert(
   workerPackage.dependencies["@qitu/ai-advisory"] === "workspace:*",
   "worker must depend on @qitu/ai-advisory.",
 );
@@ -1255,6 +1291,9 @@ assert(
     browserSmoke.includes("Commit confirmed") &&
     browserSmoke.includes("ai_advisory.confirmed") &&
     browserSmoke.includes('getByRole("menu", { name: "Language" })') &&
+    browserSmoke.includes("pastDate") &&
+    browserSmoke.includes(".qitu-date-popover select") &&
+    browserSmoke.includes("toHaveValue(pastDate.year)") &&
     browserSmoke.includes('"excluded"') &&
     browserSmoke.includes("import_job.committed") &&
     browserSmoke.includes("import_review.record_rejected"),
@@ -1340,6 +1379,14 @@ assert(
     releaseGate.includes("runOptionalInternalHealthChecks") &&
     releaseGate.includes("scripts/health-check.mjs"),
   "release gate must support optional internal Worker health checks after public deployment health.",
+);
+assert(
+  wranglerDeployScript.includes('["whoami"]') &&
+    wranglerDeployScript.includes("findWorkerVersionId") &&
+    wranglerDeployScript.includes("Worker version id:") &&
+    wranglerDeployDryRunScript.includes("requiresCloudflareAccount") &&
+    wranglerDeployDryRunScript.includes('["whoami"]'),
+  "deploy wrappers must run wrangler whoami and the final deploy must print the Worker version id.",
 );
 assert(
   text("apps/worker/vitest.config.ts").includes("cloudflareTest") &&

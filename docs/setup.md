@@ -88,12 +88,13 @@ The local env also defines:
 
 For local port conflicts, the dev wrappers also honor:
 
-| Variable              | Default                  | Notes                                       |
-| --------------------- | ------------------------ | ------------------------------------------- |
-| `QITU_WEB_PORT`       | `5173`                   | Vite web dev port.                          |
-| `QITU_WORKER_PORT`    | `8787`                   | Wrangler Worker dev port.                   |
-| `QITU_WORKER_ORIGIN`  | derived from Worker port | Vite proxy target for `/api` and `/health`. |
-| `QITU_PUBLIC_APP_URL` | `PUBLIC_APP_URL`         | Local Worker app URL override for links.    |
+| Variable                   | Default                  | Notes                                                 |
+| -------------------------- | ------------------------ | ----------------------------------------------------- |
+| `QITU_WEB_PORT`            | dynamic open port        | Vite web dev port.                                    |
+| `QITU_WORKER_PORT`         | dynamic open port        | Wrangler Worker dev port.                             |
+| `QITU_WORKER_ORIGIN`       | derived from Worker port | Vite proxy target for `/api` and `/health`.           |
+| `QITU_PUBLIC_APP_URL`      | derived from web port    | Local Worker app URL override for invite/reset links. |
+| `VITE_QITU_DEFAULT_LOCALE` | `en`                     | App-owned default language for new browser sessions.  |
 
 Generate Worker types:
 
@@ -122,13 +123,14 @@ Start the full local stack:
 vp run dev
 ```
 
-This starts both the web app on `http://localhost:5173` and the Worker API on
-`http://localhost:8787`. Use this as the default development command because the
-web app proxies `/api` and `/health` to the Worker.
+This starts both the web app and Worker API on open local ports, then prints both
+URLs. Use this as the default development command because the web app proxies
+`/api` and `/health` to the exact Worker origin selected by the wrapper.
 
-If either port is busy, set `QITU_WEB_PORT` or `QITU_WORKER_PORT`. When changing
-the web port for invite/reset-link testing, also set `QITU_PUBLIC_APP_URL` to the
-same web origin so the Worker generates matching local links.
+Set `QITU_WEB_PORT` or `QITU_WORKER_PORT` only when a fixed local port is needed.
+When changing the web origin for invite/reset-link testing, set
+`QITU_PUBLIC_APP_URL` to the same web origin so the Worker generates matching
+local links.
 
 Start only the web app when you are intentionally running or mocking the Worker separately:
 

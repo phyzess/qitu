@@ -181,11 +181,12 @@ templates/
 5. [docs/architecture/overview.zh-CN.md](./docs/architecture/overview.zh-CN.md)
 6. [docs/architecture/package-boundaries.zh-CN.md](./docs/architecture/package-boundaries.zh-CN.md)
 7. [docs/architecture/import-pipeline.zh-CN.md](./docs/architecture/import-pipeline.zh-CN.md)
-8. [docs/deployment.zh-CN.md](./docs/deployment.zh-CN.md)
-9. [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)
-10. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
-11. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
-12. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
+8. [docs/architecture/ui-component-provenance.zh-CN.md](./docs/architecture/ui-component-provenance.zh-CN.md)
+9. [docs/deployment.zh-CN.md](./docs/deployment.zh-CN.md)
+10. [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)
+11. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
+12. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
+13. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
 
 Agent 入口：
 

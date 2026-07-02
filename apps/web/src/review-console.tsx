@@ -18,6 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableScrollArea,
   Timeline,
   UploadQueue,
   type AppShellNavItem,
@@ -399,7 +400,7 @@ export function ReviewConsole(props: {
             </div>
           ) : null}
 
-          <div className="overflow-x-auto px-3 pb-4">
+          <TableScrollArea variant="bounded">
             <Table>
               <colgroup>
                 <col className="w-[22%]" />
@@ -442,7 +443,7 @@ export function ReviewConsole(props: {
                 )}
               </TableBody>
             </Table>
-          </div>
+          </TableScrollArea>
         </Surface>
 
         <aside className="space-y-[var(--qitu-layout-gutter)]">

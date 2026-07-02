@@ -20,5 +20,13 @@ export const localeOptions = [
 export type Locale = (typeof localeOptions)[number]["id"];
 export type LocaleMeta = LocaleMetadata<Locale>;
 
-export const defaultLocale: Locale = "en";
+const configuredDefaultLocale = import.meta.env.VITE_QITU_DEFAULT_LOCALE;
+
+export const defaultLocale: Locale = isConfiguredLocale(configuredDefaultLocale)
+  ? configuredDefaultLocale
+  : "en";
 export const storageKey = "qitu.locale";
+
+function isConfiguredLocale(value: string | undefined): value is Locale {
+  return localeOptions.some((option) => option.id === value);
+}

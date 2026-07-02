@@ -49,6 +49,10 @@ Primitive governance rules:
 9. Density for lists, tables, cards, rows, and action bars belongs in reusable qitu tokens/classes, not page-local padding fixes.
 10. Smoke or package-interface checks should guard newly paved primitives when app pages are expected to use them.
 
+The component provenance ledger lives in
+`docs/architecture/ui-component-provenance.md`. Any new shared primitive should update that ledger in
+the same change that adds or refreshes the implementation.
+
 Current first-pass shared primitive surface:
 
 ```text
@@ -176,6 +180,19 @@ Shell interaction rules:
 11. Secondary route tabs are text-only with an active underline.
 12. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
 13. Theme remains a compact icon control; language uses a compact icon trigger that opens explicit locale choices. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+
+Workbench page rules:
+
+1. Avoid duplicate route titles. When the shell and secondary navigation already show location, page
+   content should start with the first real work module instead of repeating a large route heading.
+2. Data and analysis pages should be result-first: show the primary state, chart, or work surface
+   before filters and diagnostics. Filters, inputs, and secondary metrics should sit in a toolbar,
+   inspector, or side area when space allows.
+3. Large detail tables should use bounded scroll containers so they do not push the primary work
+   surface out of the first viewport. Prefer a shared `TableScrollArea` or qitu table wrapper before
+   adding page-local overflow recipes.
+4. New-user default language is app-owned configuration. `packages/i18n` provides locale primitives;
+   the web app owns the default locale and browser persistence policy.
 
 Current starter grouping:
 

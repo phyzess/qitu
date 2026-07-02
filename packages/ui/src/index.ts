@@ -136,7 +136,10 @@ export {
   TableHead,
   TableHeader,
   TableRow,
+  TableScrollArea,
   type TableCellProps,
+  type TableScrollAreaProps,
+  type TableScrollAreaVariant,
 } from "./table";
 export { Tabs, TabsContent, TabsList, TabsTrigger, tabsListVariants } from "./tabs";
 export { Textarea } from "./textarea";

@@ -18,17 +18,18 @@ Date: 2026-06-27
 9. [architecture/import-pipeline.zh-CN.md](./architecture/import-pipeline.zh-CN.md)：导入、staging、review、commit 的核心流程。
 10. [architecture/ai-advisory.zh-CN.md](./architecture/ai-advisory.zh-CN.md)：AI 只做 advisory 的边界。
 11. [architecture/ui-design-system.zh-CN.md](./architecture/ui-design-system.zh-CN.md)：UI、设计系统、字体与图表边界。
-12. [architecture/dependencies.zh-CN.md](./architecture/dependencies.zh-CN.md)：依赖包与精确版本基线。
-13. [guides/create-app.zh-CN.md](./guides/create-app.zh-CN.md)：从 qitu 创建新应用。
-14. [guides/add-feature.zh-CN.md](./guides/add-feature.zh-CN.md)：添加业务 feature 的边界与方式。
-15. [guides/first-vertical-slice.zh-CN.md](./guides/first-vertical-slice.zh-CN.md)：首个端到端纵切。
-16. [deployment.zh-CN.md](./deployment.zh-CN.md)：Cloudflare 部署准备。
-17. [demo.zh-CN.md](./demo.zh-CN.md)：前端静态 demo 与 Cloudflare Pages 展示环境。
-18. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
-19. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
-20. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
-21. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
-22. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
+12. [architecture/ui-component-provenance.zh-CN.md](./architecture/ui-component-provenance.zh-CN.md)：UI primitive 来源与合规台账。
+13. [architecture/dependencies.zh-CN.md](./architecture/dependencies.zh-CN.md)：依赖包与精确版本基线。
+14. [guides/create-app.zh-CN.md](./guides/create-app.zh-CN.md)：从 qitu 创建新应用。
+15. [guides/add-feature.zh-CN.md](./guides/add-feature.zh-CN.md)：添加业务 feature 的边界与方式。
+16. [guides/first-vertical-slice.zh-CN.md](./guides/first-vertical-slice.zh-CN.md)：首个端到端纵切。
+17. [deployment.zh-CN.md](./deployment.zh-CN.md)：Cloudflare 部署准备。
+18. [demo.zh-CN.md](./demo.zh-CN.md)：前端静态 demo 与 Cloudflare Pages 展示环境。
+19. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
+20. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
+21. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
+22. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
+23. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
 
 ## 维护规则
 

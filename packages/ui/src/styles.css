@@ -1557,6 +1557,27 @@ button.qitu-command {
   box-shadow: none;
 }
 
+.qitu-table-scroll-area {
+  max-height: var(--qitu-table-scroll-max-height);
+  min-width: 0;
+  overflow: auto;
+  padding-inline: var(--qitu-space-s1);
+  padding-bottom: var(--qitu-space-s1);
+  scrollbar-gutter: stable;
+}
+
+.qitu-table-scroll-area[data-variant="compact"] {
+  max-height: var(--qitu-table-scroll-compact-max-height);
+}
+
+.qitu-table-scroll-area[data-variant="free"] {
+  max-height: none;
+}
+
+.qitu-table-scroll-area [data-slot="table-container"] {
+  min-width: 100%;
+}
+
 .qitu-surface,
 .qitu-card {
   border: 1px solid transparent;

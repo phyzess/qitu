@@ -14,20 +14,24 @@ export type CalendarLabels = {
 
 export function DateField(props: {
   className?: string | undefined;
+  endMonth?: Date | undefined;
   label: string;
   labels: CalendarLabels;
   locale?: string | undefined;
   name?: string | undefined;
   onChange: (value: string) => void;
   placeholder?: string | undefined;
+  startMonth?: Date | undefined;
   value: string;
   weekStartsOn?: 0 | 1 | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const selectedDate = parseDateValue(props.value);
+  const endMonth = props.endMonth ?? new Date(new Date().getFullYear() + 25, 11);
   const label = props.value
     ? formatDateValue(props.value, props.locale)
     : (props.placeholder ?? "Select date");
+  const startMonth = props.startMonth ?? new Date(1900, 0);
 
   return (
     <BaseField.Root className={cn("qitu-form-field", props.className)}>
@@ -40,8 +44,11 @@ export function DateField(props: {
         </PopoverTrigger>
         <PopoverContent className="qitu-date-popover">
           <Calendar
+            captionLayout="dropdown"
+            endMonth={endMonth}
             mode="single"
             selected={selectedDate ?? undefined}
+            startMonth={startMonth}
             weekStartsOn={props.weekStartsOn}
             onSelect={(date) => {
               if (!date) return;

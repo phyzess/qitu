@@ -210,6 +210,8 @@
   --qitu-control-active-bg: var(--qitu-color-accent);
   --qitu-input-bg: var(--qitu-surface-field);
   --qitu-input-border: var(--qitu-surface-field-border);
+  --qitu-table-scroll-max-height: min(560px, 62vh);
+  --qitu-table-scroll-compact-max-height: min(360px, 48vh);
   --qitu-brand-mark-bg: transparent;
   --qitu-brand-mark-glyph: var(--qitu-text);
   --qitu-brand-mark-accent: var(--qitu-brand-accent);

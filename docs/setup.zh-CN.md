@@ -90,7 +90,7 @@ vp run db:migrate:production
 vp run dev
 ```
 
-该命令会同时启动 `http://localhost:5173` 上的 Web app 和 `http://localhost:8787` 上的 Worker API。默认本地开发应使用它，因为 Web app 会把 `/api` 和 `/health` 代理到 Worker。
+该命令会自动选择可用本地端口，同时启动 Web app 和 Worker API，并打印两个 URL。默认本地开发应使用它，因为 Web app 会把 `/api` 和 `/health` 代理到 wrapper 选中的同一个 Worker origin。
 
 如果你明确已经单独运行或 mock Worker，可以只启动 Web app：
 
@@ -110,7 +110,7 @@ vp run dev:worker
 vp run dev:all
 ```
 
-`dev` 和 `dev:all` 使用同一个很小的 Node wrapper，同时启动 web 和 Worker dev servers，并给输出加进程前缀。
+`dev` 和 `dev:all` 使用同一个很小的 Node wrapper，同时启动 web 和 Worker dev servers，动态分配端口，传递匹配的 `QITU_WORKER_ORIGIN` / `QITU_PUBLIC_APP_URL`，并给输出加进程前缀。需要固定端口时，可设置 `QITU_WEB_PORT` 或 `QITU_WORKER_PORT`。
 
 如果只需要一个可分享的前端静态 walkthrough，不启动 Worker，也不需要 D1、R2、Queue、Email 或 secrets：
 

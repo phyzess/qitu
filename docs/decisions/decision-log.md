@@ -1058,6 +1058,34 @@ Reason:
 weakening the existing `preview` gate would blur operational meaning. A static Cloudflare Pages demo
 supports review and adoption while preserving `preview` as the production-like environment.
 
+### 2026-07-02: Downstream Kit Feedback Becomes Executable Guardrails
+
+Decision:
+
+Promote reusable engineering lessons from downstream app work into qitu's kit-level defaults without
+importing downstream business semantics.
+
+Rules:
+
+1. UI primitive provenance is recorded in `docs/architecture/ui-component-provenance.md`, including
+   registry-backed sources, qitu compositions, bespoke primitives, and maintenance rules.
+2. `dev:all` dynamically selects local web and Worker ports when the operator has not fixed them,
+   and passes one Worker origin to both the Vite proxy and Worker link generation.
+3. `DateField` uses the shared shadcn-backed `Calendar` with month/year dropdown navigation and
+   browser smoke coverage for selecting a past date.
+4. Preview and production deploy wrappers confirm Cloudflare authentication with `wrangler whoami`;
+   final deploys must print the Worker version id.
+5. New-user default locale remains app-owned web configuration through `VITE_QITU_DEFAULT_LOCALE`,
+   not reusable `packages/i18n` policy.
+6. Workbench pages avoid duplicate route titles, prefer result-first work surfaces, and use the
+   shared `TableScrollArea` primitive before introducing page-local table overflow recipes.
+
+Reason:
+
+The reusable value from downstream work is not domain logic. It is the paved-road behavior that makes
+future qitu-derived apps harder to misconfigure: traceable UI provenance, frictionless local startup,
+real browser coverage for fragile primitives, and repeatable Cloudflare release gates.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

@@ -14,6 +14,33 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   );
 }
 
+type TableScrollAreaVariant = "bounded" | "compact" | "free";
+
+type TableScrollAreaProps = React.ComponentProps<"div"> & {
+  maxHeight?: string | undefined;
+  variant?: TableScrollAreaVariant | undefined;
+};
+
+function TableScrollArea({
+  className,
+  maxHeight,
+  style,
+  variant = "bounded",
+  ...props
+}: TableScrollAreaProps) {
+  const resolvedStyle = maxHeight ? { ...style, maxHeight } : style;
+
+  return (
+    <div
+      data-slot="table-scroll-area"
+      data-variant={variant}
+      style={resolvedStyle}
+      className={cn("qitu-table-scroll-area", className)}
+      {...props}
+    />
+  );
+}
+
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return <thead data-slot="table-header" className={cn("[&_tr]:border-b", className)} {...props} />;
 }
@@ -102,5 +129,8 @@ export {
   TableRow,
   TableCell,
   TableCaption,
+  TableScrollArea,
   type TableCellProps,
+  type TableScrollAreaProps,
+  type TableScrollAreaVariant,
 };

@@ -38,7 +38,7 @@ Demo build 设置 `VITE_QITU_API_MODE=mock`，服务 `apps/web/dist`，fixture s
 vp run deploy:dry-run
 ```
 
-Preview 和 production dry-runs 会先 build web app，再验证 Worker + Static Assets bundle：
+Preview 和 production dry-runs 会先 build web app，再验证 Worker + Static Assets bundle；远端目标 dry-run 会先运行 `wrangler whoami` 确认 Cloudflare 登录状态：
 
 ```sh
 vp run deploy:preview:dry-run
@@ -121,6 +121,8 @@ wrangler d1 execute qitu-preview --env preview --remote --command "SELECT name F
 8. 确认 invitation bootstrap routes 在 `APP_ENV=local` 之外禁用。
 9. 确认目标 Queue 有 DLQ。
 10. 对目标环境运行 failed-job snapshot。
+11. 确认 `wrangler whoami` 指向预期 Cloudflare account。
+12. 目标 deploy 成功后确认输出 Worker version id，并验证 `/health`。
 
 ```sh
 vp run ops:failed-jobs -- preview --limit 50

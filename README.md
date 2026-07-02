@@ -192,18 +192,19 @@ Start here:
 8. `docs/architecture/auth-security.md`
 9. `docs/architecture/ai-advisory.md`
 10. `docs/architecture/ui-design-system.md`
-11. `docs/architecture/dependencies.md`
-12. `docs/guides/create-app.md`
-13. `docs/guides/add-feature.md`
-14. `docs/guides/first-vertical-slice.md`
-15. `docs/deployment.md`
-16. `docs/demo.md`
-17. `docs/troubleshooting.md`
-18. `docs/release-notes.md`
-19. `docs/upgrade-notes.md`
-20. `docs/agents/agent-integration.md`
-21. `docs/decisions/decision-log.md`
-22. `docs/roadmap.md`
+11. `docs/architecture/ui-component-provenance.md`
+12. `docs/architecture/dependencies.md`
+13. `docs/guides/create-app.md`
+14. `docs/guides/add-feature.md`
+15. `docs/guides/first-vertical-slice.md`
+16. `docs/deployment.md`
+17. `docs/demo.md`
+18. `docs/troubleshooting.md`
+19. `docs/release-notes.md`
+20. `docs/upgrade-notes.md`
+21. `docs/agents/agent-integration.md`
+22. `docs/decisions/decision-log.md`
+23. `docs/roadmap.md`
 
 Agent entrypoints:
 
