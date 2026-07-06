@@ -1,7 +1,7 @@
 # Static Demo
 
 Status: draft  
-Date: 2026-07-01
+Date: 2026-07-06
 
 The `qitu` demo is a frontend-only showcase for the reusable app shell and first vertical slice.
 It is meant for review, sharing, and product-shape discussion before a real Cloudflare account is
@@ -17,9 +17,12 @@ Demo is not preview.
 | `preview`    | Worker Static Assets        | Real Worker with D1, R2, Queue, and Cloudflare Email | Release validation             |
 | `production` | Worker Static Assets        | Real Worker with production Cloudflare resources     | Real operators                 |
 
-The demo build sets `VITE_QITU_API_MODE=mock`. In that mode, `apps/web/src/api.ts` routes API calls
-to `apps/web/src/mock-api.ts` instead of `/api/*` or `/health`. Mock state is stored in browser
-`localStorage`; no Worker, D1, R2, Queue, Email Sending, Email Routing, or secrets are used.
+The demo build sets `VITE_QITU_API_MODE=mock`. In that mode, `apps/web/src/api-client.ts` loads
+`apps/web/src/mock-api.ts` instead of calling `/api/*` or `/health`. The mock API entrypoint is a
+thin route composer; auth, invitation, workspace, import-job, review, advisory, source upload, model,
+seed, and audit behavior lives in focused `mock-api-*-routes.ts`, `mock-api-*-operations.ts`,
+`mock-api-seed-*`, and model/helper modules. Mock state is stored in browser `localStorage`; no
+Worker, D1, R2, Queue, Email Sending, Email Routing, or secrets are used.
 
 ## Local Demo
 

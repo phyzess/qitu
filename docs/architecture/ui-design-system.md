@@ -1,7 +1,7 @@
 # UI and Design System
 
 Status: accepted baseline  
-Date: 2026-06-28
+Date: 2026-07-06
 
 ## 1. Purpose
 
@@ -107,6 +107,20 @@ packages/charts
 9. Timeline components.
 10. Data-state components.
 11. Animated icon registry for product chrome.
+
+`packages/ui/src/shell.tsx` is the stable shell interface facade. The AppShell frame,
+primary/secondary navigation controls, shell props/types, and small system icons live in focused
+package-internal shell modules so app pages can keep importing the same `@qitu/ui` shell surface.
+
+`packages/ui/src/primitives.tsx` is the stable shared primitive interface facade. Surface,
+section-header, data-state, metric-strip, timeline, and panel-action-button implementations live in
+focused package-internal modules while app pages keep importing those primitives from `@qitu/ui`.
+
+`packages/ui/src/styles.css` is the stable package stylesheet entrypoint. It may import focused
+implementation modules under `packages/ui/src/styles/*` for theme mapping, shell frame, toolbars,
+animated icons, overlays, form controls, upload/list rows, shared controls, surfaces, and responsive
+rules. New reusable visual rules should extend the focused module that owns their selector family
+instead of growing the entrypoint file.
 
 `packages/design-system` owns:
 
@@ -246,12 +260,13 @@ Control refinement rules:
 Animated icon rules:
 
 1. `AnimatedIcon` is the canonical dynamic icon entry point for shell navigation, command/search, theme/language, refresh, account panel actions, and reusable section headers.
-2. `AnimatedIcon` vendors selected AnimateIcons Lucide SVG source inside `packages/ui` and applies qitu's lightweight local CSS motion; app pages must not import icon runtimes directly.
-3. The registry is intentionally small and semantic. Add a new `AnimatedIconName` only when the icon appears in reusable product chrome or a repeated page pattern.
-4. Prefer AnimateIcons/Lucide source geometry first. If a semantic match is missing, choose the closest existing source shape or keep a static Lucide fallback rather than hand-drawing a rough local icon.
-5. Dense data tables, timeline rows, destructive confirmations, and one-off page actions may keep static Lucide icons when motion would reduce scanability.
-6. Do not add Lottie, `@animateicons/react`, or a second animated icon runtime for app chrome without a dependency and bundle-size decision.
-7. Page code may pass `AnimatedIcon` as a React node but must not customize animation timing, keyframes, or accent color outside shared qitu tokens.
+2. `AnimatedIcon` is the public wrapper in `packages/ui/src/animated-icon.tsx`; `packages/ui/src/animated-icon-registry.tsx` composes the public icon map from shell and workflow SVG groups in `packages/ui/src/animated-icon-registry-shell.tsx` and `packages/ui/src/animated-icon-registry-workflow.tsx`, shared registry typing lives in `packages/ui/src/animated-icon-registry-types.ts`, semantic names and props live in `packages/ui/src/animated-icon-types.ts`, and qitu's lightweight local CSS motion lives in `packages/ui/src/styles/animated-icon.css`.
+3. App pages must not import icon runtimes or package-internal icon registry modules directly.
+4. The registry is intentionally small and semantic. Add a new `AnimatedIconName` only when the icon appears in reusable product chrome or a repeated page pattern.
+5. Prefer AnimateIcons/Lucide source geometry first. If a semantic match is missing, choose the closest existing source shape or keep a static Lucide fallback rather than hand-drawing a rough local icon.
+6. Dense data tables, timeline rows, destructive confirmations, and one-off page actions may keep static Lucide icons when motion would reduce scanability.
+7. Do not add Lottie, `@animateicons/react`, or a second animated icon runtime for app chrome without a dependency and bundle-size decision.
+8. Page code may pass `AnimatedIcon` as a React node but must not customize animation timing, keyframes, or accent color outside shared qitu tokens.
 
 Qitu token and visual-system rules:
 
@@ -306,6 +321,9 @@ Recommended defaults:
 ## 7. Chart Contract
 
 `packages/charts` is a maintained visx-only layer. App-owned pages must use qitu chart components and must not import `@visx/*` directly.
+`packages/charts/src/index.tsx` is the package interface facade; concrete chart implementations,
+shared frame/state rendering, grid rendering, scale/format helpers, theme tokens, and chart-specific
+geometry live in focused package-internal modules.
 
 Baseline exported chart components:
 

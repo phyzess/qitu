@@ -22,8 +22,9 @@ runnable kit baseline
 4. 可运行的 Cloudflare Worker shell。
 5. 通用核心 package 接口。
 6. Worker 内两个 app-owned starter feature adapters。
-7. `templates/*` 下可复制的 app 和 feature 模板。
-8. `examples/*` 下用于证明边界的可选示例 feature package。
+7. 经过验证的 adoption script，用于重命名、裁剪并重新连接 cloned app。
+8. `templates/*` 下可复制的 app 和 feature 模板。
+9. `examples/*` 下用于证明边界的可选示例 feature package。
 
 成熟度以 [docs/capability-matrix.zh-CN.md](./docs/capability-matrix.zh-CN.md) 为准。
 
@@ -132,6 +133,15 @@ templates/
 
 `apps/*` 是可部署入口。
 
+`apps/worker/src/*` 保持可部署 Worker wiring 的 app-owned 边界：thin route composition
+entrypoints、HTTP route groups、auth route groups、Cloudflare binding adapters、source-file
+intake、inbound email 的 MIME parsing、import job runner、import review routes、feature-owned
+review stores 与 starter feature registration 都放在这里。可复用状态规则与 contracts 仍属于
+`packages/*`。
+
+`apps/web/src/*` 保持 React shell、route pages、page sections、workflow controllers 与 demo mock
+API 的 app-owned 边界。可复用视觉 primitives 仍属于 `packages/ui`。
+
 `packages/*` 是可复用基础设施与 UI package。
 
 `examples/*` 是非生产示例，用来证明边界。
@@ -150,7 +160,7 @@ templates/
 6. 基于 Queue 的异步任务。
 7. 带 staging 和人工 review 的 import pipeline。
 8. Audit events、security events 和 alerts。
-9. 事务邮件与未来 inbound email 能力。
+9. 事务邮件与 inbound email 能力。
 10. 需要人工确认的 AI advisory artifacts。
 11. 支持 locale 的 React app shell 与 design system。
 12. 文档与 decision log 约定。

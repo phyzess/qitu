@@ -182,15 +182,128 @@ Decision:
 
 Keep Cloudflare binding adapters and starter feature registration in app-owned Worker modules:
 
-1. `apps/worker/src/auth-routes.ts` composes auth, session, invitation, password-reset, RBAC denial, audit, and email delivery routes around reusable auth/email/RBAC package rules.
+1. `apps/worker/src/auth-routes.ts` remains the auth route-registration facade; focused auth,
+   session, invitation, password-reset, RBAC denial, audit, and email delivery modules adapt
+   reusable auth/email/RBAC package rules to Worker routes.
 2. `apps/worker/src/import-adapters.ts` registers app-owned starter import adapters.
 3. `apps/worker/src/import-job-runner.ts` binds generic import lifecycle rules to D1, R2, Queue, audit, and app-owned staging tables.
-4. `apps/worker/src/import-review-routes.ts` owns starter review/decision/commit route persistence for app-owned staging and committed tables.
+4. `apps/worker/src/import-review-routes.ts` owns review route registration; focused detail,
+   decision, confirm-pending, commit, store, and statement modules own persistence for app-owned
+   staging and committed tables.
 5. `apps/worker/src/audit-store.ts` and `apps/worker/src/email-delivery.ts` adapt audit and email package concepts to D1 and Cloudflare Email.
 6. `apps/worker/src/http-utils.ts` owns shared route parsing and error response helpers.
 7. `packages/import-pipeline` owns generic review status helpers, staging key conventions, and adapter contracts.
 
 Do not move Cloudflare binding details or starter table writes into reusable core packages.
+Import-review commit routes may keep the HTTP response entrypoint in `import-review-commit-route.ts`
+while splitting target preflight and approved-record commit writes into app-owned Worker support
+modules.
+Approved-record commit modules may keep adapter commit orchestration separate from D1/audit/job-event
+statement preparation.
+Approved-record commit statement code may keep `prepareImportReviewCommitStatements` as the batch
+interface while committed-record insert/update/audit statements and job committed status/event/audit
+statements live in focused support modules.
+Import-review decision routes may keep `recordReviewDecisionResponse` as the HTTP response entrypoint
+while splitting target preflight and decision/audit/job-event writes into app-owned Worker support
+modules.
+Import-review decision record code may keep job-status derivation, decision-id creation, and return
+record shaping in the workflow module while decision ledger statements and record outcome
+status/audit/event statements live in focused support modules.
+Import-review target modules may share authorized-user and import-job/adapter preflight support
+while endpoint-specific staged-record, pending-record, and commit target details stay in their
+target modules.
+Import-review D1 row shapes may live in a focused row-type module so query, target, statement, and
+advisory modules do not depend on public presenter modules for storage row interfaces.
+Import-review detail routes may keep route registration in `import-review-routes.ts` while review
+detail endpoint handling and issue read queries live in focused Worker support modules.
+Confirm-pending review routes may keep the HTTP response entrypoint in
+`import-review-confirm-pending-route.ts` while splitting reviewer/target lookup and batch
+confirmation writes into app-owned Worker support modules.
+Confirm-pending batch confirmation may keep status derivation in the record module while statement
+preparation for decision rows, staged-record updates, audit, and job events lives in a focused
+support module.
+Confirm-pending statement code may keep `prepareConfirmPendingReviewStatements` as the batch
+interface while decision header, per-record outcome/audit, and job transition/event statements live
+in focused support modules.
+Starter feature adapters may share app-owned source stream decoding helpers while parser,
+validation, staging, and commit semantics stay in each feature adapter.
+JSON starter feature code may keep `json-records.ts` as the adapter-facing facade while JSON source
+record expansion, staged payload shape parsing, and shared record types live in focused feature
+support modules.
+Source-intake store code may keep `source-intake-store.ts` as the caller-facing facade while
+splitting duplicate-source lookup from source-file/import-job insert and audit/event statements.
+Source-intake insert code may keep `prepareSourceFileImportJobInserts` as the batch interface while
+source-file uploaded statements and import-job queued statements live in focused support modules.
+Source intake may keep `createSourceFileImportJob` as the upload/email intake orchestrator while
+queue dispatch and dispatch-failure job transitions live in app-owned Worker support modules.
+Source intake shared request/result types may live outside the orchestrator so persistence,
+statement, dispatch, and inbound-email support modules do not depend on `source-intake.ts` for type
+information.
+Source intake persistence may keep the R2 source object write, D1 source/import/audit/job-event
+batch, and R2 cleanup-on-D1-failure invariant behind a focused support module.
+Source routes may keep `registerSourceRoutes` as the route registrar while list and upload endpoints
+live in per-endpoint route modules.
+Source list and upload endpoints may keep auth and orchestration in route modules while list SQL,
+public source-file projection, upload body/header parsing, and source-intake result projection live
+in focused app-owned Worker support modules.
+Audit routes may keep `registerAuditRoutes` as the route registrar while list endpoint handling,
+audit-event read queries, and public presentation live in focused app-owned Worker modules.
+Email delivery may keep `deliverEmail` as the auth-route-facing interface while provider send
+attempts and `email_messages` ledger writes live in app-owned Worker support modules.
+Auth user routes may keep `registerAuthUserRoutes` as the auth-group registrar while list/delete
+endpoints and guarded member-delete persistence live in focused app-owned Worker support modules.
+Local user bootstrap may keep `createLocalUserBootstrapResponse` as the local-only HTTP response
+entrypoint while user/password/session writes and audit/security/login-attempt recording live in an
+app-owned Worker support module.
+Local user bootstrap record code may keep user lookup, password hashing, and session creation in the
+workflow module while moving D1, session, login-attempt, security-event, and audit statements into a
+focused support module.
+Local user bootstrap statement code may keep `prepareLocalUserBootstrapStatements` as the batch
+interface while account/password/session-revocation statements and session/login-attempt/security/audit
+statements live in focused support modules.
+Login routes may keep `registerAuthLoginRoute` as the HTTP entrypoint while login-user lookup,
+failed login recording, and successful session/audit/security writes live in app-owned Worker
+support modules.
+Login record code may keep request fingerprinting, email hashing, and session creation in the
+workflow module while failed/successful login statements live in a focused support module.
+Login statement code may keep `auth-login-record-statements.ts` as the caller-facing facade while
+failed-login and successful-login statement groups live in focused support modules.
+AI advisory routes may keep `registerAiAdvisoryRoutes` as the route registrar while list and
+generate endpoints live in per-endpoint route modules and human decisions use the decision
+entrypoint.
+AI advisory generation routes may keep HTTP registration and response shaping in the route module
+while target preflight and generated-artifact persistence live in app-owned Worker support modules.
+AI advisory decision routes may keep `updateAiAdvisoryStatusResponse` as the response entrypoint
+while target preflight and human-decision persistence live in app-owned Worker support modules.
+AI advisory store code may keep `ai-advisory-store.ts` as the caller-facing facade while splitting
+read queries, insert statements, and public presentation into app-owned Worker support modules.
+Inbound email may keep `handleInboundEmail` as the Cloudflare Email handler interface while raw
+message orchestration, attachment source-intake handoff, and receipt/audit persistence live in
+focused app-owned Worker support modules.
+Inbound email store code may keep `inbound-email-store.ts` as the caller-facing facade while
+splitting status derivation and receipt/audit statement preparation into focused app-owned Worker
+support modules.
+Inbound email receipt statement code may keep `prepareInboundEmailReceiptStatements` as the batch
+interface while message receipt inserts, attachment metadata inserts, and received-audit statements
+live in focused support modules.
+Import-job runner code may keep `processImportJob` in `import-job-runner.ts` as the queue-facing
+entrypoint while splitting processing-job lookup and processing-start state/audit/event writes into
+Worker support modules.
+Import-job staging may keep `stageImportJobRecords` as the runner-facing staging interface while
+splitting staged-row planning from D1/audit/job-event statement preparation.
+Import-job staging statement code may keep `prepareImportJobStagingStatements` as the batch
+interface while row insert/issue/audit statements and needs-review job/audit/event statements live
+in focused support modules.
+Import-job routes may keep `registerImportJobRoutes` as the route registrar while list, events, and
+retry endpoints live in focused route modules.
+Import-job list endpoints may keep auth and response shaping in the route module while list SQL and
+public row projection live in focused support modules.
+Import-job retry code may keep `retryImportJobResponse` as the HTTP response entrypoint while target
+preflight, queue dispatch/failure handling, and retry state/audit/event statements live in focused
+Worker support modules.
+Import-job event store code may keep `import-job-event-store.ts` as the caller-facing facade while
+splitting event insert/write helpers, read queries, and public presentation into focused Worker
+support modules.
 
 Reason:
 
@@ -245,6 +358,8 @@ Add generic runtime event foundations to the starter baseline:
 4. `alert_events` for operational follow-up on failed jobs and other reusable kit alerts.
 
 Keep these tables business-neutral. App-owned feature code may attach metadata through opaque JSON, but core packages and docs must not define business metrics, parser fields, or workflow-specific meanings.
+`event-store.ts` may remain the caller-facing facade while fingerprint hashing, login attempts,
+security events, and alert events live in focused app-owned Worker support modules.
 
 Reason:
 
@@ -484,7 +599,11 @@ Use selected AnimateIcons Lucide SVG source for app chrome, vendored inside a sm
 
 Rules:
 
-1. `packages/ui/src/animated-icon.tsx` owns `AnimatedIcon`, `AnimatedIconName`, and the mapping from qitu semantic icon names to the vendored SVG source.
+1. `packages/ui/src/animated-icon.tsx` owns the public `AnimatedIcon` wrapper,
+   `packages/ui/src/animated-icon-types.ts` owns `AnimatedIconName` and props,
+   `packages/ui/src/animated-icon-registry.tsx` composes the public mapping from qitu semantic icon
+   names to registry entries, and grouped `animated-icon-registry-*` modules own the selected
+   vendored SVG source.
 2. App pages may not import icon runtimes directly; they use `AnimatedIcon` from `@qitu/ui`.
 3. Use animated icons for shell navigation, command/search, theme/language, refresh, account panel actions, and reusable section headers.
 4. Keep dense tables, timeline rows, destructive confirmations, one-off secondary actions, and data-state fallback glyphs static unless repeated use proves motion improves scanning.
@@ -1079,12 +1198,329 @@ Rules:
    not reusable `packages/i18n` policy.
 6. Workbench pages avoid duplicate route titles, prefer result-first work surfaces, and use the
    shared `TableScrollArea` primitive before introducing page-local table overflow recipes.
+7. Static smoke checks may move distinct guard groups such as kit structure, package contracts,
+   worker runtime, web composition, web runtime, coverage, UI, and operations into
+   `scripts/smoke-*.mjs` modules while `scripts/smoke.mjs` remains the executable composition
+   entrypoint. Large guard groups may split again by subtopic, such as kit toolchain, kit file
+   inventory, kit documentation, kit templates, package/example contracts, Web shell, page sections,
+   mock API fixtures, workflow controllers, core package contracts, app-owned package adapters,
+   package manifests/runtime env, package manifest checks by Worker dependency, Worker script, Web
+   dependency, and env-example concerns, UI registry provenance, UI primitive inventory, UI app usage,
+   UI token integrity, Worker schema, Worker auth, Worker source intake, Worker import-review workflow,
+   Worker advisory, Worker runtime checks, operations release gates, operations recovery runbooks,
+   Wrangler configuration, and coverage checks by Worker integration, package interface, browser
+   smoke, and i18n evidence. Shared smoke input gathering lives in
+   `scripts/smoke-context.mjs` so the executable entrypoint can stay focused on guard orchestration
+   and failure reporting. Root context input readers may split by IO helpers, generic match helpers,
+   package/template/example inputs, script inputs, documentation inputs, and business-neutrality
+   derived inputs. Script context input readers may split by adoption scripts, browser smoke scripts,
+   invariant-check scripts, operations scripts, runtime helper scripts, and Worker integration scripts
+   while preserving the `createSmokeScriptsContext` interface. Kit file inventory may split by repo/template roots, documentation, runtime/app
+   executable files, and smoke module inventory. Runtime/app executable inventory may split by core
+   scripts, Worker integration scripts, browser smoke scripts, operations scripts, and app runtime
+   fixture files; the local doctor command may keep `scripts/doctor.mjs` as the setup-facing
+   entrypoint while splitting filesystem/command IO, toolchain checks, starter invariant checks,
+   registry checks, and report output into support modules. Smoke module inventory may split by context, kit, operations, package, UI, Web, and
+   Worker guard groups. `dev:all` may keep `scripts/dev-all.mjs` as the local stack entrypoint while
+   splitting port allocation, shared environment configuration, and child-process supervision into
+   support modules. Local D1 migration may keep `scripts/wrangler-d1-migrate-local.mjs` as the
+   Worker script entrypoint while splitting argument/configuration construction, streamed output
+   success detection, and Wrangler process supervision into support modules. Static smoke may keep
+   `scripts/smoke.mjs` as the executable entrypoint while
+   splitting root toolchain, dev command, command exposure, guard-group runner, and failure output
+   into support modules.
+   Operations release guard groups may split by deploy scripts, deploy preflight, release gates, and
+   health checks. Static demo deploy may keep `scripts/deploy-demo-pages.mjs` as the Pages deploy
+   entrypoint while splitting demo deploy argument parsing, summary output, and command execution
+   into support modules. Release gate may keep
+   `scripts/release-gate.mjs` as the plan-first command entrypoint while splitting target step
+   configuration, argument parsing, plan rendering, command execution, and optional internal health
+   checks into support modules. Wrangler observed process handling may keep streamed output, CI env
+   defaults, timeout, success-marker, and terminate-after-settle behavior in a shared
+   `scripts/wrangler-observed-process.mjs` support module for operations commands. Wrangler deploy dry-run may keep
+   `scripts/wrangler-deploy-dry-run.mjs` as the Worker deploy wrapper entrypoint while splitting
+   target/account detection, dry-run argument construction, timeout configuration, and streamed
+   Wrangler process supervision into support modules; the dry-run runner may keep dry-run and
+   `whoami` intent functions while moving observed Wrangler process handling behind a support module.
+   Wrangler deploy may keep
+   `scripts/wrangler-deploy.mjs` as the real deploy wrapper entrypoint while splitting dry-run
+   argument rejection, timeout configuration, streamed Wrangler process supervision, and Worker
+   version-id extraction into support modules. Failed-job operations may keep
+   `scripts/ops-failed-jobs.mjs` as the read-only operator entrypoint while splitting target
+   configuration, CLI limit parsing, D1 query construction, and Wrangler D1 process supervision into
+   support modules. Health checks may keep `scripts/health-check.mjs` as the target command
+   entrypoint while splitting target URL configuration, CLI parsing, URL normalization, fetch timeout,
+   and Worker `/health` response contract checks into support modules. Deploy preflight may keep
+   `scripts/deploy-preflight.mjs` as the command entrypoint while splitting Wrangler config parsing,
+   URL/email/binding policy helpers, preflight check execution by app URL, email, and binding groups,
+   and summary/failure output into support
+   modules. The first-admin
+   operator invitation command may keep `scripts/operator-admin-invitation.mjs` as the operator-facing
+   entrypoint while splitting CLI argument parsing, target/app URL validation, invitation/token construction, audited SQL
+   construction, command output, command orchestration, and Wrangler D1 execution into support modules. The i18n invariant check may keep
+   `scripts/i18n-check.mjs` as the executable entrypoint
+   while splitting source collection, message-key extraction, package-boundary checks, Web dictionary
+   checks, Worker locale handoff checks, and template/smoke coverage checks into support modules. The
+   package interface check may keep `scripts/package-interface-tests.mjs` as the executable entrypoint
+   while splitting Vite SSR loading, auth/database contract checks, import-pipeline checks, i18n/RBAC
+   checks, and template/Web API checks into support modules. The adoption script may keep
+   `scripts/adopt-app.mjs` as the dry-run-first command entrypoint while
+   splitting argument validation, identity replacement rules, text-file scanning/edit planning, and
+   output/apply behavior into support modules. Adoption file operations may keep
+   `scripts/adopt-app-files.mjs` as a compatibility façade while splitting text-file collection,
+   replacement edit creation, and apply/remove behavior into support modules. Local smoke cleanup may keep
+   `scripts/cleanup-local-smoke.mjs` as the local-only operator entrypoint while splitting target SQL
+   and Wrangler local D1 execution into support modules. Large input groups may split by app-owned
+   surface, such as Web context in `scripts/smoke-context-web.mjs` and Worker context in
+   `scripts/smoke-context-worker.mjs`. Web context input readers may split again by shell, review
+   console, workspace pages, mock API, and runtime/common source groups. Web guard groups may split
+   page composition by inventory, audit, source, import/invitation, and shared helper checks, split
+   workflow composition by inventory, review console, action workflow, and top-level composition
+   checks, split mock API composition by inventory, model helpers, seed fixtures, and operations,
+   and split runtime checks by auth setup, proxy, API client, and rendered app surface. Browser smoke
+   may keep browser lifecycle and journey ordering in `scripts/browser-smoke.mjs` while moving dev server,
+   local port, HTTP wait, request helper, Chromium launch mechanics, smoke fixture naming, login
+   hygiene probes, auth flow, review flow, diagnostics flow, and admin member flow into support
+   modules. The primary review flow may split by review submission/advisory confirmation, source
+   confirmation/commit, and audit date filtering while preserving the top-level journey order.
+   Runtime support may keep `createBrowserSmokeRuntime` as the caller-facing seam while
+   splitting dev server process management, network probes, and browser launch into separate
+   modules. Browser smoke dev server startup may keep `startBrowserSmokeDevServer` as the caller
+   interface while splitting process launch, bounded recent-log capture, and signal-based shutdown
+   into support modules. Browser smoke preflight checks may keep the scenario assertions in
+   `scripts/browser-smoke-preflight.mjs` while moving Playwright route fixtures into support
+   modules. Worker integration HTTP helpers may keep `scripts/worker-integration-http.mjs` as the
+   compatibility façade while splitting response assertions and cookie jar handling into support
+   modules. Worker integration may keep the end-to-end scenario in
+   `scripts/worker-integration.mjs` while moving
+   local D1 migration setup, Cloudflare fake adapters, HTTP test client/assertion helpers, and
+   inbound email fixture assertions into support modules. Inbound email integration may keep
+   `testInboundEmailIntake` as the caller-facing seam while splitting raw RFC822 fixture construction,
+   Cloudflare Email message fakes, and D1/R2/Queue assertions into support modules. Worker integration env setup may keep
+   `createTestEnv` as the caller-facing seam while splitting D1, R2, Queue, and Email fake adapters
+   into binding-specific modules. Large Worker integration scenario groups
+   may split by auth/bootstrap/member management, import/review workflow, and audit filtering while
+   keeping cross-scenario state passed explicitly from the composition entrypoint. Auth integration
+   scenarios may split again by bootstrap/email boundary checks, invitation/member administration,
+   and password-reset session behavior when the scenario body becomes too large for quick review.
+   Bootstrap/email boundary checks may split by non-local bootstrap access denial, failed email
+   delivery ledger assertions, and local demo account bootstrap behavior.
+   Invitation/member administration may split by role-assignment permission checks, invitation
+   lifecycle management, and hard-delete cleanup assertions while keeping the authenticated admin
+   client passed explicitly between scenario modules. Auth integration tests may share local
+   invitation flow helpers for accepted bootstrap users, accepted authenticated users, authenticated
+   invitation creation, and default test credentials while keeping role, permission, and audit
+   assertions in the caller scenario modules. Worker integration tests may share an audit-event
+   assertion helper for D1 evidence lookup while keeping the expected action and subject in the
+   caller scenario modules. Worker integration tests may share an email-message assertion helper for
+   D1 ledger lookup while keeping expected email kind, status, and delivery error semantics in the
+   caller scenario modules.
+   Authenticated invitation administration may split managed-invitation creation/listing from
+   resend, revoke, delete, and audit state-change checks behind the same admin lifecycle entrypoint.
+   Password-reset session behavior may split reviewer account preparation from reset-token, email
+   ledger, and session-revocation/login assertions while keeping the caller-facing reset scenario
+   entrypoint.
+   Import/review integration scenarios may split by CSV review/advisory behavior, JSON partial
+   commit behavior, and retry/recovery behavior for the same reason. CSV review scenarios may split
+   again by happy-path upload/advisory/commit behavior and invalid-number review behavior while
+   returning the committed upload explicitly to later audit assertions. CSV happy-path behavior may
+   keep `testCsvHappyPathReviewCommit` as the caller-facing scenario while splitting source upload,
+   queue-to-review assertions, AI advisory confirmation, and approve/commit assertions into support
+   modules. JSON partial commit may keep `testJsonPartialCommitReview` as the caller-facing
+   scenario while splitting JSON upload/queue-to-review setup from partial commit and derived-status
+   assertions. JSON review scenarios may
+   split by partial commit state derivation and pending-row finalization while passing the JSON
+   upload explicitly between scenario modules. Audit integration may keep `testAuditFilters` as the
+   caller-facing scenario while splitting action coverage, actor/subject filters, and occurred-at/error
+   filter checks into support modules.
 
 Reason:
 
 The reusable value from downstream work is not domain logic. It is the paved-road behavior that makes
 future qitu-derived apps harder to misconfigure: traceable UI provenance, frictionless local startup,
 real browser coverage for fragile primitives, and repeatable Cloudflare release gates.
+
+### 2026-07-02: App-Owned Review Store Boundary
+
+Decision:
+
+Move starter staging and committed table access behind an app-owned Worker review-store boundary.
+
+Rules:
+
+1. Generic Worker review routes, import job runner, review stats, and AI advisory stats depend on
+   `WorkerReviewStore`.
+2. Starter `example_staged_records` and `example_committed_records` table names live only in
+   `apps/worker/src/features/starter-review-*` modules.
+3. Import adapters register the review store that matches their staged and committed row storage.
+4. Audit subject kind for staged records is supplied by the store, not hardcoded by generic routes.
+5. New feature slices must replace both the parser/commit adapter and the review store.
+6. Starter review query modules may split staged-record reads, committed-record reads, and status
+   summary reads while keeping `starter-review-queries.ts` as the store-facing facade.
+7. Starter staged-record queries may keep caller-facing read functions in
+   `starter-review-staged-queries.ts` while the repeated row projection lives in a focused query
+   support module.
+
+Reason:
+
+The starter needs demo tables to prove review and commit, but generic Worker modules should not know
+demo table names. A small store boundary lets downstream apps replace storage without changing core
+review semantics or reusable packages.
+
+### 2026-07-02: Auth Route Support Modules
+
+Decision:
+
+Keep `auth-routes.ts` as route registration and workflow composition, and move session cookies,
+permission-denial recording, email URL/delivery helpers, public response mapping, and row types into
+focused Worker support modules.
+
+Rules:
+
+1. Other modules may keep importing `readCurrentUser`, `requirePermission`, and `CurrentUser` from
+   `auth-routes.ts`; it re-exports the support implementations.
+2. `auth-session.ts` may remain the route-facing session facade while session cookie policy,
+   session insert preparation, cookie writing, and current-user D1 lookup/session maintenance live
+   in focused support modules.
+3. `auth-permissions.ts` owns RBAC denial audit/security-event recording.
+4. `auth-email.ts` owns public auth URL construction and invitation/password-reset email delivery.
+   `auth-email.ts` may stay the route-facing facade while URL building, package-template rendering
+   plus delivery, and public delivery projection live in focused support modules.
+5. `auth-presenters.ts` owns public auth response mapping.
+6. `auth-route-support.ts` may remain a compatibility facade while local bootstrap, invitation
+   response creation, and local-runtime detection live in focused support modules.
+7. `auth-password-routes.ts` may remain the password-reset route registrar while request-token/email
+   behavior and token-confirmation/session-revocation behavior live in per-endpoint modules.
+   Password-reset request endpoints may split user lookup and token/audit persistence into focused
+   support modules while keeping URL construction, email delivery, and local token response policy
+   in the route module.
+   Password-reset confirm endpoints may split token lookup and token/password/session/audit
+   persistence into focused support modules while keeping HTTP validation, error responses, and
+   session-cookie clearing in the route module.
+   Invitation acceptance endpoints may split duplicate-user lookup and invitation/user/session/audit
+   persistence into focused support modules while keeping token validation, user construction, and
+   session-cookie writing in the route module.
+   Invitation create/resend/revoke/delete code may keep permission checks, token/email delivery, and
+   response shaping in the route/response modules while D1 mutation and audit statements live in
+   focused invitation record support modules.
+8. `auth-session-routes.ts` may remain the session route registrar while login, logout, and current
+   user lookup live in per-endpoint modules.
+
+Reason:
+
+The auth route file had become a mixed route, persistence, email, and presenter module. Splitting
+support responsibilities makes the Worker auth surface easier to review without changing route
+contracts.
+
+### 2026-07-02: Thin App Composition Entrypoints
+
+Decision:
+
+Keep deployable app entrypoints as composition files, and move app-owned route, page, controller,
+demo, and parser responsibilities into focused modules.
+
+Rules:
+
+1. `apps/worker/src/index.ts` owns Worker handler assembly, health, queue, and email entrypoints;
+   source, import-job, audit, AI advisory, import-review, and auth endpoints live in route modules.
+2. `apps/worker/src/auth-routes.ts` remains a compatibility façade for auth registration and
+   `readCurrentUser`/`requirePermission` re-exports; auth endpoint groups live beside it.
+3. `apps/worker/src/inbound-email.ts` owns Cloudflare Email intake orchestration; MIME attachment
+   extraction uses `apps/worker/src/mime-parser.ts` as the entrypoint with parser-local header and
+   transfer-decoding helper modules beside it.
+   `apps/worker/src/mime-codecs.ts` may stay as a compatibility façade while header parameter
+   parsing, header-value decoding, transfer-body decoding, and shared byte codecs live in focused
+   parser-local support modules.
+4. `apps/web/src/app.tsx` remains the React shell orchestrator; auth route gates, authenticated
+   workspace prop contracts, authenticated review and shell route renderers, action runners, auth
+   session/password-reset action groups, review action groups, review record decision/commit action
+   modules, app navigation model, user-management action groups, workspace action helpers, workspace review data hooks,
+   upload queue action groups, shell overlay state, shell frame/action/loading modules, and chrome modules, page sections,
+   audit page filter/result/detail modules, workspace source selection hooks, workspace source detail/upload action/queue item modules, workspace source/invitation/import row modules, import diagnostics detail modules, workspace page-section UI/import/audit/status helper modules, review-console workflow panels, review-console upload and source-list sections,
+   review-console row parts, sidebar panel modules, advisory items, console helper functions, upload/user-management
+   controllers, review records table modules, demo mock seed graph/invitation/review/audit fixture modules, demo mock entity/content/event/state helpers, demo mock invitation/time/id/value helpers, and demo mock
+   auth/invitation/source/advisory/audit operation modules and advisory route modules live in app-owned modules.
+   `apps/web/src/app.tsx` may remain a render-only facade while app route derivation, auth/workspace
+   workflow orchestration, and route gate selection live in an app controller hook. The
+   `AuthenticatedWorkspaceProps` assembly may live in a focused app-controller props builder so the
+   hook stays an orchestration module.
+   Upload queue actions may keep file-selection, sample-upload, retry, remove, and reset handlers
+   while the batch upload runner owns per-entry status transitions, completed-entry cleanup, and
+   duplicate/failure notice derivation.
+   `apps/web/src/styles.css` may remain the app stylesheet entrypoint while route-specific global
+   styles, such as the auth page shell, live in focused CSS modules imported by that entrypoint and
+   included in smoke token checks.
+   `auth-session-actions.ts` may keep endpoint-specific login, invitation acceptance, local setup,
+   and logout handlers while successful authenticated-session completion lives in a focused module.
+   `apps/web/src/api.ts` may remain the app-facing API client facade, and `api-auth.ts` may remain
+   the auth API facade while session, password reset, invitation acceptance, invitation
+   administration, user administration, local bootstrap, health response types, and auth response
+   types live in focused endpoint-family modules.
+   `api-client.ts` may remain the transport facade while structured API error normalization lives
+   in a focused `api-client-errors.ts` module covered by package-interface tests.
+   `types.ts` may remain the web-facing type facade while auth, source/upload, import/job,
+   review/advisory, and audit response shapes live in focused type modules.
+   `app-navigation.tsx` may remain the shell navigation facade while `app-navigation-model.ts`
+   owns route metadata, route grouping, visibility rules, and route-entry projection for command
+   search.
+   `workspace-shell-routes.tsx` may remain the shell frame route facade while
+   `workspace-shell-route-content.tsx` owns ordinary workspace route-to-page adapters and
+   `workspace-not-found-route.tsx` owns fallback not-found route UI.
+   `messages-en.ts` and `messages-zh-cn.ts` may remain web dictionary facades while
+   shell/core, auth/settings, workflow, and review/advisory app copy lives in split dictionary
+   modules read directly by i18n smoke.
+   The web i18n provider may keep React context state while app-owned runtime helpers own stored
+   locale persistence, translator construction, locale formatters, and role/status labelers.
+   `api-imports.ts` may remain the import/review API facade while import job, review decision,
+   advisory, and response type clients live in focused endpoint-family modules.
+   Mock API import route handling may keep `mock-api-import-routes.ts` as the facade while import
+   job route behavior and review route behavior live in focused mock route modules; advisory routes
+   stay in their existing advisory module.
+   Mock review operations may keep `mock-api-review-operations.ts` as a support facade while
+   review decision behavior, commit behavior, and import-job status recalculation live in focused
+   mock operation modules.
+5. Facade files may preserve existing imports during the pre-release starter phase, but new feature
+   slices should add route/page groups instead of growing composition entrypoints.
+
+Reason:
+
+The starter had crossed the point where a single app file or Worker route file was the easiest place
+to understand behavior. Splitting along deployable app boundaries keeps core packages
+business-neutral, makes route and page review smaller, and avoids inventing reusable frameworks
+before a second app proves the abstraction.
+
+### 2026-07-06: Refactor Locality Detail Record
+
+Decision:
+
+Keep `docs/decisions/decision-log.md` as the short accepted-decision index, and move the detailed 2026-07-05/06 UI, package, Web, Worker, smoke, and mock API refactor entries to `docs/decisions/refactor-locality-2026-07.md`.
+
+Rules:
+
+1. Agents continue to start from this log for accepted decisions.
+2. Detailed locality refactor records live in `docs/decisions/refactor-locality-2026-07.md` when the entry would make this index hard to scan.
+3. New decisions still add a short entry here, linking a detail record only when needed.
+4. The detail record remains part of the architecture documentation set and must be included by smoke contexts that scan decision docs.
+
+Reason:
+
+The decision log is the stable lookup seam, but the July refactor entries had become a long implementation journal. Moving detailed entries behind a linked record restores scan locality without hiding accepted decisions.
+
+### 2026-07-06: Animated Icon Registry Groups
+
+Decision:
+
+Keep `packages/ui/src/animated-icon-registry.tsx` as the public `iconRegistry` composition module, and move grouped SVG definitions to shell/workflow registry modules. Detailed rules live in `docs/decisions/refactor-locality-2026-07.md`.
+
+Rules:
+
+1. `AnimatedIcon` continues importing the public `iconRegistry` from `animated-icon-registry.tsx`.
+2. Shell chrome icons and review/intake/workflow icons live in separate package-internal registry group modules.
+3. Shared registry typing lives in `animated-icon-registry-types.ts`; public icon names and props remain in `animated-icon-types.ts`.
+
+Reason:
+
+The registry had become the largest TypeScript UI source file while its public interface was still useful. Grouping selected SVG definitions improves locality for future shell and workflow icon additions without changing the `AnimatedIcon` interface.
 
 ## Pending
 

@@ -1,7 +1,7 @@
 # Generic Data Model
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-07-02
 
 ## 1. Purpose
 
@@ -17,6 +17,11 @@ import pipeline
 ai advisory
 audit/security/alerts
 ```
+
+`packages/db/src/index.ts` is the `@qitu/db` package interface facade. Drizzle table definitions live
+in focused package-internal modules by table group: auth, source/import, review, AI advisory, email,
+and event tables. The facade re-exports the same table names for callers; splitting modules is an
+implementation-locality change, not a migration or schema change.
 
 ## 3. Auth Tables
 
@@ -159,21 +164,20 @@ login_attempts (
 ```sql
 source_files (
   id TEXT PRIMARY KEY,
-  file_name TEXT NOT NULL,
-  file_kind TEXT NOT NULL,
-  mime_type TEXT,
-  byte_size INTEGER,
-  sha256 TEXT,
-  storage_bucket TEXT NOT NULL,
-  storage_key TEXT NOT NULL,
-  uploaded_by_user_id TEXT,
-  email_id TEXT,
-  received_at TEXT,
-  created_at TEXT NOT NULL
+  workspace_id TEXT NOT NULL,
+  object_key TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER,
+  uploaded_by TEXT NOT NULL,
+  uploaded_at TEXT NOT NULL,
+  content_hash TEXT
 )
 ```
 
-The core table stores what the file is physically. App-owned feature code decides what the file means.
+The core table stores what the file is physically. The Worker writes bytes to the configured R2
+binding and stores the object key here; the D1 table does not store a bucket column. App-owned
+feature code decides what the file means.
 
 ## 5. Email Tables
 
@@ -193,16 +197,48 @@ email_messages (
   error_message TEXT,
   metadata_json TEXT,
   created_at TEXT NOT NULL,
-  sent_at TEXT,
+  sent_at TEXT
 )
 ```
 
-Raw bodies should live in R2. D1 stores metadata and minimal extracted text only.
+Raw bodies should live in R2. D1 stores delivery metadata and minimal extracted text only.
 
 For invitation email, `metadata_json` includes the invitation id so admin views can show the latest
 delivery status and support resend without storing plaintext tokens.
 
-Inbound email routing can add a separate app-owned or core-owned table later. Do not overload `email_messages` with raw email body storage.
+The current inbound email baseline uses separate receipt and attachment tables. Raw RFC822 bodies
+are stored in R2, and accepted attachments are handed to source-file intake:
+
+```sql
+inbound_email_messages (
+  id TEXT PRIMARY KEY,
+  from_email TEXT NOT NULL,
+  to_email TEXT NOT NULL,
+  subject TEXT,
+  raw_object_key TEXT NOT NULL,
+  raw_size INTEGER NOT NULL,
+  attachment_count INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  metadata_json TEXT,
+  received_at TEXT NOT NULL
+)
+
+inbound_email_attachments (
+  id TEXT PRIMARY KEY,
+  inbound_email_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  source_file_id TEXT,
+  import_job_id TEXT,
+  object_key TEXT,
+  status TEXT NOT NULL,
+  error_message TEXT,
+  created_at TEXT NOT NULL
+)
+```
+
+Do not overload `email_messages` with raw inbound email body storage.
 
 ## 6. Import Pipeline Tables
 
@@ -344,20 +380,13 @@ alert_events
 ```sql
 audit_events (
   id TEXT PRIMARY KEY,
-  event_type TEXT NOT NULL,
   action TEXT NOT NULL,
-  actor_user_id TEXT,
-  actor_role TEXT,
-  entity_type TEXT NOT NULL,
-  entity_id TEXT,
-  before_json TEXT,
-  after_json TEXT,
+  actor_id TEXT NOT NULL,
+  actor_kind TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_kind TEXT NOT NULL,
   metadata_json TEXT,
-  request_id TEXT,
-  session_id TEXT,
-  ip_hash TEXT,
-  user_agent_hash TEXT,
-  created_at TEXT NOT NULL
+  occurred_at TEXT NOT NULL
 )
 ```
 

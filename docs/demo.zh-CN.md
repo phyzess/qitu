@@ -1,7 +1,7 @@
 # 静态 Demo
 
 Status: draft  
-Date: 2026-07-01
+Date: 2026-07-06
 
 `qitu` demo 是一个只依赖前端的展示环境，用来评审可复用 app shell 和第一条 vertical
 slice 的产品形态。它适合分享、走查和讨论，不要求先 provision 真实 Cloudflare 资源。
@@ -16,9 +16,12 @@ Demo 不是 preview。
 | `preview`    | Worker Static Assets      | 真实 Worker，接 D1、R2、Queue 和 Cloudflare Email | 发布验证       |
 | `production` | Worker Static Assets      | 真实 Worker，接 production Cloudflare resources   | 真实 operator  |
 
-Demo build 设置 `VITE_QITU_API_MODE=mock`。在这个模式下，`apps/web/src/api.ts` 会把 API 调用路由到
-`apps/web/src/mock-api.ts`，不会访问 `/api/*` 或 `/health`。Mock state 存在浏览器
-`localStorage`；不会使用 Worker、D1、R2、Queue、Email Sending、Email Routing 或 secrets。
+Demo build 设置 `VITE_QITU_API_MODE=mock`。在这个模式下，`apps/web/src/api-client.ts` 会加载
+`apps/web/src/mock-api.ts`，不会访问 `/api/*` 或 `/health`。Mock API entrypoint 只是薄 route
+composer；auth、invitation、workspace、import-job、review、advisory、source upload、model、seed 和
+audit 行为分别放在 focused `mock-api-*-routes.ts`、`mock-api-*-operations.ts`、`mock-api-seed-*`
+以及 model/helper modules 中。Mock state 存在浏览器 `localStorage`；不会使用 Worker、D1、R2、Queue、
+Email Sending、Email Routing 或 secrets。
 
 ## 本地 Demo
 

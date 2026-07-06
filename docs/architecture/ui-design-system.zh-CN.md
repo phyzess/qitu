@@ -1,7 +1,7 @@
 # UI 与设计系统
 
 Status: accepted baseline
-Date: 2026-06-28
+Date: 2026-07-06
 
 ## 1. 目标
 
@@ -101,6 +101,19 @@ packages/charts
 9. Timeline components。
 10. 面向产品 chrome 的 animated icon registry。
 
+`packages/ui/src/shell.tsx` 是稳定的 shell interface facade。AppShell frame、一级/二级导航控件、
+shell props/types 和小型 system icons 放在 focused package-internal shell modules 中；app 页面继续
+从同一个 `@qitu/ui` shell surface 导入。
+
+`packages/ui/src/primitives.tsx` 是稳定的 shared primitive interface facade。Surface、
+section-header、data-state、metric-strip、timeline 和 panel-action-button implementations 放在
+focused package-internal modules 中；app 页面继续从 `@qitu/ui` 导入这些 primitives。
+
+`packages/ui/src/styles.css` 是稳定的 package stylesheet 入口。具体 selector family 放在
+`packages/ui/src/styles/*` 下的 focused CSS modules 中，例如 theme mapping、shell frame、
+toolbars、animated icons、overlays、form controls、upload/list rows、shared controls、
+surfaces 和 responsive rules。新增可复用视觉规则时，应扩展对应模块，而不是继续膨胀入口文件。
+
 `packages/design-system` 负责：
 
 1. Color tokens。
@@ -128,6 +141,10 @@ Token family 按三层组织：
 3. Donut chart。
 4. Scatter/compare chart。
 5. Tooltip、legend、crosshair。
+
+`packages/charts/src/index.tsx` 是 `@qitu/charts` 的 package interface facade。具体 chart
+实现、shared frame/state rendering、grid rendering、scale/format helpers、theme tokens 和
+chart-specific geometry 放在 package-internal focused modules 中。
 
 ## 4. 设计规则
 
@@ -215,12 +232,13 @@ Surface 层级规则：
 Animated icon 规则：
 
 1. `AnimatedIcon` 是 shell navigation、command/search、theme/language、refresh、account panel actions 与 reusable section headers 的 canonical dynamic icon 入口。
-2. `AnimatedIcon` 在 `packages/ui` 内 vendoring 选中的 AnimateIcons Lucide SVG source，并用 qitu 本地轻量 CSS motion 实现动效；app 页面不能直接 import icon runtime。
-3. Registry 刻意保持小而语义化。只有当图标出现在 reusable product chrome 或重复页面模式里，才新增 `AnimatedIconName`。
-4. 优先使用 AnimateIcons/Lucide source geometry。若缺少精确语义匹配，选择最接近的现有 source shape，或保留静态 Lucide fallback，不再手画粗糙本地图标。
-5. 密集 data table、timeline row、破坏性确认和一次性页面动作可以继续使用静态 Lucide icon；如果动效降低扫描效率，就不应添加。
-6. 不为 app chrome 引入 Lottie、`@animateicons/react` 或第二套 animated icon runtime，除非先记录 dependency 与 bundle-size decision。
-7. 页面代码可以把 `AnimatedIcon` 作为 React node 传入，但不能在共享 qitu tokens 外自定义 animation timing、keyframes 或 accent color。
+2. `AnimatedIcon` 的 public wrapper 位于 `packages/ui/src/animated-icon.tsx`；`packages/ui/src/animated-icon-registry.tsx` 从 `packages/ui/src/animated-icon-registry-shell.tsx` 与 `packages/ui/src/animated-icon-registry-workflow.tsx` 的 shell/workflow SVG groups 组合 public icon map，共享 registry typing 位于 `packages/ui/src/animated-icon-registry-types.ts`，semantic names 和 props 位于 `packages/ui/src/animated-icon-types.ts`，qitu 本地轻量 CSS motion 位于 `packages/ui/src/styles/animated-icon.css`。
+3. App 页面不能直接 import icon runtime 或 package-internal icon registry modules。
+4. Registry 刻意保持小而语义化。只有当图标出现在 reusable product chrome 或重复页面模式里，才新增 `AnimatedIconName`。
+5. 优先使用 AnimateIcons/Lucide source geometry。若缺少精确语义匹配，选择最接近的现有 source shape，或保留静态 Lucide fallback，不再手画粗糙本地图标。
+6. 密集 data table、timeline row、破坏性确认和一次性页面动作可以继续使用静态 Lucide icon；如果动效降低扫描效率，就不应添加。
+7. 不为 app chrome 引入 Lottie、`@animateicons/react` 或第二套 animated icon runtime，除非先记录 dependency 与 bundle-size decision。
+8. 页面代码可以把 `AnimatedIcon` 作为 React node 传入，但不能在共享 qitu tokens 外自定义 animation timing、keyframes 或 accent color。
 
 Qitu token 与视觉系统规则：
 

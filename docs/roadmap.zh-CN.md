@@ -121,7 +121,7 @@ baseline complete
 
 1. 第二个 feature 不增加 core 概念。
 2. Core package contracts 不变。
-3. Smoke 和 Worker integration 独立验证 optional examples。
+3. Smoke 和 package interface tests 独立验证 optional examples；Worker integration 继续覆盖 app-owned starter adapters。
 
 ## Phase 4: Extraction Quality
 

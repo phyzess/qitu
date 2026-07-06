@@ -85,9 +85,11 @@ wrangler secret put PROVIDER_API_KEY --env preview
 wrangler secret put PROVIDER_API_KEY --env production
 ```
 
-不要把 secret values 提交到 `.env`、`.dev.vars`、docs 或 `wrangler.jsonc`。
+不要把 secret values 提交到 `.env`、`apps/worker/.dev.vars`、docs 或
+`apps/worker/wrangler.jsonc`。
 
-`MAIL_FROM`、`PUBLIC_APP_NAME`、`PUBLIC_APP_URL` 是配置值，不是 secrets，但部署前仍需按环境 review。
+`EMAIL_DELIVERY_MODE`、`MAIL_FROM`、`MAIL_REPLY_TO`、`PUBLIC_APP_NAME` 和 `PUBLIC_APP_URL`
+是配置值，不是 secrets，但部署前仍需按环境 review。
 
 ## 5. Remote Migration
 

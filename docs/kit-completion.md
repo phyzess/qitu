@@ -1,7 +1,7 @@
 # Kit Completion Contract
 
 Status: draft  
-Date: 2026-07-01
+Date: 2026-07-05
 
 This document defines what "complete but not redundant" means for `qitu`.
 
@@ -58,12 +58,12 @@ The final kit must include:
 6. `docs/roadmap.md` shows no P0 or P1 item without an owner path.
 7. No reusable package imports app-owned feature code.
 8. No core package contains business-specific vocabulary.
-9. `.env.example`, `.dev.vars.example`, and setup docs list every required binding or secret name.
+9. `.env.example`, `apps/worker/.dev.vars.example`, and setup docs list every required binding or secret name.
 10. A new feature can start from `templates/feature` without editing existing core packages, including its first migration, test fixture, and web surface descriptor.
 
 ## Last Verified
 
-Date: 2026-07-01
+Date: 2026-07-06
 
 Workspace: local filesystem baseline; no git metadata is required for this evidence.
 
@@ -71,29 +71,38 @@ Commands passed:
 
 1. `vp check --fix`
 2. `vp run smoke`
-3. `vp run -r typecheck`
-4. `vp run verify:kit`
+3. `vp run --filter @qitu/web typecheck`
+4. `vp run --filter @qitu/worker typecheck`
+5. `node scripts/worker-integration.mjs`
+6. `vp run verify:kit`
 
 Verified coverage added in this pass:
 
-1. Browser smoke opens a generated invite link, accepts the invitation, opens a generated password-reset link, confirms the reset, and logs in with the new password.
-2. `templates/feature` is a workspace package and is typechecked by `vp run verify:kit`.
-3. The Worker uses app-owned starter adapters and no longer depends on optional `examples/*` packages.
-4. RBAC baseline covers owner/admin/reviewer/viewer roles, invitation-assigned user roles, viewer write denial, and `rbac.denied` audit evidence.
-5. Release and upgrade notes document the current baseline and safe adoption path for cloned apps.
-6. DLQ remediation is documented and `ops:failed-jobs` provides a read-only D1 recovery snapshot that exits cleanly after Wrangler reports success.
-7. Audit filtering, selected-event details, invitation revocation, source/job diagnostics, recovery guidance, and import-to-review selected job context are covered by integration or browser smoke checks.
-8. Browser smoke generates and confirms a deterministic AI advisory before approval/commit, then verifies `ai_advisory.confirmed` in the job event stream.
-9. The app information architecture exposes only Workspace and Settings as primary navigation, with source/import/review routes under Workspace and account/members/audit under Settings.
-10. Worker integration covers count-derived import job status after partial JSON commits, so pending rows keep the job in review until all approved rows are committed.
-11. Deploy dry-run commands verify local Worker bindings through the Wrangler dry-run wrapper, while preview and production dry-runs run a preflight that blocks placeholder public URLs, unverified sender domains, placeholder D1 ids, missing Email bindings, and missing queue DLQs before bundling.
-12. App adoption is covered by a dry-run-first script that plans package rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety steps.
-13. `templates/feature` includes a replaceable migration, integration fixture, and web surface descriptor so a second feature slice can start without core edits.
-14. RBAC keeps reusable permission helpers in `packages/rbac` while cloned apps can define app-owned role policies in their deployable entrypoints.
-15. React orchestration helpers for audit filters, upload queue state, and permission projection are app-owned modules outside the top-level app component.
-16. UI primitives now cover filter bars, data toolbars, detail drawers, and a command-search fixture used by the starter shell.
-17. Confirmation aliases bridge user-facing confirm/exclude language to existing review approve/reject storage before any future schema migration.
-18. Inbound email stores raw RFC822 messages, records receipt/attachment metadata, and hands supported attachments to the same source-file import job path as authenticated upload.
+1. Worker integration covers inbound email with a top-level base64 attachment and a nested multipart quoted-printable attachment using `filename*=`.
+2. Static smoke checks the app-owned review-store boundary instead of requiring generic Worker routes to hardcode starter table names.
+3. `vp run verify:kit` revalidated smoke, full typecheck, formatting/lint, build, Worker runtime tests, local D1 migration, and browser smoke.
+4. The Worker uses app-owned starter adapters and no longer depends on optional `examples/*` packages.
+5. RBAC baseline covers owner/admin/reviewer/viewer roles, invitation-assigned user roles, viewer write denial, and `rbac.denied` audit evidence.
+6. Release and upgrade notes document the current baseline and safe adoption path for cloned apps.
+7. DLQ remediation is documented and `ops:failed-jobs` provides a read-only D1 recovery snapshot that exits cleanly after Wrangler reports success.
+8. Audit filtering, selected-event details, invitation revocation, source/job diagnostics, recovery guidance, and import-to-review selected job context are covered by integration or browser smoke checks.
+9. Browser smoke generates and confirms a deterministic AI advisory before approval/commit, then verifies `ai_advisory.confirmed` in the job event stream.
+10. The app information architecture exposes only Workspace and Settings as primary navigation, with source/import/review routes under Workspace and account/members/audit under Settings.
+11. Worker integration covers count-derived import job status after partial JSON commits, so pending rows keep the job in review until all approved rows are committed.
+12. Deploy dry-run commands verify local Worker bindings through the Wrangler dry-run wrapper, while preview and production dry-runs run a preflight that blocks placeholder public URLs, unverified sender domains, placeholder D1 ids, missing Email bindings, and missing queue DLQs before bundling.
+13. App adoption is covered by a dry-run-first script that plans package rename, Cloudflare resource rename, product-baseline pruning, and upstream remote safety steps.
+14. `templates/feature` includes a replaceable migration, integration fixture, and web surface descriptor so a second feature slice can start without core edits.
+15. RBAC keeps reusable permission helpers in `packages/rbac` while cloned apps can define app-owned role policies in their deployable entrypoints.
+16. React orchestration helpers for audit filters, upload queue state, and permission projection are app-owned modules outside the top-level app component.
+17. UI primitives now cover filter bars, data toolbars, detail drawers, and a command-search fixture used by the starter shell.
+18. Confirmation aliases bridge user-facing confirm/exclude language to existing review approve/reject storage before any future schema migration.
+19. Inbound email stores raw RFC822 messages, records receipt/attachment metadata, and hands supported attachments to the same source-file import job path as authenticated upload.
+20. Worker and Web app composition files are split into app-owned route groups, page sections, controllers, and demo support modules while keeping reusable packages business-neutral.
+21. Static smoke now checks the app-owned MIME parser entrypoint and helper modules for inbound email attachment extraction.
+22. Package interface tests load the optional example packages and run their adapters through parse, stage, validate, and commit paths independently of the Worker starter adapters.
+23. Static smoke reads full package/example source directories for thin facades, so package guards continue covering auth, database, i18n, import-pipeline, email, charts, UI, and example feature implementation modules.
+24. `vp run verify:kit` passed after the package/example facade refactors, revalidating browser smoke and local D1 migration on the current worktree.
+25. `vp run verify:kit` passed after the July locality refactors, revalidating smoke, full typecheck, formatting/lint, build, Worker runtime tests, local D1 migration, and browser smoke on the current worktree.
 
 ## Deliberately Out of Scope
 

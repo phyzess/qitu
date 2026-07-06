@@ -43,7 +43,7 @@ cp .env.example .env
 cp apps/worker/.dev.vars.example apps/worker/.dev.vars
 ```
 
-`.env` 和 `.dev.vars` 不应提交。
+`.env` 和 `apps/worker/.dev.vars` 不应提交。
 
 ## 4. Cloudflare 本地绑定
 

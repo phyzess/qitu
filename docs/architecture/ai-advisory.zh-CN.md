@@ -35,7 +35,7 @@ Deterministic code commits.
 已实现：
 
 1. `packages/ai-advisory` 定义 advisory schema、provider contract 和 deterministic local import-review summary generator。
-2. `0005_ai_advisories.sql` 在 D1 中保存 advisory artifacts。
+2. `apps/worker/migrations/0005_ai_advisories.sql` 在 D1 中保存 advisory artifacts。
 3. Worker 支持 list、generate、confirm、dismiss。
 4. React console 在 review guardrails 附近展示 advisory。
 5. 生成和人工处理都会写 audit event。

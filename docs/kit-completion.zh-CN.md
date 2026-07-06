@@ -1,7 +1,7 @@
 # Kit 完成契约
 
 Status: draft  
-Date: 2026-06-29
+Date: 2026-07-05
 
 本文定义 `qitu` 的“完成但不冗余”是什么意思。
 
@@ -34,13 +34,13 @@ Date: 2026-06-29
 
 1. App-managed auth：invite、accept、login、protected routing、account/logout、admin member/invitation management、current user、password reset、session revocation 和 audit events。
 2. 最小 RBAC：邀请时分配角色、写路由守卫、只读 viewer、拒绝访问写 audit。
-3. Source file intake：鉴权上传、R2 存储、D1 元数据、import job 创建、audit。
+3. Source file intake：鉴权上传、inbound email attachment intake、R2 存储、D1 元数据、import job 创建、audit。
 4. Queue-backed import processing：幂等 job 状态、可见失败、失败分类、retry、audit。
 5. 基于 `ImportFeatureAdapter` 的通用 import/review/commit workflow。
 6. 一条完整 example feature，覆盖 parse、stage、review、approve、commit、audit。
 7. React app shell：login、account、member/invitation settings、source files、import jobs、review table、audit timeline。
 8. 面向数据密集内部工具的业务中立 UI、design tokens 和 chart primitives。
-9. Email abstraction，兼容 Cloudflare invite/reset delivery path。
+9. Email abstraction，兼容 Cloudflare invite/reset delivery path 和 generic inbound receipt metadata。
 10. AI advisory abstraction，存储 advisory output，commit 前需要人工确认。
 11. Cloudflare binding docs 和本地 setup、migration、validation、deployment、DLQ/failed-job remediation 命令。
 12. Codex、Claude Code、Pi-style planning agents 的 agent entrypoints。
@@ -58,38 +58,35 @@ Date: 2026-06-29
 6. `docs/roadmap.md` 没有缺 owner path 的 P0/P1 项。
 7. 可复用 package 不 import app-owned feature code。
 8. core package 不包含业务特定词汇。
-9. `.env.example`、`.dev.vars.example` 和 setup docs 列出所需 binding 或 secret name。
+9. `.env.example`、`apps/worker/.dev.vars.example` 和 setup docs 列出所需 binding 或 secret name。
 10. 新 feature 可以从 `templates/feature` 开始，不需要编辑已有 core package。
 
 ## 最近验证
 
-Date: 2026-06-29
+Date: 2026-07-06
 
 Workspace: local filesystem baseline；此证据不依赖 git metadata。
 
 已通过命令：
 
 1. `vp check --fix`
-2. `vp run ops:failed-jobs -- local --limit 5`
-3. `vp run smoke`
-4. `vp run verify:kit`
-5. `vp run deploy:dry-run`
-6. `vp run deploy:preview:dry-run`
-7. `vp run deploy:production:dry-run`
+2. `vp run smoke`
+3. `vp run --filter @qitu/web typecheck`
+4. `vp run --filter @qitu/worker typecheck`
+5. `node scripts/worker-integration.mjs`
+6. `vp run verify:kit`
 
 已验证覆盖：
 
-1. Browser smoke 打开生成的 invite link，接受邀请，打开 password-reset link，确认重置，并用新密码登录。
-2. `templates/feature` 是 workspace package，并由 `vp run verify:kit` typecheck。
-3. Worker 使用 app-owned starter adapters，不再依赖可选 `examples/*` package。
-4. RBAC baseline 覆盖 owner/admin/reviewer/viewer、邀请角色、viewer 写拒绝和 `rbac.denied` audit。
-5. Release/upgrade notes 记录当前 baseline 和 cloned app 的安全采用路径。
-6. DLQ remediation 已记录，`ops:failed-jobs` 提供只读 D1 恢复快照，并在 Wrangler 报告成功后干净退出。
-7. Audit filtering、selected-event details、invitation revocation、source/job diagnostics、recovery guidance 和 import-to-review selected job context 已由 integration 或 browser smoke 覆盖。
-8. Browser smoke 会在 approve/commit 前生成并确认 deterministic AI advisory，然后验证 job event stream 中的 `ai_advisory.confirmed`。
-9. App information architecture 只把 Workspace 和 Settings 暴露为 primary navigation；source/import/review routes 归入 Workspace，account/members/audit 归入 Settings。
-10. Worker integration 覆盖 partial JSON commit 后由 counts 推导 import job status：仍有 pending rows 时 job 保持 review 语义，直到 approved rows 全部 committed。
-11. Deploy dry-run commands 验证 local、preview、production Worker bindings，并通过 Wrangler dry-run wrapper 在 Wrangler 输出 `--dry-run: exiting now.` 后干净退出。
+1. Worker integration 覆盖 inbound email：顶层 base64 附件与嵌套 multipart quoted-printable 附件，且支持 `filename*=`。
+2. Static smoke 检查 app-owned review-store 边界，不再要求 generic Worker routes 硬编码 starter table names。
+3. `vp run verify:kit` 重新验证 smoke、全量 typecheck、format/lint、build、Worker runtime tests、本地 D1 migration 和 browser smoke。
+4. Browser smoke 继续覆盖 invite accept、password reset、login、upload、review approval、commit、audit/advisory visibility。
+5. Worker/Web composition files 已拆成 app-owned route groups、page sections、controllers、demo support modules，并由 static smoke 检查 app-owned MIME parser entrypoint 和 helper modules 边界。
+6. Package interface tests 会加载 optional example packages，并让 adapters 独立跑过 parse、stage、validate 和 commit paths，不依赖 Worker starter adapters。
+7. Static smoke 读取 thin facade 背后的完整 package/example source directories，继续覆盖 auth、database、i18n、import-pipeline、email、charts、UI 和 example feature implementation modules。
+8. Package/example facade refactors 之后，`vp run verify:kit` 已在当前 worktree 通过，并重新验证 browser smoke 与本地 D1 migration。
+9. 7 月 locality refactors 之后，`vp run verify:kit` 已在当前 worktree 通过，并重新验证 smoke、全量 typecheck、format/lint、build、Worker runtime tests、本地 D1 migration 和 browser smoke。
 
 ## 明确不在范围内
 

@@ -58,6 +58,7 @@ The adapter owns:
 5. Commit rules.
 6. The fixture that proves the feature path.
 7. The web surface hook that tells the app where the feature plugs into the workbench.
+8. The app-owned review store that maps generic review actions to feature-owned staging and commit tables.
 
 The reusable import pipeline owns:
 
@@ -92,7 +93,8 @@ For a real product repository:
 2. Move or rewrite the migration into `apps/worker/migrations`.
 3. Replace `TemplateParsedRecord`, `TemplateStagedRecord`, and `TemplateCommittedRecord`.
 4. Register the feature adapter from `apps/worker/src/import-adapters.ts`.
-5. Add Worker integration coverage using `featureIntegrationFixtures`.
-6. Add or replace an app-owned React route using `featureWebSurfaces`.
-7. Add browser smoke coverage for upload -> queue -> confirmation -> commit.
-8. Remove starter adapters only after the new feature verifies the same vertical slice.
+5. Provide a `WorkerReviewStore` implementation for the feature's staging and committed tables.
+6. Add Worker integration coverage using `featureIntegrationFixtures`.
+7. Add or replace an app-owned React route using `featureWebSurfaces`.
+8. Add browser smoke coverage for upload -> queue -> confirmation -> commit.
+9. Remove starter adapters only after the new feature verifies the same vertical slice.

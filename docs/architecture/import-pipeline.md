@@ -72,6 +72,11 @@ The adapter is intentionally narrow. It does not prescribe where app-owned featu
 
 `CommitApprovedContext` must include the import job, confirmer identity, approved staged record keys, and an idempotency key. This prevents an adapter from treating commit as a raw data write detached from confirmation.
 
+`packages/import-pipeline/src/index.ts` is the package interface facade. Schemas and generic types,
+the adapter contract, manual review issue factory, staging key conventions, review/confirmation
+action aliases, and job status derivation live in focused package-internal modules behind that same
+package import path.
+
 ## 6. Confirmation Decision
 
 Review decisions should be explicit and auditable:
@@ -128,6 +133,13 @@ Import work must be safe to retry:
 5. Audit events should describe retries without hiding the original failure.
 
 The starter Worker currently includes app-owned `example_staged_records` and `example_committed_records` tables to prove the path. Real applications should replace those with feature-owned tables without changing core review decisions.
+
+Worker review routes and the import job runner access staged and committed rows through the
+app-owned `WorkerReviewStore` boundary in `apps/worker/src/import-review-store.ts`. The starter
+implementation lives in `apps/worker/src/features/starter-review-*` modules, which are the only
+generic Worker modules allowed to know the `example_*` table names. A real feature should provide
+its own store beside its adapter so review list, decision, commit, stats, audit subject kind, and AI
+advisory counts stay generic.
 
 ## 8. Failure Classes
 

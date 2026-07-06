@@ -36,6 +36,11 @@ ImportFeatureAdapter
 
 Core 不知道业务字段。业务 payload 由 adapter 和 app-owned feature code 解释。
 
+`packages/import-pipeline/src/index.ts` 是 package interface facade。Schemas、generic types、adapter
+contract、manual review issue factory、staging key conventions、review/confirmation action aliases
+和 job status derivation 放在 package-internal focused modules 中，调用方仍从
+`@qitu/import-pipeline` 导入。
+
 ## 状态流
 
 ```text

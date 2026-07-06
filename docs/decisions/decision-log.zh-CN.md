@@ -10,10 +10,10 @@ Decision:
 
 Cloudflare binding adapters 和 starter feature registration 留在 app-owned Worker modules：
 
-1. `apps/worker/src/auth-routes.ts` 围绕 reusable auth/email/RBAC package rules 组合 auth、session、invitation、password-reset、RBAC denial、audit 和 email delivery routes。
+1. `apps/worker/src/auth-routes.ts` 保持 auth route-registration facade；focused auth、session、invitation、password-reset、RBAC denial、audit 和 email delivery modules 把 reusable auth/email/RBAC package rules 适配到 Worker routes。
 2. `apps/worker/src/import-adapters.ts` 注册 app-owned starter import adapters。
 3. `apps/worker/src/import-job-runner.ts` 把 generic import lifecycle rules 接到 D1、R2、Queue、audit 和 app-owned staging tables。
-4. `apps/worker/src/import-review-routes.ts` 拥有 starter review/decision/commit route persistence，用于 app-owned staging 和 committed tables。
+4. `apps/worker/src/import-review-routes.ts` 拥有 review route registration；focused detail、decision、confirm-pending、commit、store 和 statement modules 拥有 app-owned staging/committed tables 的 persistence。
 5. `apps/worker/src/audit-store.ts` 与 `apps/worker/src/email-delivery.ts` 把 audit/email package concepts 适配到 D1 与 Cloudflare Email。
 6. `apps/worker/src/http-utils.ts` 拥有 shared route parsing 和 error response helpers。
 7. `packages/import-pipeline` 拥有 generic review status helpers、staging key conventions 和 adapter contracts。
@@ -387,7 +387,11 @@ Decision:
 
 规则：
 
-1. `packages/ui/src/animated-icon.tsx` 负责 `AnimatedIcon`、`AnimatedIconName`，以及从 qitu semantic icon names 到 vendored SVG source 的映射。
+1. `packages/ui/src/animated-icon.tsx` 负责 public `AnimatedIcon` wrapper，
+   `packages/ui/src/animated-icon-types.ts` 负责 `AnimatedIconName` 和 props，
+   `packages/ui/src/animated-icon-registry.tsx` 组合从 qitu semantic icon names 到 registry
+   entries 的 public mapping，分组的 `animated-icon-registry-*` modules 负责 selected vendored
+   SVG source。
 2. App 页面不能直接 import icon runtime；统一使用 `@qitu/ui` 暴露的 `AnimatedIcon`。
 3. Shell navigation、command/search、theme/language、refresh、account panel actions 和 reusable section headers 使用 animated icons。
 4. 密集 table、timeline row、破坏性确认、一次性 secondary action 和 data-state fallback glyph 默认保持静态，除非重复使用证明 motion 能提升扫描效率。
@@ -563,6 +567,39 @@ Decision:
 原因：
 
 下游项目最值得反哺 qitu 的不是业务规则，而是减少误配置的 paved road：可追踪 UI 来源、低摩擦本地启动、脆弱 primitive 的真实浏览器回归，以及可重复的 Cloudflare 发布门禁。
+
+### 2026-07-06: Refactor Locality Detail Record
+
+Decision:
+
+保留 `docs/decisions/decision-log.zh-CN.md` 作为简短 accepted-decision index，并把 2026-07-05/06 的 UI、package、Web、Worker、smoke 与 mock API refactor 详细条目移入 `docs/decisions/refactor-locality-2026-07.zh-CN.md`。
+
+规则：
+
+1. Agent 仍然先从本 log 查看 accepted decisions。
+2. 当详细 locality refactor record 会让主索引难以扫描时，详情放入 `docs/decisions/refactor-locality-2026-07.zh-CN.md`。
+3. 新决策仍在这里添加短条目；只有需要更多上下文时才链接 detail record。
+4. Detail record 仍属于 architecture documentation set，并由扫描 decision docs 的 smoke context 覆盖。
+
+原因：
+
+Decision log 是稳定 lookup seam，但 7 月 refactor 条目已经变成长实现日志。把详细条目放到 linked record 后，可以恢复主索引的 scan locality，同时不隐藏已接受决策。
+
+### 2026-07-06: Animated Icon Registry Groups
+
+Decision:
+
+保留 `packages/ui/src/animated-icon-registry.tsx` 作为 public `iconRegistry` composition module，并把 grouped SVG definitions 移到 shell/workflow registry modules。详细规则记录在 `docs/decisions/refactor-locality-2026-07.zh-CN.md`。
+
+规则：
+
+1. `AnimatedIcon` 继续从 `animated-icon-registry.tsx` import public `iconRegistry`。
+2. Shell chrome icons 与 review/intake/workflow icons 分别放在 package-internal registry group modules。
+3. 共享 registry typing 位于 `animated-icon-registry-types.ts`；public icon names 和 props 继续位于 `animated-icon-types.ts`。
+
+原因：
+
+Registry 已经成为最大的 TypeScript UI source file，但它的 public interface 仍然有价值。按 shell/workflow 分组 selected SVG definitions，可以提高未来图标新增的 locality，同时不改变 `AnimatedIcon` interface。
 
 ## Pending
 

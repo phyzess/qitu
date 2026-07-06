@@ -15,6 +15,14 @@ Date: 2026-06-27
 4. `@qitu/email` 渲染邀请与密码重置邮件；Worker 在非 local 环境使用 Cloudflare `send_email`。
 5. `@qitu/rbac` 提供 starter role/permission 表；写路由在修改数据前做权限检查并审计拒绝事件。
 
+`packages/auth/src/index.ts` 是 package interface facade。Auth schemas、expiry helpers、identity
+normalization、token generation/hashing、password hashing/verification，以及
+invitation/session/reset factories 放在 package-internal focused modules 中。
+
+`packages/email/src/index.ts` 是 package interface facade。Provider-neutral email schemas、inbound
+receipt/attachment schemas、auth email locale dictionaries，以及 invitation/password-reset
+rendering 放在 package-internal focused modules 中。
+
 MVP 默认：
 
 1. 邮箱和密码登录。

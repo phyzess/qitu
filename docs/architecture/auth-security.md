@@ -15,6 +15,14 @@ Current scaffold status:
 4. `@qitu/email` renders invitation and password-reset messages. Worker delivery supports `store` and `send` modes, uses Cloudflare `send_email` in send mode, and always records `email_messages` metadata.
 5. `@qitu/rbac` owns the starter role/permission table. Worker write routes check permissions before mutating data and audit denied attempts.
 
+`packages/auth/src/index.ts` is the package interface facade. Auth schemas, expiry helpers, identity
+normalization, token generation/hashing, password hashing/verification, and invitation/session/reset
+factories live in focused package-internal modules.
+
+`packages/email/src/index.ts` is the package interface facade. Provider-neutral email schemas,
+inbound receipt/attachment schemas, auth email locale dictionaries, and invitation/password-reset
+rendering live in focused package-internal modules.
+
 MVP defaults:
 
 1. Email/password login.

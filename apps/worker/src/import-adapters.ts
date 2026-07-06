@@ -1,6 +1,8 @@
 import type { CommitApprovedContext, ReviewIssue } from "@qitu/import-pipeline";
 import { parseStarterStagedRecord, starterImportReviewAdapter } from "./features/import-review";
 import { parseStarterJsonStagedRecord, starterJsonRecordsAdapter } from "./features/json-records";
+import { starterReviewStore } from "./features/starter-review-store";
+import type { WorkerReviewStore } from "./import-review-store";
 
 export type WorkerImportAdapter = {
   id: string;
@@ -13,6 +15,7 @@ export type WorkerImportAdapter = {
     }>
   >;
   commitApproved(records: unknown[], context: CommitApprovedContext): Promise<unknown[]>;
+  reviewStore: WorkerReviewStore;
 };
 
 const registeredImportAdapters = [
@@ -36,6 +39,7 @@ const registeredImportAdapters = [
         context,
       });
     },
+    reviewStore: starterReviewStore,
   },
   {
     id: starterJsonRecordsAdapter.id,
@@ -57,6 +61,7 @@ const registeredImportAdapters = [
         context,
       });
     },
+    reviewStore: starterReviewStore,
   },
 ] satisfies WorkerImportAdapter[];
 

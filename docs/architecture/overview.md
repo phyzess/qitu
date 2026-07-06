@@ -94,7 +94,9 @@ Reusable packages:
 14. `db`
 15. `testing`
 
-Security events and alerts are planned capabilities. Keep them in `audit` or app-owned code until repeated production features prove they need separate packages.
+Security events and alerts are implemented as audit-adjacent, app-owned runtime modules and
+generic event tables, not as standalone reusable packages. Keep that shape until repeated
+production features prove a separate package would add real reuse.
 
 ### 3.3 Business Feature Layer
 

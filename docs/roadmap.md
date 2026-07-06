@@ -131,7 +131,7 @@ Exit criteria:
 
 1. The second feature adds no new core concepts.
 2. Core package contracts did not change.
-3. Smoke and Worker integration verify both optional example packages independently of the Worker starter adapters.
+3. Smoke and package interface tests verify both optional example packages independently of the Worker starter adapters.
 
 ## Phase 4: Extraction Quality
 

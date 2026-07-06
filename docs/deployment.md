@@ -118,7 +118,8 @@ wrangler secret put PROVIDER_API_KEY --env preview
 wrangler secret put PROVIDER_API_KEY --env production
 ```
 
-Do not commit secret values into `.env`, `.dev.vars`, docs, or `wrangler.jsonc`.
+Do not commit secret values into `.env`, `apps/worker/.dev.vars`, docs, or
+`apps/worker/wrangler.jsonc`.
 
 `EMAIL_DELIVERY_MODE`, `MAIL_FROM`, `MAIL_REPLY_TO`, `PUBLIC_APP_NAME`, and `PUBLIC_APP_URL` are configuration values, not secrets. They still need environment-specific review before deployment.
 

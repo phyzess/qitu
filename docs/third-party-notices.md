@@ -4,7 +4,7 @@ This file records notices for third-party source that is vendored into the qitu 
 
 ## AnimateIcons React
 
-`packages/ui/src/animated-icon.tsx` adapts selected SVG source from `@animateicons/react/lucide` version `0.3.4`.
+`packages/ui/src/animated-icon-registry-shell.tsx` and `packages/ui/src/animated-icon-registry-workflow.tsx` adapt selected SVG source from `@animateicons/react/lucide` version `0.3.4`; `packages/ui/src/animated-icon-registry.tsx` composes the public icon map.
 
 Project: <https://animateicons.in>  
 Repository: <https://github.com/Avijit07x/animateicons>  

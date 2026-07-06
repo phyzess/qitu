@@ -133,10 +133,14 @@ templates/
 
 `apps/*` are deployable entrypoints.
 
-`apps/worker/src/*` keeps deployable Worker wiring app-owned: HTTP routes, auth route
-composition, Cloudflare binding adapters, source-file intake, inbound email routing, the import job
-runner, import review routes, and starter feature registration live there. Reusable state rules and
-contracts still belong in `packages/*`.
+`apps/worker/src/*` keeps deployable Worker wiring app-owned: thin route composition entrypoints,
+HTTP route groups, auth route groups, Cloudflare binding adapters, source-file intake, MIME parsing
+for inbound email, the import job runner, import review routes, feature-owned review stores, and
+starter feature registration live there. Reusable state rules and contracts still belong in
+`packages/*`.
+
+`apps/web/src/*` keeps the React shell, route pages, page sections, workflow controllers, and demo
+mock API app-owned. Reusable visual primitives still belong in `packages/ui`.
 
 `packages/*` are reusable infrastructure and UI packages.
 

@@ -1,7 +1,7 @@
 # 通用数据模型
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-07-02
 
 ## 1. 目的
 
@@ -16,6 +16,11 @@ Date: 2026-06-27
 5. AI advisory。
 6. 审计、安全事件与告警。
 
+`packages/db/src/index.ts` 是 `@qitu/db` 的 package interface facade。Drizzle table definitions
+按 table group 放在 package-internal focused modules 中：auth、source/import、review、AI
+advisory、email 和 events。facade 继续 re-export 相同 table names；这只是实现 locality 拆分，不是
+schema 或 migration 变更。
+
 ## 2. 已实现基线与目标模型
 
 当前 migration 已实现一部分可跑通的基线：
@@ -29,6 +34,8 @@ password_reset_tokens
 login_attempts
 source_files
 email_messages
+inbound_email_messages
+inbound_email_attachments
 import_jobs
 import_job_events
 import_review_issues
@@ -84,31 +91,76 @@ disabled
 
 ## 4. 源文件表
 
-`source_files` 保存文件的物理事实：
+`source_files` 保存文件的物理事实。当前 migration 字段为：
 
-1. 文件名。
-2. 文件类型与 MIME。
-3. 字节数。
-4. `sha256`。
-5. R2 bucket 与 object key。
-6. 上传用户、邮件来源和接收时间。
+```sql
+source_files (
+  id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  object_key TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER,
+  uploaded_by TEXT NOT NULL,
+  uploaded_at TEXT NOT NULL,
+  content_hash TEXT
+)
+```
 
-core 只知道“文件是什么物理对象”。业务功能决定“这个文件是什么意思”。
+D1 只保存 R2 object key 与文件元数据；具体 bucket 来自 Worker binding。core 只知道“文件是什么物理对象”。业务功能决定“这个文件是什么意思”。
 
 ## 5. 邮件表
 
-`email_messages` 只保存发送元数据：
+`email_messages` 保存 invitation/password reset 的发送账本，覆盖 `store` 与 `send` 模式：
 
-1. 邮件类型。
-2. 收件人。
-3. 标题。
-4. 状态。
-5. provider。
-6. provider message id。
-7. 错误信息。
-8. 结构化 metadata。
+```sql
+email_messages (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL,
+  recipient_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  provider_message_id TEXT,
+  error_message TEXT,
+  metadata_json TEXT,
+  created_at TEXT NOT NULL,
+  sent_at TEXT
+)
+```
 
 原始正文应放 R2。D1 不存完整邮件正文，只存必要元数据和最小提取信息。
+
+当前 inbound email 基线已经实现独立收件与附件表；raw RFC822 存 R2，附件会交给 source-file intake 并创建 import job：
+
+```sql
+inbound_email_messages (
+  id TEXT PRIMARY KEY,
+  from_email TEXT NOT NULL,
+  to_email TEXT NOT NULL,
+  subject TEXT,
+  raw_object_key TEXT NOT NULL,
+  raw_size INTEGER NOT NULL,
+  attachment_count INTEGER NOT NULL,
+  status TEXT NOT NULL,
+  metadata_json TEXT,
+  received_at TEXT NOT NULL
+)
+
+inbound_email_attachments (
+  id TEXT PRIMARY KEY,
+  inbound_email_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  source_file_id TEXT,
+  import_job_id TEXT,
+  object_key TEXT,
+  status TEXT NOT NULL,
+  error_message TEXT,
+  created_at TEXT NOT NULL
+)
+```
 
 ## 6. 导入管线表
 
@@ -135,7 +187,8 @@ queued -> processing -> failed
 1. `import_jobs`：作业生命周期与状态。
 2. `import_job_events`：状态变化与时间线。
 3. `import_review_issues`：校验问题、冲突和警告。
-4. `import_errors`：解析或导入错误。
+
+未来如果需要更细的解析错误明细，可以增加 `import_errors`；当前 migration 尚未实现该表。
 
 ## 7. AI Advisory 表
 
@@ -163,14 +216,22 @@ security_events
 alert_events
 ```
 
-`audit_events` 记录业务与系统操作：
+`audit_events` 记录业务与系统操作。当前 migration 字段为：
 
-1. action。
-2. actor。
-3. entity type/id。
-4. before/after JSON。
-5. request/session 信息。
-6. 时间。
+```sql
+audit_events (
+  id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  actor_kind TEXT NOT NULL,
+  subject_id TEXT NOT NULL,
+  subject_kind TEXT NOT NULL,
+  metadata_json TEXT,
+  occurred_at TEXT NOT NULL
+)
+```
+
+更细的请求、安全与作业时间线事实分别进入 `login_attempts`、`security_events` 与 `import_job_events`。
 
 `security_events` 记录安全相关事件：
 

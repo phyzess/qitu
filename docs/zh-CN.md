@@ -30,6 +30,7 @@ Date: 2026-06-27
 21. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
 22. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
 23. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
+24. [decisions/refactor-locality-2026-07.zh-CN.md](./decisions/refactor-locality-2026-07.zh-CN.md)：2026 年 7 月架构拆分详细决策。
 
 ## 维护规则
 

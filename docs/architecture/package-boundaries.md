@@ -16,11 +16,24 @@ templates/* -> copyable starting points
 
 `qitu` does not require a top-level `domains/*` folder. Concrete apps may organize business code by feature, workflow, bounded context, or vertical slice.
 
-`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include auth route composition, the app role policy, source-file intake, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, inbound email routing, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+`examples/*` packages are non-production feature examples. They may keep `src/index.ts` as a
+package import facade while parser/source reading, staged-record parsing, adapter behavior, and
+example types live in focused example-internal modules. Reusable packages must not import optional
+examples.
+
+`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include thin route composition entrypoints, auth route groups, source/import/audit/AI route groups, the app role policy, source-file intake, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, inbound email routing, MIME parsing for inbound attachments, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+
+Import review persistence is app-owned Worker wiring. Generic Worker routes depend on
+`WorkerReviewStore`, while starter table knowledge stays in
+`apps/worker/src/features/starter-review-*` modules. Reusable packages define review semantics and
+adapter contracts, not D1 table names for staged or committed records.
 
 Inbound email routing is app-owned Worker wiring. `packages/email` owns generic message, receipt,
 and attachment schemas; `apps/worker/src/inbound-email.ts` adapts Cloudflare Email Routing to raw
-R2 storage, D1 metadata, and source-file import handoff.
+R2 storage, D1 metadata, and source-file import handoff. MIME extraction lives in
+`apps/worker/src/mime-parser.ts`, with parser-local header and transfer-decoding helpers beside it,
+because parsing raw RFC822 payloads is Cloudflare Worker intake wiring, not a reusable
+email-template concern yet.
 
 ## 2. Proposed Packages
 
@@ -55,6 +68,11 @@ Does not own:
 1. Business-specific actions.
 2. Business-specific resource hierarchies.
 3. The canonical role taxonomy of a cloned app.
+
+`packages/rbac/src/index.ts` is the package interface facade. Generic RBAC types, policy
+validation and normalization helpers, the starter role policy, and permission checks live in
+focused package-internal modules. Worker and Web app-owned policy adapters keep importing from
+`@qitu/rbac`.
 
 ### 2.3 `packages/files`
 
@@ -99,6 +117,11 @@ Owns:
 7. Import feature adapter contract.
 8. Generic review status helpers and staging key conventions.
 
+`packages/import-pipeline/src/index.ts` is the package interface facade. Validation schemas,
+generic import/review types, the adapter contract, review issue helpers, staging key conventions,
+confirmation-language aliases, and review status derivation live in focused package-internal
+modules.
+
 Does not own:
 
 1. Business staging table schema.
@@ -129,6 +152,10 @@ Owns:
 5. Locale-aware number, date/time, byte, plural, and relative-time formatting primitives.
 6. Generic code-to-label helpers.
 
+`packages/i18n/src/index.ts` is the package interface facade. Locale metadata types, interpolation,
+message helpers, code-label helpers, locale-aware formatters, and locale negotiation live in focused
+package-internal modules.
+
 Does not own:
 
 1. App route labels.
@@ -138,11 +165,12 @@ Does not own:
 5. React providers or UI controls.
 6. App-owned dictionaries.
 
-### 2.8 Planned `security` Capability
+### 2.8 Security Capability
 
-For now, security events stay in `packages/audit` or app-owned code. Split a package only when reuse pressure is proven.
+Security events are implemented through app-owned Worker modules and generic event tables. There is
+no standalone `packages/security` package yet. Split one only when reuse pressure is proven.
 
-Would own:
+A future package would own:
 
 1. Security events.
 2. Login failures.
@@ -153,11 +181,13 @@ Does not own:
 
 1. Business risk scoring.
 
-### 2.9 Planned `alerts` Capability
+### 2.9 Alerts Capability
 
-For now, alerts stay in app-owned code or audit-driven operational views. Split a package only when alert lifecycle behavior becomes reusable.
+Alerts are implemented through app-owned Worker modules and generic event tables. There is no
+standalone `packages/alerts` package yet. Split one only when alert lifecycle behavior becomes
+reusable.
 
-Would own:
+A future package would own:
 
 1. Alert creation.
 2. Acknowledge/resolve.
@@ -177,6 +207,10 @@ Owns:
 3. Password reset email.
 4. Inbound email receipt and attachment schemas.
 5. Provider-neutral email metadata contracts.
+
+`packages/email/src/index.ts` is the package interface facade. Provider-neutral message and inbound
+receipt schemas, auth email locale dictionaries, and invitation/password-reset rendering live in
+focused package-internal modules.
 
 Does not own:
 

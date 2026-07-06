@@ -54,6 +54,8 @@ apps/web/src/features/*
 
 `apps/worker/src/*` 可以包含 app-local Worker modules，例如 auth route composition、import adapter registry、import job runner、import review routes、audit/email D1 adapters、HTTP route helpers 和 runtime config helpers。这些 Module 可以知道 D1/R2/Queue/Email bindings 与 starter tables，但不能把业务含义搬进 `packages/*`。
 
+Security events 和 alerts 目前通过 app-owned Worker modules 与通用 event tables 实现；当前没有独立的 `packages/security` 或 `packages/alerts`。只有当多个生产 feature 证明复用压力真实存在时，才应该拆出独立 package。
+
 ## Examples
 
 `examples/*` 是非生产示例，用来证明边界：
@@ -62,6 +64,10 @@ apps/web/src/features/*
 2. `examples/json-records`
 
 Worker starter 不依赖这些 optional examples。它有自己的 app-owned starter adapters，避免 core 或 app shell 误依赖示例 package。
+
+当前 example packages 可以保持 `src/index.ts` 作为 package import facade，同时把 parser/source
+reading、staged-record parsing、adapter behavior 和 example types 放在 example-internal focused
+modules 中。Reusable packages 不能 import optional examples。
 
 ## Templates
 
@@ -94,6 +100,22 @@ core package -> business feature code
 ```
 
 Worker app 可以注册 app-owned adapters，但 core import-pipeline package 只知道 contract。
+
+## 当前 package facade 组织
+
+`packages/rbac/src/index.ts` 是 `@qitu/rbac` 的 package interface facade。Generic RBAC types、
+policy validation / normalization helpers、starter role policy 和 permission checks 放在
+package-internal focused modules 中。Worker 和 Web 的 app-owned policy adapters 继续从
+`@qitu/rbac` 导入。
+
+`packages/import-pipeline/src/index.ts` 是 `@qitu/import-pipeline` 的 package interface facade。
+Validation schemas、generic import/review types、adapter contract、review issue helpers、staging key
+conventions、confirmation-language aliases 和 review status derivation 放在 package-internal focused
+modules 中。
+
+`packages/email/src/index.ts` 是 `@qitu/email` 的 package interface facade。
+Provider-neutral message / inbound receipt schemas、auth email locale dictionaries，以及
+invitation/password-reset rendering 放在 package-internal focused modules 中。
 
 ## 判断一个能力是否应进入 Core
 
