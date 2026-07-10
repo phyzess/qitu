@@ -19,6 +19,7 @@ export async function dispatchSourceImportJob(
     await markImportJobFailed(env, {
       action: "import_job.dispatch_failed",
       failureClass: "queue_dispatch",
+      expectedStatus: "queued",
       jobId: input.jobId,
       reason,
       sourceFileId: input.sourceFileId,

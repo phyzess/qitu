@@ -14,11 +14,13 @@ function Calendar({
   captionLayout = "label",
   buttonVariant = "ghost",
   locale,
+  localeCode,
   formatters,
   components,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+  localeCode?: string | undefined;
 }) {
   return (
     <DayPicker
@@ -32,7 +34,8 @@ function Calendar({
       captionLayout={captionLayout}
       locale={locale}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString(locale?.code, { month: "short" }),
+        formatMonthDropdown: (date) =>
+          date.toLocaleString(localeCode ?? locale?.code, { month: "short" }),
         ...formatters,
       }}
       classNames={buildCalendarClassNames({
@@ -44,7 +47,9 @@ function Calendar({
       components={{
         Root: CalendarRoot,
         Chevron: CalendarChevron,
-        DayButton: ({ ...props }) => <CalendarDayButton {...props} locale={locale} />,
+        DayButton: ({ ...props }) => (
+          <CalendarDayButton {...props} locale={locale} localeCode={localeCode} />
+        ),
         WeekNumber: CalendarWeekNumber,
         ...components,
       }}

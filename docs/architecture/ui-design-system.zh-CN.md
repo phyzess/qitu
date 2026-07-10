@@ -1,7 +1,7 @@
 # UI 与设计系统
 
 Status: accepted baseline
-Date: 2026-07-06
+Date: 2026-07-10
 
 ## 1. 目标
 
@@ -77,6 +77,7 @@ Table
 Tabs
 Textarea
 UploadQueue
+WorkbenchPage/WorkbenchGrid/ContextPanel
 Surface/DataState/MetricStrip/Timeline
 ```
 
@@ -100,6 +101,7 @@ packages/charts
 8. Review surfaces。
 9. Timeline components。
 10. 面向产品 chrome 的 animated icon registry。
+11. 业务中立的 workbench page/grid/context layout compositions。
 
 `packages/ui/src/shell.tsx` 是稳定的 shell interface facade。AppShell frame、一级/二级导航控件、
 shell props/types 和小型 system icons 放在 focused package-internal shell modules 中；app 页面继续
@@ -189,6 +191,12 @@ Shell 交互规则：
 10. 二级 route tab 使用 text-only，并通过 active underline 表达当前页。
 11. 搜索入口放在 topbar action cluster：紧凑宽度用纯 icon，宽屏用 icon + text + shortcut。
 12. Theme 使用纯 icon 控件。人员 trigger 是身份入口，例如 avatar/initial + chevron；具体用户动作属于 panel 内。
+13. Shell link 在普通 same-origin click 接入 app router 时，仍必须保留 modified-click、
+    external-target 与 download 的浏览器原生行为。
+14. `AppShell` 暴露 skip link、更新 `document.title`，并只在真实 `contentKey` 变化后把 focus 转移到
+    main；first mount 不能抢 focus。
+15. Route 可以向 shell 提供一个 `contentTitle` 作为 shell-owned `h1`；如果 page 已拥有唯一
+    `h1`，则省略它。Shell 不能创建空 heading 或 duplicate heading。
 
 当前 starter 分组：
 
@@ -198,6 +206,22 @@ Settings：/settings、/settings/members、/settings/audit
 ```
 
 Settings 路由仍然是已认证 app route，因为它们属于可复用 starter surface；但它们不应被表达成业务 workflow module。成员与邀请管理和审计可见性通过 Settings 暴露，其中成员与邀请管理在非管理员的 route navigation 中禁用。
+
+Workbench 页面规则：
+
+1. 当 shell 与 secondary navigation 已表达当前位置时，页面不重复大 route title，直接从第一个
+   真实 work module 开始。
+2. Data/analysis page 应 result-first；filter、input 与 secondary metric 在空间允许时放进 toolbar、
+   inspector 或 side area。
+3. 大型 detail table 使用 bounded `TableScrollArea`，不能把主要 work surface 推出首屏。
+4. 两列 work surface 从 `WorkbenchGrid` 开始，并按信息关系选择 `context`、`context-wide`、`data`
+   或 `split`；可以在折叠后跟随主表面的 supporting information 放入 `ContextPanel`。
+5. `WorkbenchPage` 只负责一致 vertical flow，不规定 domain module、copy 或 data-fetching behavior。
+
+Internationalization 补充规则：
+
+1. Shared `DateField` 的 month/year control labels 和 locale data 由 app 提供。
+2. Calendar day button 使用 localized full-date accessible name，不能只读出数字 day text。
 
 视觉提取规则：
 
@@ -248,6 +272,13 @@ Qitu token 与视觉系统规则：
 4. Topbar active indicator 使用 `--qitu-chroma-active`，不引入页面级 underline 色值。
 5. Topbar 不画底部分割线；内容区分依靠 spacing 和 surface tone。
 
+Responsive 规则：
+
+1. Shared `WorkbenchGrid` variants 在 1180px 及以下折叠为单列。
+2. `ContextPanel` 在折叠后跟随 primary surface，并把 left divider 改为 top divider。
+3. 避免 page-level horizontal scroll；table 只能在 bounded container 中滚动。
+4. 有意识地使用 `min-width: 0`、truncation、wrapping 与固定 shell dimensions。
+
 ## 5. 字体方向
 
 默认 token：
@@ -268,7 +299,37 @@ Qitu token 与视觉系统规则：
 4. 数字：UI font + Fira Code fallback。
 5. Mono：Fira Code。
 
-## 6. Review 页面模式
+## 6. Chart Contract
+
+`packages/charts` 是维护中的 visx-only layer。App-owned page 必须使用 qitu chart components，
+不能直接 import `@visx/*`。`packages/charts/src/index.tsx` 是 package interface facade；具体 chart、
+state/frame、interaction、scale/format helper 与 geometry 放在 focused package-internal modules。
+
+Baseline exports：
+
+1. `TimeSeriesChart`
+2. `BarChart`
+3. `DonutChart`
+4. `ComparisonScatterChart`
+
+每个 chart 必须支持：
+
+1. Empty、loading、error 与 partial-data state。
+2. Token-driven color 与 tabular number formatting。
+3. 从 container 推导 responsive width，并保留 deterministic fallback width。
+4. Pointer 与 keyboard/focus inspection；hover 不能成为读取 value 的唯一方式。
+5. App-provided accessible label 与 localized tooltip/legend terminology。
+6. Package-owned chart CSS 提供 shared focus style 与 `prefers-reduced-motion` behavior。
+
+Time-series chart 另外提供 Arrow/Home/End/Escape navigation 与 text announcement hook。Bar 与
+donut marks 可 focus；optional legend 使用合法 list semantics 内的 native buttons。Tooltip renderer
+可以返回 rich React content，但 live announcement 必须能解析为有意义的 text，或由 app 显式提供
+announcement function。
+
+`@qitu/charts` 会 import 自己的 stable stylesheet entrypoint。Application 只消费 package facade，
+不能直接 import internal CSS。
+
+## 7. Review 页面模式
 
 每个 review 页面应包含：
 

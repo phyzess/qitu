@@ -1,3 +1,4 @@
+import { WorkbenchGrid } from "@qitu/ui";
 import type { ImportJobEvent, ImportJobListItem, SourceFile } from "../types";
 import { ImportDiagnosticsPanel } from "./import-diagnostics-panel";
 import { ImportJobsPanel } from "./import-jobs-panel";
@@ -28,7 +29,7 @@ export function ImportsPage(props: {
     : null;
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+    <WorkbenchGrid layout="context">
       <ImportJobsPanel
         canProcessImports={props.canProcessImports}
         canRetry={props.canRetry}
@@ -52,6 +53,6 @@ export function ImportsPage(props: {
         selectedSource={selectedSource}
         onRetrySelectedJob={props.onRetrySelectedJob}
       />
-    </div>
+    </WorkbenchGrid>
   );
 }

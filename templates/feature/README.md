@@ -48,6 +48,8 @@ The template is deliberately runnable:
 4. `src/web-surface.ts` exports a route/i18n/smoke descriptor that an app-owned React surface can consume.
 5. `migrations/0001_template_feature.sql` is a migration slot for feature-owned staging and committed tables.
 6. `vp run --filter @qitu/template-feature typecheck` verifies the copied shape before business rules are added.
+7. `derived-artifact-recipe.md` is an optional checklist for version-gated materialized output after
+   a real calculation feature proves the need.
 
 The adapter owns:
 

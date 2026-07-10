@@ -1,7 +1,7 @@
 # qitu 中文文档入口
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-07-10
 
 这组中文文档面向国内团队、业务方和中文协作场景。英文原文仍保留为 canonical 工程文档；中文版本用于快速理解项目边界、采用方式和当前成熟度。
 
@@ -23,14 +23,19 @@ Date: 2026-06-27
 14. [guides/create-app.zh-CN.md](./guides/create-app.zh-CN.md)：从 qitu 创建新应用。
 15. [guides/add-feature.zh-CN.md](./guides/add-feature.zh-CN.md)：添加业务 feature 的边界与方式。
 16. [guides/first-vertical-slice.zh-CN.md](./guides/first-vertical-slice.zh-CN.md)：首个端到端纵切。
-17. [deployment.zh-CN.md](./deployment.zh-CN.md)：Cloudflare 部署准备。
-18. [demo.zh-CN.md](./demo.zh-CN.md)：前端静态 demo 与 Cloudflare Pages 展示环境。
-19. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
-20. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
-21. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
-22. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
-23. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
-24. [decisions/refactor-locality-2026-07.zh-CN.md](./decisions/refactor-locality-2026-07.zh-CN.md)：2026 年 7 月架构拆分详细决策。
+17. [guides/optional-organization-access.zh-CN.md](./guides/optional-organization-access.zh-CN.md)：需要多组织边界时可复制的访问上下文、授权与迁移规则。
+18. [guides/versioned-derived-artifacts.zh-CN.md](./guides/versioned-derived-artifacts.zh-CN.md)：业务派生结果的版本、失效与重建配方。
+19. [operations/source-lifecycle.zh-CN.md](./operations/source-lifecycle.zh-CN.md)：下载、预览、重解析、作废、调整、删除与 report-only retention 协议。
+20. [deployment.zh-CN.md](./deployment.zh-CN.md)：Cloudflare 部署准备。
+21. [demo.zh-CN.md](./demo.zh-CN.md)：前端静态 demo 与 Cloudflare Pages 展示环境。
+22. [troubleshooting.zh-CN.md](./troubleshooting.zh-CN.md)：安装、Wrangler、D1、Queue、AI 边界故障排查。
+23. [release-notes.zh-CN.md](./release-notes.zh-CN.md)：当前 runnable baseline 与本轮可复用能力更新。
+24. [upgrade-notes.zh-CN.md](./upgrade-notes.zh-CN.md)：把基座更新安全应用到已有业务 app 的顺序与兼容约束。
+25. [operations/dlq-remediation.zh-CN.md](./operations/dlq-remediation.zh-CN.md)：DLQ 与失败任务恢复。
+26. [agents/agent-integration.zh-CN.md](./agents/agent-integration.zh-CN.md)：Codex、Claude Code、Pi 等 agent 接入方式。
+27. [roadmap.zh-CN.md](./roadmap.zh-CN.md)：路线图与当前完成状态。
+28. [decisions/decision-log.zh-CN.md](./decisions/decision-log.zh-CN.md)：已接受决策。
+29. [decisions/refactor-locality-2026-07.zh-CN.md](./decisions/refactor-locality-2026-07.zh-CN.md)：2026 年 7 月架构拆分详细决策。
 
 ## 维护规则
 

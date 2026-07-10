@@ -8,6 +8,9 @@ import { testInboundEmailIntake } from "./worker-integration-inbound-email.mjs";
 import { testAuditFilters } from "./worker-integration-audit.mjs";
 import { testAuthBootstrapAndMembers } from "./worker-integration-auth.mjs";
 import { testImportReviewWorkflow } from "./worker-integration-import-review.mjs";
+import { testImportProcessingRaces } from "./worker-integration-import-processing-races.mjs";
+import { testImportMutationRaces } from "./worker-integration-import-mutation-races.mjs";
+import { testSourceLifecycle } from "./worker-integration-source-lifecycle.mjs";
 
 const root = process.cwd();
 const require = createRequire(import.meta.url);
@@ -51,6 +54,19 @@ async function main() {
 
   try {
     const workerModule = await server.ssrLoadModule("/apps/worker/src/index.ts");
+    const { autoCommitCleanImport } = await server.ssrLoadModule(
+      "/apps/worker/src/import-job-auto-commit.ts",
+    );
+    const { getImportAdapter } = await server.ssrLoadModule("/apps/worker/src/import-adapters.ts");
+    const { processImportJob } = await server.ssrLoadModule(
+      "/apps/worker/src/import-job-runner.ts",
+    );
+    const { markImportJobProcessingStarted } = await server.ssrLoadModule(
+      "/apps/worker/src/import-job-processing-start.ts",
+    );
+    const { voidImportJob } = await server.ssrLoadModule(
+      "/apps/worker/src/import-job-void-statements.ts",
+    );
     const worker = workerModule.default;
     const env = await createTestEnv();
     const client = createClient(worker, env);
@@ -58,7 +74,30 @@ async function main() {
     await testInboundEmailIntake(worker);
     const { loginAfterReset } = await testAuthBootstrapAndMembers({ client, env, worker });
 
-    const { upload } = await testImportReviewWorkflow({ client, env, worker });
+    const { upload } = await testImportReviewWorkflow({
+      autoCommitCleanImport,
+      client,
+      env,
+      getImportAdapter,
+      worker,
+    });
+    await testSourceLifecycle({ client, env, getImportAdapter, worker });
+    await testImportProcessingRaces({
+      client,
+      env,
+      getImportAdapter,
+      processImportJob,
+      worker,
+    });
+    await testImportMutationRaces({
+      autoCommitCleanImport,
+      client,
+      env,
+      getImportAdapter,
+      markImportJobProcessingStarted,
+      voidImportJob,
+      worker,
+    });
     await testAuditFilters({ client, loginAfterReset, upload });
 
     console.log("Worker integration passed.");

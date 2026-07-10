@@ -36,9 +36,9 @@ export function assertKitDocumentationGuards(context) {
   );
   assert(
     readme.includes("Two app-owned starter feature adapters") &&
-      readme.includes("Optional example feature packages") &&
+      readme.includes("Optional executable examples") &&
       readme.includes("runnable kit baseline"),
-    "README must describe the current starter adapters and optional example packages.",
+    "README must describe the current starter adapters and optional executable examples.",
   );
   assert(
     demoDoc.includes("apps/web/src/api-client.ts") &&

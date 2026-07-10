@@ -9,7 +9,19 @@ export function assertAuthAndDbInterfaces({ assert, auth, db }) {
       typeof db.passwordResetTokens.tokenHash === "object" &&
       typeof db.emailMessages.providerMessageId === "object" &&
       typeof db.inboundEmailMessages.rawObjectKey === "object" &&
-      typeof db.inboundEmailAttachments.sourceFileId === "object",
-    "db package must expose the current auth/email migration baseline.",
+      typeof db.inboundEmailAttachments.sourceFileId === "object" &&
+      typeof db.sourceFiles.deletedAt === "object" &&
+      typeof db.sourceFiles.deletedBy === "object" &&
+      typeof db.sourceFiles.deletionStartedAt === "object" &&
+      typeof db.sourceFiles.deletionStartedBy === "object" &&
+      typeof db.sourceFiles.deletionFailureStage === "object" &&
+      typeof db.sourceFiles.deletionFailureReason === "object" &&
+      typeof db.importJobs.processingOwner === "object" &&
+      typeof db.importJobs.processingLeaseExpiresAt === "object" &&
+      typeof db.importJobs.mutationToken === "object" &&
+      typeof db.importJobs.mutationStartedAt === "object" &&
+      typeof db.importJobs.mutationKind === "object" &&
+      typeof db.importJobs.mutationPreviousStatus === "object",
+    "db package must expose the current auth, email, source lifecycle, and import lease migration baseline.",
   );
 }

@@ -24,6 +24,9 @@ export async function createPackageInterfaceRuntime({ root }) {
       email: await server.ssrLoadModule("/packages/email/src/index.ts"),
       exampleImportReview: await server.ssrLoadModule("/examples/import-review/src/index.ts"),
       exampleJsonRecords: await server.ssrLoadModule("/examples/json-records/src/index.ts"),
+      exampleOrganizationAccess: await server.ssrLoadModule(
+        "/examples/organization-access/src/index.ts",
+      ),
       i18n: await server.ssrLoadModule("/packages/i18n/src/index.ts"),
       importPipeline: await server.ssrLoadModule("/packages/import-pipeline/src/index.ts"),
       rbac: await server.ssrLoadModule("/packages/rbac/src/index.ts"),

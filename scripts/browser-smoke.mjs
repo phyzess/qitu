@@ -9,6 +9,12 @@ import { runAdminMemberJourney } from "./browser-smoke-admin-flow.mjs";
 import { runImportDiagnosticsJourney } from "./browser-smoke-review-diagnostics.mjs";
 import { runPrimaryReviewJourney } from "./browser-smoke-review-primary.mjs";
 import { createBrowserSmokeRuntime } from "./browser-smoke-runtime.mjs";
+import {
+  assertCalendarInteraction,
+  assertChartInteractions,
+  assertShellNavigationLifecycle,
+  assertWorkbenchResponsiveAndMotion,
+} from "./browser-smoke-ui.mjs";
 
 const root = process.cwd();
 const runtime = await createBrowserSmokeRuntime(root);
@@ -50,6 +56,10 @@ async function runBrowserSmoke() {
     });
 
     await completeReviewerAuthFlow({ page, runtime, invitation, fixture });
+    await assertShellNavigationLifecycle({ context, page, webUrl });
+    await assertWorkbenchResponsiveAndMotion({ page, webUrl });
+    await assertChartInteractions({ page, webUrl });
+    await assertCalendarInteraction({ page, webUrl });
     await runPrimaryReviewJourney({ page, webUrl, fixture, emptySourceListWidth });
     await runImportDiagnosticsJourney({ page, webUrl, fixture });
     await runAdminMemberJourney({ page, context, runtime, webUrl, fixture });

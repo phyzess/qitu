@@ -24,7 +24,7 @@ runnable kit baseline
 6. Worker 内两个 app-owned starter feature adapters。
 7. 经过验证的 adoption script，用于重命名、裁剪并重新连接 cloned app。
 8. `templates/*` 下可复制的 app 和 feature 模板。
-9. `examples/*` 下用于证明边界的可选示例 feature package。
+9. `examples/*` 下用于证明边界的可执行可选示例。
 
 成熟度以 [docs/capability-matrix.zh-CN.md](./docs/capability-matrix.zh-CN.md) 为准。
 
@@ -125,6 +125,7 @@ packages/
 examples/
   import-review/
   json-records/
+  organization-access/
 
 templates/
   app/
@@ -163,9 +164,14 @@ API 的 app-owned 边界。可复用视觉 primitives 仍属于 `packages/ui`。
 9. 事务邮件与 inbound email 能力。
 10. 需要人工确认的 AI advisory artifacts。
 11. 支持 locale 的 React app shell 与 design system。
-12. 文档与 decision log 约定。
+12. 可恢复的 import execution 与 source lifecycle operations。
+13. Accessible workbench layouts 与 interactive chart primitives。
+14. 文档与 decision log 约定。
 
 不是所有能力都 production-ready。成熟度以 `docs/capability-matrix.zh-CN.md` 为准。
+
+Organization access 与 versioned derived artifact 是可选 example/recipe，不是默认 core
+capability。只有具体 app 真实需要 tenant ownership 或 materialized business calculation 时才采用。
 
 ## qitu 不提供什么
 
@@ -190,13 +196,28 @@ API 的 app-owned 边界。可复用视觉 primitives 仍属于 `packages/ui`。
 4. [docs/capability-matrix.zh-CN.md](./docs/capability-matrix.zh-CN.md)
 5. [docs/architecture/overview.zh-CN.md](./docs/architecture/overview.zh-CN.md)
 6. [docs/architecture/package-boundaries.zh-CN.md](./docs/architecture/package-boundaries.zh-CN.md)
-7. [docs/architecture/import-pipeline.zh-CN.md](./docs/architecture/import-pipeline.zh-CN.md)
-8. [docs/architecture/ui-component-provenance.zh-CN.md](./docs/architecture/ui-component-provenance.zh-CN.md)
-9. [docs/deployment.zh-CN.md](./docs/deployment.zh-CN.md)
-10. [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)
-11. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
-12. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
-13. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
+7. [docs/architecture/data-model.zh-CN.md](./docs/architecture/data-model.zh-CN.md)
+8. [docs/architecture/import-pipeline.zh-CN.md](./docs/architecture/import-pipeline.zh-CN.md)
+9. [docs/architecture/auth-security.zh-CN.md](./docs/architecture/auth-security.zh-CN.md)
+10. [docs/architecture/ai-advisory.zh-CN.md](./docs/architecture/ai-advisory.zh-CN.md)
+11. [docs/architecture/ui-design-system.zh-CN.md](./docs/architecture/ui-design-system.zh-CN.md)
+12. [docs/architecture/ui-component-provenance.zh-CN.md](./docs/architecture/ui-component-provenance.zh-CN.md)
+13. [docs/architecture/dependencies.zh-CN.md](./docs/architecture/dependencies.zh-CN.md)
+14. [docs/guides/create-app.zh-CN.md](./docs/guides/create-app.zh-CN.md)
+15. [docs/guides/add-feature.zh-CN.md](./docs/guides/add-feature.zh-CN.md)
+16. [docs/guides/first-vertical-slice.zh-CN.md](./docs/guides/first-vertical-slice.zh-CN.md)
+17. [docs/guides/optional-organization-access.zh-CN.md](./docs/guides/optional-organization-access.zh-CN.md)
+18. [docs/guides/versioned-derived-artifacts.zh-CN.md](./docs/guides/versioned-derived-artifacts.zh-CN.md)
+19. [docs/operations/source-lifecycle.zh-CN.md](./docs/operations/source-lifecycle.zh-CN.md)
+20. [docs/deployment.zh-CN.md](./docs/deployment.zh-CN.md)
+21. [docs/demo.zh-CN.md](./docs/demo.zh-CN.md)
+22. [docs/troubleshooting.zh-CN.md](./docs/troubleshooting.zh-CN.md)
+23. [docs/release-notes.zh-CN.md](./docs/release-notes.zh-CN.md)
+24. [docs/upgrade-notes.zh-CN.md](./docs/upgrade-notes.zh-CN.md)
+25. [docs/operations/dlq-remediation.zh-CN.md](./docs/operations/dlq-remediation.zh-CN.md)
+26. [docs/agents/agent-integration.zh-CN.md](./docs/agents/agent-integration.zh-CN.md)
+27. [docs/roadmap.zh-CN.md](./docs/roadmap.zh-CN.md)
+28. [docs/decisions/decision-log.zh-CN.md](./docs/decisions/decision-log.zh-CN.md)
 
 Agent 入口：
 

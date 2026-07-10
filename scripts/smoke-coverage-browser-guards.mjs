@@ -3,6 +3,9 @@ export function assertBrowserSmokeCoverageGuards(context) {
 
   assert(
     browserSmoke.includes('spawn(vp, ["run", "dev:all"]') &&
+      browserSmoke.includes('spawn(vp, ["run", "db:migrate:local"]') &&
+      browserSmoke.includes("QITU_BROWSER_SMOKE_PERSIST_TO") &&
+      browserSmoke.includes("QITU_D1_PERSIST_TO") &&
       browserSmoke.includes("chromium.launch") &&
       browserSmoke.includes("assertProductionLoginHygiene") &&
       browserSmoke.includes('environment: "production"') &&
@@ -28,9 +31,19 @@ export function assertBrowserSmokeCoverageGuards(context) {
       browserSmoke.includes("pastDate") &&
       browserSmoke.includes(".qitu-date-popover select") &&
       browserSmoke.includes("toHaveValue(pastDate.year)") &&
+      browserSmoke.includes("assertShellNavigationLifecycle") &&
+      browserSmoke.includes("assertWorkbenchResponsiveAndMotion") &&
+      browserSmoke.includes("assertChartInteractions") &&
+      browserSmoke.includes("assertCalendarInteraction") &&
+      browserSmoke.includes("aria-keyshortcuts") &&
+      browserSmoke.includes("qitu-chart-legend-item") &&
+      browserSmoke.includes("#qitu-main-content") &&
+      browserSmoke.includes('reducedMotion: "reduce"') &&
+      browserSmoke.includes('data-layout="context"') &&
+      browserSmoke.includes('expect(hitTargets).toEqual(["SELECT", "SELECT"])') &&
       browserSmoke.includes('"excluded"') &&
       browserSmoke.includes("import_job.committed") &&
       browserSmoke.includes("import_review.record_rejected"),
-    "Browser smoke must start dev:all and exercise emailed invite/reset links, upload, local queue drain, commit, reject, and audit in a real browser.",
+    "Browser smoke must migrate isolated D1 state, start dev:all, and exercise the full browser journey.",
   );
 }

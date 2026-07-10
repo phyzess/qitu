@@ -10,9 +10,20 @@ export type ImportProcessingJobRow = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  processing_started_at: string | null;
+  processing_owner: string | null;
+  processing_lease_expires_at: string | null;
+  mutation_token: string | null;
+  mutation_started_at: string | null;
+  mutation_kind: string | null;
+  mutation_previous_status: string | null;
   filename: string;
   content_type: string;
   object_key: string;
+  deletion_started_at: string | null;
+  deletion_started_by: string | null;
+  deletion_failure_stage: string | null;
+  deleted_at: string | null;
 };
 
 export async function readImportProcessingJob(
@@ -33,9 +44,20 @@ export async function readImportProcessingJob(
         import_jobs.created_at,
         import_jobs.updated_at,
         import_jobs.completed_at,
+        import_jobs.processing_started_at,
+        import_jobs.processing_owner,
+        import_jobs.processing_lease_expires_at,
+        import_jobs.mutation_token,
+        import_jobs.mutation_started_at,
+        import_jobs.mutation_kind,
+        import_jobs.mutation_previous_status,
         source_files.filename,
         source_files.content_type,
-        source_files.object_key
+        source_files.object_key,
+        source_files.deletion_started_at,
+        source_files.deletion_started_by,
+        source_files.deletion_failure_stage,
+        source_files.deleted_at
       FROM import_jobs
       INNER JOIN source_files ON source_files.id = import_jobs.source_file_id
       WHERE import_jobs.id = ?

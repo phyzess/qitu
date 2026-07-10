@@ -38,8 +38,29 @@ export function assertWorkerSchemaGuards(context) {
     "source file migration must include content_hash.",
   );
   assert(
+    coreMigration.includes("deleted_at") &&
+      coreMigration.includes("source_files_active_workspace_content_hash_idx") &&
+      coreMigration.includes("WHERE deleted_at IS NULL"),
+    "source lifecycle migration must tombstone deleted sources and scope hash uniqueness to active rows.",
+  );
+  assert(
+    coreMigration.includes("deletion_started_at") &&
+      coreMigration.includes("import_jobs_block_deleting_source") &&
+      coreMigration.includes("source_deletion_in_progress"),
+    "source deletion must claim the source and block new jobs while cleanup is in progress.",
+  );
+  assert(
     coreMigration.includes("failure_reason") && coreMigration.includes("processing_started_at"),
     "import job migration must include failure and processing state fields.",
+  );
+  assert(
+    coreMigration.includes("processing_owner") &&
+      coreMigration.includes("processing_lease_expires_at") &&
+      coreMigration.includes("mutation_token") &&
+      coreMigration.includes("mutation_previous_status") &&
+      coreMigration.includes("import_jobs_processing_lease_idx") &&
+      coreMigration.includes("import_jobs_mutation_started_at_idx"),
+    "import job migration must expose business-neutral processing and mutation lease fields.",
   );
   assert(
     coreMigration.includes("adapter_id") &&

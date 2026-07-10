@@ -19,6 +19,7 @@ export function createSmokeWorkerSourceContext({ text }) {
     text("apps/worker/src/source-list-presenters.ts"),
     text("apps/worker/src/source-upload-route.ts"),
     text("apps/worker/src/source-upload-request.ts"),
+    text("apps/worker/src/source-upload-filename.ts"),
     text("apps/worker/src/source-upload-presenters.ts"),
   ].join("\n");
 

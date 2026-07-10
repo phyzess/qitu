@@ -1,3 +1,4 @@
+import { WorkbenchGrid, WorkbenchPage } from "@qitu/ui";
 import type { AuditFilters } from "../audit-filters";
 import { useI18n } from "../i18n";
 import type { AuditEvent } from "../types";
@@ -22,8 +23,8 @@ export function AuditPage(props: {
     null;
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_420px]">
-      <section className="space-y-[var(--qitu-layout-gutter)]">
+    <WorkbenchGrid layout="context-wide">
+      <WorkbenchPage>
         <AuditFilterPanel
           filters={props.filters}
           isBusy={props.isBusy}
@@ -37,8 +38,8 @@ export function AuditPage(props: {
           selectedEventId={selectedEvent?.id ?? null}
           onSelectEvent={props.onSelectEvent}
         />
-      </section>
+      </WorkbenchPage>
       <AuditEventDetailsPanel event={selectedEvent} formatDateTime={formatDateTime} />
-    </div>
+    </WorkbenchGrid>
   );
 }

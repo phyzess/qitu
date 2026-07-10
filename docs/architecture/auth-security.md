@@ -140,8 +140,8 @@ viewer
 Current starter permissions:
 
 ```text
-owner/admin: invitation:create, source_file:upload, import_job:process, import_job:retry, review:decide, import_job:commit, ai_advisory:write
-reviewer: source_file:upload, import_job:process, import_job:retry, review:decide, import_job:commit, ai_advisory:write
+owner/admin: invitation:create, source_file:upload, source_file:raw, source_file:reparse, source_file:delete, import_job:process, import_job:retry, review:decide, import_job:commit, ai_advisory:write
+reviewer: source_file:upload, source_file:raw, source_file:reparse, import_job:process, import_job:retry, review:decide, import_job:commit, ai_advisory:write
 viewer: read-only
 ```
 
@@ -152,9 +152,14 @@ can(principal, permission);
 permissionsForRole(role);
 ```
 
-Routes that mutate invitations, source files, import jobs, review decisions, commits, and AI advisory decisions must call `requirePermission`. Denied attempts return `403` and write an `rbac.denied` audit event with the permission, route, method, and role.
+Routes that read raw sources or mutate invitations, source files, import jobs, review decisions,
+commits, and AI advisory decisions must call `requirePermission`. Denied attempts return `403` and
+write an `rbac.denied` audit event with the permission, route, method, and role. Raw source download
+and preview additionally write success audit events; viewer roles do not receive raw-file access.
 
-Future apps can replace or extend this mapping without changing the auth/session model. Tenant-aware resource scopes are intentionally not in the starter baseline yet.
+Future apps can replace or extend this mapping without changing the auth/session model. Tenant-aware
+resource scopes are intentionally not in the starter baseline; apps that need them may adopt the
+isolated `examples/organization-access` capability and its migration runbook.
 
 ## 6. Audit and Security Events
 

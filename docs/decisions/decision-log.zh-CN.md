@@ -601,6 +601,142 @@ Decision:
 
 Registry 已经成为最大的 TypeScript UI source file，但它的 public interface 仍然有价值。按 shell/workflow 分组 selected SVG definitions，可以提高未来图标新增的 locality，同时不改变 `AnimatedIcon` interface。
 
+### 2026-07-10：可恢复的导入执行与互斥变更
+
+Decision:
+
+Fast processing 只是 durable Queue 之上的低延迟优化；processing 与 review 写入都必须通过显式
+ownership lease 保护。
+
+规则：
+
+1. Source intake 必须先持久化 source 与 queued import job，再 dispatch work。
+2. `ctx.waitUntil` 可以启动 best-effort fast path，但 Cloudflare Queue 始终是 durable fallback；
+   fast path 不能消费或替代 queued message。
+3. Processor 在读取、staging 或改变 job state 前必须取得有时限的 lease。竞争 consumer 应 retry，
+   expired lease 可以回收，但必须追加 event/audit evidence。
+4. Review decision、confirmation、adjustment 与 commit 使用独立 mutation lease。Commit 进入显式
+   `committing` 状态，使并发 review/source lifecycle 写入 fail closed，直到操作完成或 stale claim
+   被恢复。恢复会使用同一个稳定 `context.idempotencyKey = commit:${jobId}` 重放 adapter；
+   external/business writes 必须遵守该 key。
+5. Initial Queue send 失败会把 job 标记为 failed，并通过 failed-job retry route 恢复；只有 send
+   已成功、但 job 长期保持 queued 且没有 processing evidence 时，operator 才使用有审计的
+   redispatch route。
+6. Duplicate intake 返回该 source 最新插入的 import job。多个 job 可能共享同一毫秒级
+   `created_at`，因此 lookup 使用 SQLite insertion order 作为确定性 tie-breaker，而不是随机 UUID
+   顺序。
+7. Lease 与 persistence wiring 保留在 app-owned Worker code；可复用 package 只暴露业务中立的
+   status 与 adapter contract。
+
+原因：
+
+下游测试暴露了 duplicate consumer、fast-path/Queue 以及 review/commit race；单纯检查 status
+不能排除这些竞争。Durable fallback 加 compare-and-swap ownership 能让这些路径可恢复，同时避免
+把 `packages/*` 变成 Cloudflare-specific workflow engine。
+
+### 2026-07-10：显式错误接纳与可选 Clean Auto Commit
+
+Decision:
+
+人工 review 仍是默认 import policy。确定性 adapter 可以显式选择 clean import 自动提交，但 open
+error 与 AI advisory output 绝不能隐式越过人工门禁。
+
+规则：
+
+1. Record 存在 open `error` issue 时，普通路径不能 approve 或 commit。
+2. 只有单条 record approval 可以设置 `overrideOpenErrors: true`；它只在同一个 guarded mutation
+   中接受这条 record 本次观察到的 open issues，并写 audit/job evidence。
+3. Batch confirmation 绝不隐式接受 error；rejected 或 pending record 上的 error 不阻断另一条
+   separately approved clean record。
+4. Adapter 默认人工 review。`commitPolicy: "auto_when_clean"` 只是 app-owned 对无 open error 的
+   deterministic adapter 做出的显式选择，并使用 system actor。
+5. Automatic commit 复用人工 commit 的 confirmation、mutation claim、adapter
+   `commitApproved` 与 audit path；它不授权 AI advisory result 写入业务数据。
+
+原因：
+
+Starter 需要安全地自动化已知 clean 的确定性导入，又不能削弱 review provenance。显式 policy 与
+精确 error-acceptance record 能保留人工控制边界，并让自动化可审计。
+
+### 2026-07-10：App-Owned Source Lifecycle 与 Report-Only Evidence
+
+Decision:
+
+Qitu 提供业务中立的 source lifecycle protocol，但每个 feature adapter 必须负责清理该 source
+贡献的业务数据。
+
+规则：
+
+1. Raw download/preview 需要专用权限与 audit evidence；viewer access 不包含 raw content。
+2. Reparse 针对已有 immutable R2 object 创建新的 import job。
+3. Source deletion 使用 compare-and-swap lease 阻止新 job；破坏性 work 前续租并校验精确 token，
+   作废 eligible jobs、删除 R2 object、再次续租、执行所有 app-owned cleanup hook，最后写 soft
+   tombstone。
+4. R2 与 D1 failure 返回结构化 retry stage，并把 claim 保留为 fail-closed durable recovery record。
+   Failure stage 可以立即 resume，expired claim 可以 reclaim；claim transition 与 audit evidence 原子。
+5. Scheduled Worker 独立于有限 Queue retry 恢复 failed/expired deletion claims。持续失败只生成一个
+   open operator alert，成功 recovery 会 resolve 它。
+6. Cleanup 必须幂等。每个 app-owned review store 只接收属于自己的 import job ids；可能已发生
+   side effect 后，缺少 cleanup support 不能 release recovery claim。
+7. 普通 source/raw surface 隐藏 tombstoned 与 deleting rows；source metadata、audit events 与 job
+   events 作为 report-only evidence 保留。Qitu 不会静默 purge evidence。
+8. Core package 不推断 feature 的 staging、committed、derived 或 report tables。
+
+原因：
+
+可复用基础设施可以协调 storage 与 evidence，但只有业务 feature 知道一个 source 生成了哪些记录。
+把 deletion orchestration 与 scheduled recovery 留在 app-owned Worker、把 cleanup semantics 留在
+feature adapter，才能同时保持可恢复性与业务中立 core boundary。
+
+### 2026-07-10：Accessible Workbench 与 Chart Interaction Baseline
+
+Decision:
+
+Navigation、responsive workbench layout、localized calendar controls 与 chart interaction 是共享
+accessibility contract，而不是页面级 polish。
+
+规则：
+
+1. `AppShell` 提供 skip navigation、document-title update、一个可选 route heading，并只在 route
+   change 后转移 focus，不在 first mount 抢 focus。
+2. Shell link 保留浏览器原生 modified-click、external-target 与 download 行为。
+3. `WorkbenchPage`、`WorkbenchGrid` 与 `ContextPanel` 提供业务中立页面组合；context columns 在
+   shared 1180px breakpoint 以下折叠。
+4. `DateField` 提供 locale-aware full-date day label 与显式 month/year dropdown label。
+5. Qitu charts 自带 styles，并支持 pointer/focus tooltip、键盘 time-series inspection、interactive
+   legend、meaningful announcement 与 reduced-motion。
+6. Chart API 与 label 保持业务中立；domain semantics 和 localized copy 由 app-owned page 提供。
+
+原因：
+
+这些行为影响每个下游 workflow，按页面重建时也很容易回退。小型 shared contract 能给 cloned
+app 提供可用基线，同时让 routing、dictionary 与业务 chart meaning 继续属于 app 层。
+
+### 2026-07-10：可选 Organization 与 Derived-Artifact 配方
+
+Decision:
+
+Organization access 和 versioned derived artifact 保持为可执行、opt-in 的 example/recipe，不进入
+默认 core schema 或 universal package。
+
+规则：
+
+1. Qitu 默认仍是单组织。只有 tenant ownership 成为真实 app requirement 时，才复制
+   `examples/organization-access`。
+2. Organization membership 与 platform membership 分开；disabled organization、过期/撤销的
+   support grant 与 unknown resource action 都 fail closed。
+3. Support access 必须显式、仅针对一个 organization、限时、有原因、可撤销且只读；app-owned
+   RBAC check 与 tenant row scoping 仍是强制要求。
+4. 业务公式、calculation version、source-data version、artifact table、rebuild trigger 与 golden
+   fixture 都留在 feature-owned code。
+5. Derived-artifact recipe 禁止静默返回 stale artifact，也不在 `packages/*` 创建通用 metrics、
+   cache 或 workflow engine。
+
+原因：
+
+两种模式都是有价值的下游反馈，但作为默认能力会引入许多 qitu-derived app 不需要的 policy 与
+业务语义。Optional、verified example 可以保留经验，又不提前扩大 core contract。
+
 ## Pending
 
 1. Code generation 应属于 core 还是独立 CLI。

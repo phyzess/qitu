@@ -1,4 +1,8 @@
 import type { WorkerImportAdapter } from "./import-adapters";
+import {
+  prepareImportJobWriteGuardAssertion,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";
 import { prepareImportJobNeedsReviewStatements } from "./import-job-staging-completion-statements";
 import {
   prepareStagedImportRowStatements,
@@ -14,9 +18,11 @@ export function prepareImportJobStagingStatements(
     sourceFileId: string;
     stagedAt: string;
     stagedRows: StagedImportRow[];
+    writeGuard: ImportJobWriteGuard;
   },
 ): D1PreparedStatement[] {
   return [
+    prepareImportJobWriteGuardAssertion(env, input.writeGuard),
     ...input.stagedRows.flatMap((row) =>
       prepareStagedImportRowStatements(env, {
         adapter: input.adapter,
@@ -24,6 +30,7 @@ export function prepareImportJobStagingStatements(
         row,
         sourceFileId: input.sourceFileId,
         stagedAt: input.stagedAt,
+        writeGuard: input.writeGuard,
       }),
     ),
     ...prepareImportJobNeedsReviewStatements(env, {
@@ -33,6 +40,7 @@ export function prepareImportJobStagingStatements(
       sourceFileId: input.sourceFileId,
       stagedAt: input.stagedAt,
       stagedCount: input.stagedRows.length,
+      writeGuard: input.writeGuard,
     }),
   ];
 }

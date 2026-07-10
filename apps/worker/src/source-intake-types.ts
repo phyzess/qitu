@@ -42,7 +42,18 @@ export type SourceImportDispatchFailure = {
   status: 503;
 };
 
+export type SourceDeletionInProgressFailure = {
+  code: "source_deletion_in_progress";
+  importJobId?: string;
+  message: string;
+  objectKey?: string;
+  ok: false;
+  sourceFileId: string;
+  status: 409;
+};
+
 export type SourceIntakeResult =
   | SourceIntakeSuccessResult
   | UnsupportedSourceFileFailure
+  | SourceDeletionInProgressFailure
   | SourceImportDispatchFailure;

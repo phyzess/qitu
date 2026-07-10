@@ -2,6 +2,10 @@ import { createAuditEvent } from "@qitu/audit";
 import { prepareAuditInsert } from "./audit-store";
 import { prepareImportJobEventInsert } from "./import-job-event-store";
 import type { ImportJobReviewRow } from "./import-review-row-types";
+import {
+  prepareImportJobWriteGuardAssertion,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";
 
 export function prepareImportJobRetryStatements(
   env: Env,
@@ -11,9 +15,11 @@ export function prepareImportJobRetryStatements(
     jobId: string;
     now: string;
     requestId: string | null;
+    writeGuard: ImportJobWriteGuard;
   },
 ): D1PreparedStatement[] {
   return [
+    prepareImportJobWriteGuardAssertion(env, input.writeGuard),
     env.DB.prepare(
       `
         UPDATE import_jobs
@@ -22,6 +28,8 @@ export function prepareImportJobRetryStatements(
           failure_reason = NULL,
           failure_class = NULL,
           processing_started_at = NULL,
+          processing_owner = NULL,
+          processing_lease_expires_at = NULL,
           completed_at = NULL,
           updated_at = ?
         WHERE id = ? AND status = 'failed'

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { Button } from "./button";
 import type { AppShellNavItem } from "./shell-types";
@@ -15,15 +15,17 @@ export function SubNavButton(props: { item: AppShellNavItem }) {
         className="qitu-subnav-button"
         data-active={props.item.active ? "true" : "false"}
         data-disabled={props.item.disabled ? "true" : "false"}
+        download={props.item.download}
         href={props.item.href}
         tabIndex={props.item.disabled ? -1 : undefined}
+        target={props.item.target}
         onClick={(event) => {
           if (props.item.disabled) {
             event.preventDefault();
             return;
           }
 
-          if (!props.item.onSelect) return;
+          if (!props.item.onSelect || shouldUseNativeNavigation(event)) return;
           event.preventDefault();
           props.item.onSelect();
         }}
@@ -74,8 +76,10 @@ export function PrimaryNavButton(props: {
         className={className}
         data-active={props.item.active ? "true" : "false"}
         data-disabled={props.item.disabled ? "true" : "false"}
+        download={props.item.download}
         href={props.item.href}
         tabIndex={props.item.disabled ? -1 : undefined}
+        target={props.item.target}
         onBlur={() => props.onFocusIndex(null)}
         onClick={(event) => {
           if (props.item.disabled) {
@@ -83,7 +87,7 @@ export function PrimaryNavButton(props: {
             return;
           }
 
-          if (!props.item.onSelect) return;
+          if (!props.item.onSelect || shouldUseNativeNavigation(event)) return;
           event.preventDefault();
           props.item.onSelect();
         }}
@@ -119,5 +123,19 @@ export function PrimaryNavButton(props: {
         {content}
       </span>
     </Button>
+  );
+}
+
+function shouldUseNativeNavigation(event: MouseEvent<HTMLAnchorElement>): boolean {
+  const anchor = event.currentTarget;
+  return (
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    anchor.hasAttribute("download") ||
+    (anchor.target !== "" && anchor.target !== "_self") ||
+    anchor.origin !== window.location.origin
   );
 }

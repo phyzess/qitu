@@ -31,6 +31,8 @@ export async function readSourceFiles(
         uploaded_at
       FROM source_files
       WHERE workspace_id = ?
+        AND deleted_at IS NULL
+        AND deletion_started_at IS NULL
       ORDER BY uploaded_at DESC
       LIMIT ?
     `,

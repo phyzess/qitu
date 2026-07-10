@@ -15,6 +15,9 @@ export const rolePermissions = {
     "import_job:retry",
     "invitation:create",
     "review:decide",
+    "source_file:delete",
+    "source_file:raw",
+    "source_file:reparse",
     "source_file:upload",
   ],
   admin: [
@@ -24,6 +27,9 @@ export const rolePermissions = {
     "import_job:retry",
     "invitation:create",
     "review:decide",
+    "source_file:delete",
+    "source_file:raw",
+    "source_file:reparse",
     "source_file:upload",
   ],
   reviewer: [
@@ -32,6 +38,8 @@ export const rolePermissions = {
     "import_job:process",
     "import_job:retry",
     "review:decide",
+    "source_file:raw",
+    "source_file:reparse",
     "source_file:upload",
   ],
   viewer: [],

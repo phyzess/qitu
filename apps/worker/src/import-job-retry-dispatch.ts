@@ -31,6 +31,7 @@ export async function dispatchImportJobRetry(
       reason,
       action: "import_job.retry_dispatch_failed",
       failureClass: "queue_dispatch",
+      expectedStatus: "queued",
     });
 
     return context.json(

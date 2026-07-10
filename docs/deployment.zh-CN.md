@@ -59,6 +59,14 @@ Worker 需要：
 | DLQ            | Queues  | `qitu-import-jobs-dev-dlq` | `qitu-import-jobs-preview-dlq` | `qitu-import-jobs-production-dlq` |
 | `EMAIL`        | Email   | local metadata only        | Cloudflare Email Sending       | Cloudflare Email Sending          |
 
+所有环境的 Queue consumer 都使用 `max_batch_timeout = 1` 秒，避免低频导入看起来卡住。手工上传
+会先 dispatch Queue，再通过 `waitUntil` 调度同一个幂等 import runner，作为 best-effort 的低延迟
+fast path。Queue 与 DLQ 仍是 durable retry path；不能因为 fast path 通常成功就移除 dispatch。
+
+Wrangler 会注册每个 Worker 环境声明的 `*/5 * * * *` Cron trigger。对应 `scheduled` handler 即使在
+没有剩余 import Queue message 时，也会恢复 expired/failed source-deletion claim。无需单独创建
+Cloudflare resource，但 trigger 与 handler 必须一起部署。
+
 创建远端资源：
 
 ```sh

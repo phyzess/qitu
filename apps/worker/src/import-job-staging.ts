@@ -5,7 +5,9 @@ import {
   stagedRecordKeyForSourceRow,
 } from "@qitu/import-pipeline";
 import type { WorkerImportAdapter } from "./import-adapters";
+import { autoCommitCleanImport, isAutoCommitEnabled } from "./import-job-auto-commit";
 import { prepareImportJobStagingStatements } from "./import-job-staging-persistence";
+import { importJobMatchesWriteGuard, type ImportJobWriteGuard } from "./import-job-write-guard";
 
 export async function stageImportJobRecords(
   env: Env,
@@ -13,6 +15,8 @@ export async function stageImportJobRecords(
     adapter: WorkerImportAdapter;
     importJobId: string;
     objectKey: string;
+    processingStartedAt: string;
+    processingOwner: string;
     sourceFileId: string;
     stagedAt: string;
     stagedRecords: Array<{
@@ -20,7 +24,13 @@ export async function stageImportJobRecords(
       payload: unknown;
     }>;
   },
-): Promise<number> {
+): Promise<boolean> {
+  const processingGuard: ImportJobWriteGuard = {
+    importJobId: input.importJobId,
+    processingOwner: input.processingOwner,
+    processingStartedAt: input.processingStartedAt,
+    status: "processing",
+  };
   const stagedRows = await Promise.all(
     input.stagedRecords.map(async (record, index) => {
       const rowIndex = index + 1;
@@ -38,7 +48,10 @@ export async function stageImportJobRecords(
         stagedRecordKey,
         sourceRowKey: sourceRowKeyForIndex(rowIndex),
         payloadJson: JSON.stringify(record.payload),
-        issues: [createManualReviewIssue(), ...record.issues],
+        issues: [
+          ...(isAutoCommitEnabled(input.adapter) ? [] : [createManualReviewIssue()]),
+          ...record.issues,
+        ],
       };
     }),
   );
@@ -51,8 +64,24 @@ export async function stageImportJobRecords(
       sourceFileId: input.sourceFileId,
       stagedAt: input.stagedAt,
       stagedRows,
+      writeGuard: processingGuard,
     }),
   );
 
-  return stagedRows.length;
+  const needsReviewGuard: ImportJobWriteGuard = {
+    importJobId: processingGuard.importJobId,
+    processingStartedAt: processingGuard.processingStartedAt,
+    status: "needs_review",
+  };
+  if (!(await importJobMatchesWriteGuard(env, needsReviewGuard))) {
+    return false;
+  }
+
+  await autoCommitCleanImport(env, {
+    adapter: input.adapter,
+    importJobId: input.importJobId,
+    processingStartedAt: input.processingStartedAt,
+  });
+
+  return true;
 }

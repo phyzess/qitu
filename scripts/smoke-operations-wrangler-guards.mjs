@@ -37,6 +37,14 @@ export function assertOperationsWranglerGuards(context) {
     "wrangler queue consumers must declare retry and DLQ configuration.",
   );
   assert(
+    (wranglerConfig.match(/"max_batch_timeout": 1/g) ?? []).length === 3,
+    "local, preview, and production Queue consumers must start import batches within one second.",
+  );
+  assert(
+    (wranglerConfig.match(/"crons": \["\*\/5 \* \* \* \*"\]/g) ?? []).length === 3,
+    "local, preview, and production Workers must schedule source-deletion recovery every five minutes.",
+  );
+  assert(
     wranglerConfig.includes("REPLACE_WITH_PREVIEW_D1_DATABASE_ID") &&
       wranglerConfig.includes("REPLACE_WITH_PRODUCTION_D1_DATABASE_ID"),
     "wrangler remote environments must use obvious D1 database ID placeholders.",

@@ -12,6 +12,9 @@ export function assertWorkerImportReviewGuards(context) {
 
   assert(
     workerImportJobRunner.includes("status = 'processing'") &&
+      workerImportJobRunner.includes("mutation_token IS NULL") &&
+      workerImportJobRunner.includes("processing_owner = ?") &&
+      workerImportJobRunner.includes("processing_lease_expires_at = ?") &&
       workerImportJobStaging.includes("status = 'needs_review'") &&
       workerImportJobRunner.includes("markImportJobFailed"),
     "queue consumer must advance import job state and record failures.",
@@ -48,8 +51,18 @@ export function assertWorkerImportReviewGuards(context) {
       workerSources.includes("/api/import-jobs/:jobId/staged-records/:recordId/approve") &&
       workerSources.includes("/api/import-jobs/:jobId/staged-records/:recordId/reject") &&
       workerSources.includes("/api/import-jobs/:jobId/commit") &&
-      workerSources.includes("/api/import-jobs/:jobId/retry"),
-    "worker must expose review, AI advisory, approve, reject, commit, and retry routes.",
+      workerSources.includes("/api/import-jobs/:jobId/retry") &&
+      workerSources.includes("/api/import-jobs/:jobId/dispatch"),
+    "worker must expose review, commit, retry, and queued redispatch routes.",
+  );
+  assert(
+    workerImportJobRoutes.includes("scheduleFastImportProcessing") &&
+      workerImportJobRoutes.includes("context.executionCtx.waitUntil") &&
+      workerImportJobRoutes.includes('context.req.header("x-disable-fast-import")') &&
+      workerImportJobRoutes.includes("readImportJobRedispatchTarget") &&
+      workerImportJobRoutes.includes("prepareImportJobRedispatchSucceededStatements") &&
+      workerImportJobRoutes.includes('action: "import_job.dispatch_retried"'),
+    "HTTP upload and queued redispatch must keep an audited waitUntil fast path beside Queue delivery.",
   );
   assert(
     workerImportJobRoutes.includes("readImportJobRetryTarget") &&
@@ -79,8 +92,9 @@ export function assertWorkerImportReviewGuards(context) {
   );
   assert(
     workerSources.includes("/api/dev/import-jobs/drain") &&
-      workerSources.includes("processImportJob(context.env") &&
-      workerSources.includes("processImportJob(env, body)"),
+      workerSources.includes('processImportJob(context.env, message, { mode: "fast" })') &&
+      workerSources.includes('processImportJob(env, body, { mode: "queue" })') &&
+      workerSources.includes("message.retry({ delaySeconds: result.retryDelaySeconds })"),
     "Worker must expose a local-only import job drain route that reuses Queue handler logic.",
   );
 }

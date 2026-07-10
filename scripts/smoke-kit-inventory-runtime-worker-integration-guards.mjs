@@ -28,6 +28,8 @@ export function assertRuntimeWorkerIntegrationInventoryGuards(context) {
     "scripts/worker-integration-import-review-json-partial-upload.mjs",
     "scripts/worker-integration-import-review-json-final.mjs",
     "scripts/worker-integration-import-review-retry.mjs",
+    "scripts/worker-integration-import-processing-races.mjs",
+    "scripts/worker-integration-import-mutation-races.mjs",
     "scripts/worker-integration-audit.mjs",
     "scripts/worker-integration-audit-actions.mjs",
     "scripts/worker-integration-audit-assertions.mjs",

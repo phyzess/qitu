@@ -86,6 +86,16 @@ The Worker expects:
 | `EMAIL`        | Email   | local metadata only        | Cloudflare Email Sending       | Cloudflare Email Sending          |
 | Email Routing  | Email   | local simulated handler    | route to Worker email handler  | route to Worker email handler     |
 
+Queue consumers use `max_batch_timeout = 1` second in every environment so low-volume imports do
+not look stuck. Manual upload dispatches the Queue first, then schedules the same idempotent import
+runner through `waitUntil` as a best-effort latency fast path. The Queue and DLQ remain the durable
+retry path; do not remove dispatch because the fast path usually succeeds.
+
+Wrangler registers the `*/5 * * * *` Cron trigger declared for every Worker environment. Its
+`scheduled` handler recovers expired or failed source-deletion claims even when no import Queue
+message remains. No separate Cloudflare resource is created, but the trigger and handler must be
+deployed together.
+
 Create remote resources with account-specific names:
 
 ```sh

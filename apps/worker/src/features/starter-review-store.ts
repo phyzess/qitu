@@ -11,6 +11,8 @@ import {
 import {
   prepareInsertStarterCommittedRecord,
   prepareInsertStarterStagedRecord,
+  prepareDeleteStarterSourceRecords,
+  prepareAdjustStarterStagedRecord,
   prepareMarkStarterStagedRecordCommitted,
   prepareUpdateStarterStagedRecordStatus,
 } from "./starter-review-statements";
@@ -26,6 +28,8 @@ export const starterReviewStore: WorkerReviewStore = {
   readReviewStatusSummary: readStarterReviewStatusSummary,
   prepareInsertStagedRecord: prepareInsertStarterStagedRecord,
   prepareUpdateStagedRecordStatus: prepareUpdateStarterStagedRecordStatus,
+  prepareAdjustStagedRecord: prepareAdjustStarterStagedRecord,
   prepareInsertCommittedRecord: prepareInsertStarterCommittedRecord,
   prepareMarkStagedRecordCommitted: prepareMarkStarterStagedRecordCommitted,
+  prepareDeleteSourceRecords: prepareDeleteStarterSourceRecords,
 };

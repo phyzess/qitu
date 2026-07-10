@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { AnimatedIcon } from "./animated-icon";
 import { Button } from "./button";
@@ -11,11 +11,17 @@ export function AppShell({
   actions,
   brand,
   children,
+  contentKey,
+  contentTitle,
   commandLabel = "Search workspace",
   commandShortcutLabel = "K",
+  documentTitle,
   eyebrow,
   navigation,
   onCommand,
+  primaryNavigationLabel = "Primary navigation",
+  sectionNavigationLabel = "Section navigation",
+  skipLinkLabel = "Skip to main content",
   subNavigation = [],
 }: AppShellProps) {
   const activePrimaryIndex = Math.max(
@@ -24,11 +30,14 @@ export function AppShell({
   );
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousContentKeyRef = useRef<string | undefined>(undefined);
+  const routeTitleId = useId();
   const targetIndex = hoverIndex ?? focusIndex ?? activePrimaryIndex;
+  const activePrimaryItem = navigation[activePrimaryIndex] ?? navigation[0];
   const targetPrimaryItem =
     navigation[targetIndex] ?? navigation[activePrimaryIndex] ?? navigation[0];
-  const activeItem =
-    subNavigation.find((item) => item.active) ?? targetPrimaryItem ?? navigation[0];
+  const activeItem = subNavigation.find((item) => item.active) ?? activePrimaryItem;
   const commandContent = (
     <CommandSearchFixture
       icon={<AnimatedIcon name="search" size={15} />}
@@ -37,8 +46,27 @@ export function AppShell({
     />
   );
 
+  useEffect(() => {
+    if (!documentTitle) return;
+    document.title = documentTitle;
+  }, [documentTitle]);
+
+  useEffect(() => {
+    if (contentKey === undefined) return;
+    if (previousContentKeyRef.current === undefined) {
+      previousContentKeyRef.current = contentKey;
+      return;
+    }
+    if (previousContentKeyRef.current === contentKey) return;
+    previousContentKeyRef.current = contentKey;
+    mainRef.current?.focus({ preventScroll: true });
+  }, [contentKey]);
+
   return (
     <div className="qitu-workbench">
+      <a className="qitu-skip-link" href="#qitu-main-content">
+        {skipLinkLabel}
+      </a>
       <header className="qitu-topbar">
         <div className="qitu-topbar-main">
           <div className="qitu-brand-lockup">
@@ -55,7 +83,7 @@ export function AppShell({
           </div>
 
           <div className="qitu-navigation-stack">
-            <nav aria-label="Primary navigation" className="qitu-primary-nav">
+            <nav aria-label={primaryNavigationLabel} className="qitu-primary-nav">
               <div className="qitu-primary-nav-track" onMouseLeave={() => setHoverIndex(null)}>
                 {navigation.map((item, index) => (
                   <PrimaryNavButton
@@ -78,7 +106,7 @@ export function AppShell({
             </nav>
 
             {subNavigation.length > 1 ? (
-              <nav aria-label="Section navigation" className="qitu-subnav">
+              <nav aria-label={sectionNavigationLabel} className="qitu-subnav">
                 {subNavigation.map((item) => (
                   <SubNavButton item={item} key={item.label} />
                 ))}
@@ -108,7 +136,22 @@ export function AppShell({
           </div>
         </div>
       </header>
-      <main className="qitu-main">{children}</main>
+      <main
+        aria-labelledby={contentTitle ? routeTitleId : undefined}
+        className="qitu-main"
+        id="qitu-main-content"
+        ref={mainRef}
+        tabIndex={-1}
+      >
+        <div className="qitu-route-frame" data-route-key={contentKey} key={contentKey}>
+          {contentTitle ? (
+            <h1 className="qitu-route-title" id={routeTitleId}>
+              {contentTitle}
+            </h1>
+          ) : null}
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

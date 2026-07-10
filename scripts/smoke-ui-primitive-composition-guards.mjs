@@ -9,6 +9,10 @@ export function assertUiPrimitiveCompositionGuards(context) {
       text("packages/ui/src/date-field.tsx").includes('captionLayout="dropdown"') &&
       text("packages/ui/src/date-field.tsx").includes("startMonth") &&
       text("packages/ui/src/date-field.tsx").includes("endMonth") &&
+      text("packages/ui/src/date-field.tsx").includes("labelDayButton") &&
+      text("packages/ui/src/date-field.tsx").includes("labelMonthDropdown") &&
+      text("packages/ui/src/date-field.tsx").includes("labelYearDropdown") &&
+      text("packages/ui/src/date-field.tsx").includes("localeCode={props.locale}") &&
       !text("packages/ui/src/date-field.tsx").includes("qitu-calendar-grid") &&
       !text("packages/ui/src/form.tsx").includes("@base-ui/react/input") &&
       !text("packages/ui/src/form.tsx").includes("@base-ui/react/select") &&
@@ -67,5 +71,53 @@ export function assertUiPrimitiveCompositionGuards(context) {
       uiSources.includes("qitu-list-state-row") &&
       uiSources.includes("qitu-upload-compact"),
     "@qitu/ui must expose qitu-composed primitives, shell pieces, icons, and token-backed styles.",
+  );
+
+  const calendarClasses = text("packages/ui/src/calendar-class-names.ts");
+  const dateField = text("packages/ui/src/date-field.tsx");
+  assert(
+    calendarClasses.includes("pointer-events-none absolute inset-x-0 top-0") &&
+      calendarClasses.includes("pointer-events-auto size-(--cell-size)") &&
+      dateField.includes("selectedDate ? `${props.label}: ${displayValue}` : props.label"),
+    "calendar navigation must not cover dropdown hit targets and DateField must expose its selected value in the trigger name.",
+  );
+
+  const shellApp = text("packages/ui/src/shell-app.tsx");
+  const shellNavigation = text("packages/ui/src/shell-navigation.tsx");
+  assert(
+    shellApp.includes("qitu-skip-link") &&
+      shellApp.includes('id="qitu-main-content"') &&
+      shellApp.includes("document.title = documentTitle") &&
+      shellApp.includes("previousContentKeyRef.current === undefined") &&
+      shellApp.includes("focus({ preventScroll: true })") &&
+      shellApp.includes("qitu-route-title") &&
+      shellNavigation.includes("event.button !== 0") &&
+      shellNavigation.includes("event.metaKey") &&
+      shellNavigation.includes('anchor.hasAttribute("download")'),
+    "AppShell must preserve native modified-link behavior and own skip-link, localized title, route heading, and focus lifecycle semantics.",
+  );
+
+  assert(
+    exists("packages/ui/src/workbench-layout.tsx") &&
+      uiSources.includes("export function WorkbenchGrid") &&
+      uiSources.includes('"context-wide"') &&
+      uiSources.includes('"data"') &&
+      uiSources.includes('"split"') &&
+      uiStyles.includes('.qitu-workbench-grid[data-layout="context-wide"]') &&
+      uiStyles.includes("@media (max-width: 1180px)") &&
+      uiStyles.includes("@keyframes qitu-route-enter") &&
+      uiStyles.includes("transform: none;") &&
+      uiStyles.includes('[data-slot="dropdown-menu-content"]') &&
+      !uiSources.includes("transition-all"),
+    "workbench layouts and route/overlay motion must stay responsive, compositor-safe, and reduced-motion aware.",
+  );
+
+  const chartIndex = text("packages/charts/src/index.tsx");
+  const chartInteraction = text("packages/charts/src/chart-interaction.tsx");
+  assert(
+    chartIndex.includes('import "./styles.css"') &&
+      chartInteraction.includes('className="qitu-chart-legend-entry"') &&
+      chartInteraction.includes('role="listitem">\n            <button'),
+    "@qitu/charts must load its interaction styles and preserve a native button inside each legend list item.",
   );
 }

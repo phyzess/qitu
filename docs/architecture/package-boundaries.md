@@ -16,12 +16,13 @@ templates/* -> copyable starting points
 
 `qitu` does not require a top-level `domains/*` folder. Concrete apps may organize business code by feature, workflow, bounded context, or vertical slice.
 
-`examples/*` packages are non-production feature examples. They may keep `src/index.ts` as a
-package import facade while parser/source reading, staged-record parsing, adapter behavior, and
-example types live in focused example-internal modules. Reusable packages must not import optional
-examples.
+`examples/*` packages are non-production boundary examples. Import examples may keep `src/index.ts`
+as a package import facade while parser/source reading, staged-record parsing, adapter behavior, and
+example types live in focused example-internal modules. Capability examples such as
+`organization-access` remain optional and executable without changing starter defaults. Reusable
+packages must not import optional examples.
 
-`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include thin route composition entrypoints, auth route groups, source/import/audit/AI route groups, the app role policy, source-file intake, the import adapter registry, import job runner, import review routes, audit D1 store, email delivery store, inbound email routing, MIME parsing for inbound attachments, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
+`apps/worker/src/*` may contain app-local modules that adapt reusable package interfaces to Cloudflare bindings and route wiring. Current examples include thin route composition entrypoints, auth route groups, source/import/audit/AI route groups, the app role policy, source-file intake and lifecycle routes, the import adapter registry, fast-path/Queue dispatch, the import job runner, import review routes, audit D1 store, email delivery store, inbound email routing, MIME parsing for inbound attachments, HTTP route helpers, and runtime config helpers. These modules are intentionally app-owned: they may know D1/R2/Queue/Email bindings and starter tables, but they must not move business meaning into `packages/*`.
 
 Import review persistence is app-owned Worker wiring. Generic Worker routes depend on
 `WorkerReviewStore`, while starter table knowledge stays in
@@ -69,6 +70,10 @@ Does not own:
 2. Business-specific resource hierarchies.
 3. The canonical role taxonomy of a cloned app.
 
+Tenant-aware organization scopes remain optional. `examples/organization-access` proves access
+context, support grants, entitlements, and exact cross-organization resource grants without adding
+tenant tables or customer semantics to `packages/rbac`.
+
 `packages/rbac/src/index.ts` is the package interface facade. Generic RBAC types, policy
 validation and normalization helpers, the starter role policy, and permission checks live in
 focused package-internal modules. Worker and Web app-owned policy adapters keep importing from
@@ -83,7 +88,8 @@ Owns:
 3. Content hashing.
 4. File validation helpers.
 
-Can support later app-owned download routes, but the reusable package does not own a download API in the current starter baseline.
+The starter now proves app-owned download, bounded preview, reparse, and deletion routes. The
+reusable package still does not own an HTTP API or app-specific retention policy.
 
 Does not own:
 
@@ -127,6 +133,10 @@ Does not own:
 1. Business staging table schema.
 2. Business commit logic.
 3. Parser internals for a specific file format.
+
+Adapter auto-commit policy, staged-record adjustment, and source cleanup hooks stay in deployable
+app wiring because they call feature-owned validation, persistence, and rebuild behavior. The
+generic review state and commit contracts remain reusable.
 
 ### 2.6 `packages/audit`
 

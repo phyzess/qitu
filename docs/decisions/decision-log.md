@@ -1522,6 +1522,150 @@ Reason:
 
 The registry had become the largest TypeScript UI source file while its public interface was still useful. Grouping selected SVG definitions improves locality for future shell and workflow icon additions without changing the `AnimatedIcon` interface.
 
+### 2026-07-10: Recoverable Import Execution and Exclusive Mutations
+
+Decision:
+
+Treat fast processing as a latency optimization over a durable Queue, and protect processing and
+review writes with explicit ownership leases.
+
+Rules:
+
+1. Source intake persists the source and queued import job before dispatching work.
+2. `ctx.waitUntil` may start a best-effort fast path, but Cloudflare Queue delivery remains the
+   durable fallback; the fast path must never consume or replace the queued message.
+3. A processing owner claims a bounded lease before reading, staging, or changing job state.
+   Competing consumers retry, and an expired lease may be reclaimed with event/audit evidence.
+4. Review decisions, confirmation, adjustment, and commit claim a separate mutation lease. Commit
+   enters the explicit `committing` state so concurrent review/source lifecycle writes fail closed
+   until the operation completes or a stale claim is recovered. Recovery replays the adapter with
+   the same stable `context.idempotencyKey = commit:${jobId}`; external/business writes must honor it.
+5. An initial Queue-send failure marks the job failed and is recovered through the failed-job retry
+   route. Operators use the audited redispatch route only when a successful send leaves a job queued
+   without processing evidence.
+6. Duplicate intake returns the source's latest inserted import job. Because multiple jobs may share
+   the same millisecond `created_at`, lookup uses SQLite insertion order as a deterministic
+   tie-breaker rather than random UUID order.
+7. Lease and persistence wiring remain app-owned Worker code; reusable packages expose only
+   business-neutral statuses and adapter contracts.
+
+Reason:
+
+Downstream testing exposed duplicate-consumer, fast-path/Queue, and review/commit races that a
+simple status check could not exclude. Durable fallback plus compare-and-swap ownership makes those
+paths recoverable without turning `packages/*` into a Cloudflare-specific workflow engine.
+
+### 2026-07-10: Explicit Error Acceptance and Opt-In Clean Auto Commit
+
+Decision:
+
+Manual review remains the default import policy. Deterministic adapters may explicitly opt clean
+imports into automatic commit, but open errors and AI advisory output never cross the human gate
+implicitly.
+
+Rules:
+
+1. A record with an open `error` issue cannot be approved or committed by the ordinary path.
+2. Only a single-record approval may set `overrideOpenErrors: true`; it accepts exactly the open
+   issues observed for that record in the same guarded mutation and writes audit/job evidence.
+3. Batch confirmation never accepts errors implicitly, and errors on rejected or pending records do
+   not block a separately approved clean record.
+4. Adapters default to manual review. `commitPolicy: "auto_when_clean"` is an explicit app-owned
+   choice for deterministic adapters with no open errors and uses a system actor.
+5. Automatic commit reuses the same confirmation, mutation claim, adapter `commitApproved`, and
+   audit path as manual commit. It does not authorize AI advisory results to commit business data.
+
+Reason:
+
+The starter needs a safe way to automate known-clean deterministic imports without weakening
+review provenance. An explicit policy and exact error-acceptance record preserve the human-control
+boundary and make automation auditable.
+
+### 2026-07-10: App-Owned Source Lifecycle with Report-Only Evidence
+
+Decision:
+
+Provide a business-neutral source lifecycle protocol while requiring each feature adapter to own
+cleanup of the business data contributed by a source.
+
+Rules:
+
+1. Raw download/preview requires a dedicated permission and audit evidence; viewer access excludes
+   raw content.
+2. Reparse creates a new import job against the existing immutable R2 object.
+3. Source deletion uses a compare-and-swap lease, blocks new jobs, renews the exact token before
+   destructive work, voids eligible jobs, deletes the R2 object, renews again, runs every app-owned
+   cleanup hook, and then writes a soft tombstone.
+4. R2 and D1 failures return structured retry stages and preserve the claim as a fail-closed durable
+   recovery record. A failure stage may be resumed immediately; an expired claim may be reclaimed.
+   Claim transition and audit evidence are atomic.
+5. A scheduled Worker recovers failed/expired deletion claims independently of finite Queue retry.
+   Persistent failures produce one open operator alert, resolved by successful recovery.
+6. Cleanup must be idempotent. Each app-owned review store receives only its own import job ids, and
+   missing cleanup support cannot release a recovery claim after side effects may have occurred.
+7. Normal source/raw surfaces hide both tombstoned and actively deleting rows, while source metadata,
+   audit events, and job events remain report-only evidence. Qitu does not silently purge evidence.
+8. Core packages never infer feature staging, committed, derived, or report tables.
+
+Reason:
+
+Reusable infrastructure can coordinate storage and evidence, but only the business feature knows
+which records a source created. Keeping deletion orchestration and its scheduled recovery in the
+app-owned Worker, and cleanup semantics in feature adapters, preserves both recoverability and the
+business-neutral core boundary.
+
+### 2026-07-10: Accessible Workbench and Chart Interaction Baseline
+
+Decision:
+
+Treat navigation, responsive workbench layout, localized calendar controls, and chart interaction as
+shared accessibility contracts rather than page-local polish.
+
+Rules:
+
+1. `AppShell` provides skip navigation, document-title updates, one optional route heading, and
+   focus transfer after route changes without stealing focus on first mount.
+2. Shell links preserve browser-native modified-click, external-target, and download behavior.
+3. `WorkbenchPage`, `WorkbenchGrid`, and `ContextPanel` provide business-neutral page composition;
+   context columns collapse below the shared 1180px breakpoint.
+4. `DateField` supplies locale-aware full-date day labels and explicit month/year dropdown labels.
+5. Qitu charts own their styles and support pointer/focus tooltips, keyboard time-series inspection,
+   interactive legends, meaningful announcements, and reduced-motion behavior.
+6. Chart APIs and labels remain business-neutral; app-owned pages provide domain semantics and
+   localized copy.
+
+Reason:
+
+These behaviors affect every downstream workflow and are easy to regress when recreated per page.
+A small shared contract gives cloned apps a usable baseline while keeping routing, dictionaries, and
+business chart meaning app-owned.
+
+### 2026-07-10: Optional Organization and Derived-Artifact Recipes
+
+Decision:
+
+Keep organization access and versioned derived artifacts as executable opt-in examples and recipes,
+not default core schema or universal packages.
+
+Rules:
+
+1. Qitu remains single-organization by default. `examples/organization-access` may be copied only
+   when tenant ownership is a real app requirement.
+2. Organization and platform memberships stay separate; disabled organizations, expired/revoked
+   support grants, and unknown resource actions fail closed.
+3. Support access is explicit, organization-specific, time-boxed, reason-bearing, revocable, and
+   read-only. App-owned RBAC checks and tenant row scoping remain mandatory.
+4. Business formulas, calculation versions, source-data versions, artifact tables, rebuild triggers,
+   and golden fixtures remain feature-owned.
+5. The derived-artifact recipe forbids silently serving stale artifacts and does not create a generic
+   metrics, cache, or workflow engine in `packages/*`.
+
+Reason:
+
+Both patterns are valuable downstream feedback, but adopting either as a default would add policy
+and business semantics that many qitu-derived apps do not need. Optional, verified examples preserve
+the learning without expanding the core contract prematurely.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

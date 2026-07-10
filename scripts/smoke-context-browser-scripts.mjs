@@ -2,6 +2,7 @@ export function createBrowserScriptsContext({ text }) {
   const browserSmoke = [
     text("scripts/browser-smoke.mjs"),
     text("scripts/browser-smoke-runtime.mjs"),
+    text("scripts/browser-smoke-database.mjs"),
     text("scripts/browser-smoke-dev-server.mjs"),
     text("scripts/browser-smoke-dev-server-log.mjs"),
     text("scripts/browser-smoke-dev-server-process.mjs"),
@@ -18,6 +19,7 @@ export function createBrowserScriptsContext({ text }) {
     text("scripts/browser-smoke-audit-filter.mjs"),
     text("scripts/browser-smoke-review-diagnostics.mjs"),
     text("scripts/browser-smoke-admin-flow.mjs"),
+    text("scripts/browser-smoke-ui.mjs"),
   ].join("\n");
 
   return { browserSmoke };

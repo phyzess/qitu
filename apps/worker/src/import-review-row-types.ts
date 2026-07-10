@@ -10,9 +10,16 @@ export type ImportJobReviewRow = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  processing_started_at: string | null;
+  mutation_token: string | null;
+  mutation_started_at: string | null;
+  mutation_kind: string | null;
+  mutation_previous_status: string | null;
   filename: string;
   content_type: string;
   object_key: string;
+  deletion_started_at: string | null;
+  deleted_at: string | null;
 };
 
 export type ImportReviewIssueRow = {

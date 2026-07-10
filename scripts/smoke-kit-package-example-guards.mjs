@@ -56,16 +56,31 @@ export function assertKitPackageExampleGuards(context) {
       exists("packages/db/src/source-import-tables.ts") &&
       exists("packages/db/src/review-tables.ts") &&
       exists("packages/db/src/email-tables.ts") &&
-      exists("packages/db/src/event-tables.ts"),
+      exists("packages/db/src/event-tables.ts") &&
+      dbPackage.includes("source_files_active_workspace_content_hash_idx") &&
+      dbPackage.includes("source_files_deletion_started_at_idx") &&
+      dbPackage.includes("import_jobs_mutation_started_at_idx") &&
+      dbPackage.includes("import_jobs_processing_lease_idx") &&
+      !dbPackage.includes('uniqueIndex("source_files_workspace_content_hash_idx")'),
     "core db package must keep example-owned tables out and split generic tables by capability.",
   );
   assert(
     chartsPackage.includes("TimeSeriesChart") &&
       exists("packages/charts/src/time-series-chart.tsx") &&
+      exists("packages/charts/src/time-series-interaction.ts") &&
+      exists("packages/charts/src/category-chart-utils.ts") &&
+      exists("packages/charts/src/chart-interaction.tsx") &&
       exists("packages/charts/src/chart-grid.tsx") &&
       exists("packages/charts/src/chart-utils.ts") &&
       chartsPackage.includes("@visx/scale") &&
-      chartsPackage.includes("@visx/shape"),
-    "charts package must expose visx-backed chart primitives behind focused support modules.",
+      chartsPackage.includes("@visx/shape") &&
+      chartsPackage.includes("timeSeriesNavigation") &&
+      chartsPackage.includes('aria-live="polite"') &&
+      chartsPackage.includes("CategoryLegend") &&
+      chartsPackage.includes("ChartTooltip") &&
+      chartsPackage.includes("fitTextFontSize") &&
+      chartsPackage.includes("shareLabel: string") &&
+      chartsPackage.includes("valueLabel: string"),
+    "charts package must expose focused visx primitives with caller-owned labels, keyboard inspection, tooltips, legends, and safe center text.",
   );
 }

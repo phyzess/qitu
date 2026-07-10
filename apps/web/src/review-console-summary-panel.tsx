@@ -53,9 +53,9 @@ export function ReviewConsoleSummaryPanel(props: {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <StatusBadge tone="active">{props.user.email}</StatusBadge>
-          <h1 className="mt-3 truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
+          <h2 className="mt-3 truncate text-[length:var(--qitu-text-heading-20)] font-semibold leading-[var(--qitu-leading-heading-20)]">
             {t("review.consoleTitle")}
-          </h1>
+          </h2>
           <div className="mt-1 text-[length:var(--qitu-text-copy-13)] leading-[var(--qitu-leading-copy-13)] text-[var(--qitu-dim)]">
             {props.notice}
           </div>
@@ -69,8 +69,23 @@ export function ReviewConsoleSummaryPanel(props: {
       {props.error ? <ErrorText>{props.error}</ErrorText> : null}
       <MetricStrip className="mt-[var(--qitu-space-s1)]" items={metrics} />
       <div className="mt-[var(--qitu-space-s1)] grid gap-[var(--qitu-space-s0)]">
-        <TimeSeriesChart data={props.reviewTrend} height={132} label={t("review.chartTrend")} />
-        <BarChart data={reviewBars} height={156} label={t("review.chartDistribution")} />
+        <TimeSeriesChart
+          data={props.reviewTrend}
+          formatX={(value, datum) => datum?.label ?? String(value)}
+          height={132}
+          keyboardInstructions={t("chart.keyboardInstructions")}
+          label={t("review.chartTrend")}
+          valueLabel={t("chart.value")}
+          xLabel={t("chart.category")}
+        />
+        <BarChart
+          data={reviewBars}
+          height={156}
+          label={t("review.chartDistribution")}
+          legend="inline"
+          shareLabel={t("chart.share")}
+          valueLabel={t("chart.value")}
+        />
       </div>
     </Surface>
   );

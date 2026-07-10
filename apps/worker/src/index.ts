@@ -9,6 +9,7 @@ import { registerImportReviewRoutes } from "./import-review-routes";
 import { handleInboundEmail } from "./inbound-email";
 import { runtimeConfig } from "./runtime";
 import { registerSourceRoutes } from "./source-routes";
+import { recoverPendingSourceDeletions } from "./source-deletion-recovery";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -36,10 +37,24 @@ export default {
   async queue(batch, env) {
     for (const message of batch.messages) {
       const body = parseImportJobMessage(message.body);
-      await processImportJob(env, body);
+      const result = await processImportJob(env, body, { mode: "queue" });
+      if (result.retryDelaySeconds !== undefined) {
+        message.retry({ delaySeconds: result.retryDelaySeconds });
+      }
     }
   },
   async email(message, env) {
     await handleInboundEmail(message, env);
+  },
+  async scheduled(_controller, env) {
+    const summary = await recoverPendingSourceDeletions(env);
+    if (summary.scanned > 0) {
+      console.log(
+        JSON.stringify({
+          message: "Source deletion recovery completed.",
+          ...summary,
+        }),
+      );
+    }
   },
 } satisfies ExportedHandler<Env, ImportJobMessage>;

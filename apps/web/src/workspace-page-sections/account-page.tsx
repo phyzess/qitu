@@ -1,4 +1,4 @@
-import { AnimatedIcon, Button, SectionHeader, Surface } from "@qitu/ui";
+import { AnimatedIcon, Button, SectionHeader, Surface, WorkbenchGrid } from "@qitu/ui";
 import { X } from "lucide-react";
 import { RuntimeRow } from "../app-ui";
 import { useI18n } from "../i18n";
@@ -13,7 +13,7 @@ export function AccountPage(props: {
   const { formatDateTime, roleLabel, t } = useI18n();
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+    <WorkbenchGrid layout="context">
       <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader icon={<AnimatedIcon name="key" size={16} />} title={t("account.title")} />
         <div className="mt-[var(--qitu-space-s1)] grid gap-3 md:grid-cols-2">
@@ -43,6 +43,6 @@ export function AccountPage(props: {
           <RuntimeRow label={t("account.cookie")} value={t("account.cookieHttpOnly")} />
         </div>
       </Surface>
-    </div>
+    </WorkbenchGrid>
   );
 }

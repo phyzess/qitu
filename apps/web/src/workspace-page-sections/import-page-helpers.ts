@@ -46,7 +46,7 @@ export function importRecoveryGuidance(
     };
   }
 
-  if (job.status === "queued" || job.status === "processing") {
+  if (job.status === "queued" || job.status === "processing" || job.status === "committing") {
     return {
       description: t("imports.recoveryWaitForProcessing"),
       label: t("imports.inProgress"),

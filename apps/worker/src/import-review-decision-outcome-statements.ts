@@ -17,6 +17,7 @@ export function prepareReviewRecordDecisionOutcomeStatements(
     record: StoredStagedRecordRow;
     recordDecisionId: string;
     targetStatus: Extract<StagedRecordStatus, "approved" | "rejected">;
+    acceptedOpenErrorCount: number;
   },
 ): D1PreparedStatement[] {
   return [
@@ -46,6 +47,7 @@ export function prepareReviewRecordDecisionOutcomeStatements(
         decisionId: input.decisionId,
         recordDecisionId: input.recordDecisionId,
         targetReviewStatus: input.targetStatus,
+        acceptedOpenErrorCount: input.acceptedOpenErrorCount,
       },
     }),
     prepareAuditInsert(
@@ -64,6 +66,7 @@ export function prepareReviewRecordDecisionOutcomeStatements(
           importJobId: input.importJobId,
           stagedRecordKey: input.record.staged_record_key,
           decisionId: input.decisionId,
+          acceptedOpenErrorCount: input.acceptedOpenErrorCount,
         },
       }),
     ),

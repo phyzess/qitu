@@ -7,6 +7,7 @@ export async function testImportRetryScenario({ client, env, worker }) {
     body: retryUploadBody,
     headers: {
       "content-type": "text/plain",
+      "x-disable-fast-import": "1",
       "x-filename": "fixture-retry.txt",
       "x-workspace-id": "default",
     },

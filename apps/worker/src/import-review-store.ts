@@ -1,4 +1,5 @@
 import type { ReviewStatusSummary } from "@qitu/import-pipeline";
+import type { ImportJobWriteGuard } from "./import-job-write-guard";
 
 export type StoredStagedRecordRow = {
   id: string;
@@ -31,6 +32,7 @@ export type StageRecordInput = {
   sourceRowKey: string;
   payloadJson: string;
   reviewStatus: string;
+  writeGuard?: ImportJobWriteGuard;
   createdAt: string;
   updatedAt: string;
 };
@@ -41,6 +43,7 @@ export type CommitRecordInput = {
   payloadJson: string;
   committedBy: string;
   committedAt: string;
+  writeGuard?: ImportJobWriteGuard;
 };
 
 export type WorkerReviewStore = {
@@ -61,11 +64,30 @@ export type WorkerReviewStore = {
   prepareInsertStagedRecord(env: Env, input: StageRecordInput): D1PreparedStatement;
   prepareUpdateStagedRecordStatus(
     env: Env,
-    input: { id: string; reviewStatus: string; updatedAt: string; onlyPending?: boolean },
+    input: {
+      id: string;
+      reviewStatus: string;
+      updatedAt: string;
+      onlyPending?: boolean;
+      writeGuard?: ImportJobWriteGuard;
+    },
+  ): D1PreparedStatement;
+  prepareAdjustStagedRecord?(
+    env: Env,
+    input: { id: string; payloadJson: string; reviewStatus: string; updatedAt: string },
   ): D1PreparedStatement;
   prepareInsertCommittedRecord(env: Env, input: CommitRecordInput): D1PreparedStatement;
   prepareMarkStagedRecordCommitted(
     env: Env,
-    input: { id: string; committedRecordId: string; updatedAt: string },
+    input: {
+      id: string;
+      committedRecordId: string;
+      updatedAt: string;
+      writeGuard?: ImportJobWriteGuard;
+    },
   ): D1PreparedStatement;
+  prepareDeleteSourceRecords?(
+    env: Env,
+    input: { importJobIds: string[]; sourceFileId: string },
+  ): D1PreparedStatement[];
 };

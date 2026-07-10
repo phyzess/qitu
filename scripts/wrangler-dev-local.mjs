@@ -11,6 +11,9 @@ if (!/^\d+$/.test(port)) {
 }
 
 const args = ["dev", "--local", "--port", port];
+if (process.env.QITU_D1_PERSIST_TO) {
+  args.push("--persist-to", process.env.QITU_D1_PERSIST_TO);
+}
 if (publicAppUrl) {
   args.push("--var", `PUBLIC_APP_URL:${publicAppUrl}`);
 }

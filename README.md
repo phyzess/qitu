@@ -24,7 +24,7 @@ The repository currently contains:
 6. Two app-owned starter feature adapters in the Worker.
 7. A verified adoption script for renaming, pruning, and reconnecting cloned apps.
 8. Copyable app and feature templates under `templates/*`.
-9. Optional example feature packages under `examples/*`.
+9. Optional executable examples under `examples/*`.
 
 See `docs/capability-matrix.md` for what is designed, scaffolded, runnable, tested, or production-ready.
 
@@ -125,6 +125,7 @@ packages/
 examples/
   import-review/
   json-records/
+  organization-access/
 
 templates/
   app/
@@ -163,9 +164,15 @@ mock API app-owned. Reusable visual primitives still belong in `packages/ui`.
 9. Transactional and inbound email.
 10. AI advisory artifacts with human confirmation.
 11. Locale-aware React app shell and design system.
-12. Documentation and decision-log conventions.
+12. Recoverable import execution and source lifecycle operations.
+13. Accessible workbench layouts and interactive chart primitives.
+14. Documentation and decision-log conventions.
 
 Not all capabilities are fully implemented yet. Use `docs/capability-matrix.md` as the source of truth for maturity.
+
+Organization access and versioned derived artifacts are optional examples/recipes, not default core
+capabilities. Adopt them only when a concrete app needs tenant ownership or materialized business
+calculations.
 
 ## What qitu Does Not Provide
 
@@ -201,14 +208,17 @@ Start here:
 13. `docs/guides/create-app.md`
 14. `docs/guides/add-feature.md`
 15. `docs/guides/first-vertical-slice.md`
-16. `docs/deployment.md`
-17. `docs/demo.md`
-18. `docs/troubleshooting.md`
-19. `docs/release-notes.md`
-20. `docs/upgrade-notes.md`
-21. `docs/agents/agent-integration.md`
-22. `docs/decisions/decision-log.md`
-23. `docs/roadmap.md`
+16. `docs/guides/optional-organization-access.md`
+17. `docs/guides/versioned-derived-artifacts.md`
+18. `docs/operations/source-lifecycle.md`
+19. `docs/deployment.md`
+20. `docs/demo.md`
+21. `docs/troubleshooting.md`
+22. `docs/release-notes.md`
+23. `docs/upgrade-notes.md`
+24. `docs/agents/agent-integration.md`
+25. `docs/decisions/decision-log.md`
+26. `docs/roadmap.md`
 
 Agent entrypoints:
 

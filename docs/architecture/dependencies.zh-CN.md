@@ -1,7 +1,7 @@
 # 依赖基线
 
 Status: initial  
-Checked: 2026-07-02
+Checked: 2026-07-10
 
 所有版本都刻意精确锁定。升级必须通过显式 decision。
 
@@ -29,7 +29,7 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 | `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI           |
 | `@playwright/test`                |   `1.61.0` | 浏览器 smoke                              |
 | `tslib`                           |    `2.8.1` | 固定 shadcn CLI 依赖链所需 runtime helper |
-| `vitest`                          |    `4.1.9` | Worker runtime smoke tests                |
+| `vitest`                          |    `4.1.9` | Root unit tests 与 Worker runtime smoke   |
 | `@vitest/runner`                  |    `4.1.9` | Worker runtime test pool 的显式 peer      |
 | `@vitest/snapshot`                |    `4.1.9` | Worker runtime test pool 的显式 peer      |
 | `@types/node`                     |   `26.0.0` | Node.js compatibility typings             |
@@ -70,3 +70,5 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 6. Worker runtime types 由 `wrangler types` 生成到 `apps/worker/worker-configuration.d.ts`。
 7. `@cloudflare/vite-plugin` 仍只是 integration candidate，当前 package manifest 与 lockfile 没有声明它；只有在记录显式 decision 并同步依赖后才能加入。
 8. `smoke:browser` 使用真实 Chromium 跑首个纵切。新机器缺浏览器时执行 `vp exec playwright install chromium`。
+9. `test:unit` 通过 root `vitest.config.ts` 只收集 `*.unit.test.ts`，不混入 Cloudflare runtime tests；`verify:kit` 与 CI 都执行这一层。
+10. Worker runtime tests 使用独立的 `apps/worker/wrangler.test.jsonc`；browser smoke 使用 PID-isolated Wrangler persistence directory，并在同一路径先应用 D1 migrations，避免运行间泄漏数据。

@@ -1,4 +1,9 @@
 import type { ReviewRecordDecisionAction } from "@qitu/import-pipeline";
+import {
+  activeImportJobGuardSql,
+  importJobWriteGuardBindings,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";
 
 export function prepareConfirmPendingDecisionStatement(
   env: Env,
@@ -9,21 +14,27 @@ export function prepareConfirmPendingDecisionStatement(
     decisionId: string;
     jobId: string;
     note: string | null;
+    writeGuard?: ImportJobWriteGuard;
   },
 ): D1PreparedStatement {
-  return env.DB.prepare(
+  const statement = env.DB.prepare(
     `
       INSERT INTO import_review_decisions (
         id, import_job_id, action, reviewer_user_id, note, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?)
+      ${input.writeGuard ? `SELECT ?, ?, ?, ?, ?, ? WHERE ${activeImportJobGuardSql()}` : "VALUES (?, ?, ?, ?, ?, ?)"}
     `,
-  ).bind(
+  );
+  const values = [
     input.decisionId,
     input.jobId,
     input.action,
     input.currentUserId,
     input.note,
     input.confirmedAt,
-  );
+  ];
+
+  return input.writeGuard
+    ? statement.bind(...values, ...importJobWriteGuardBindings(input.writeGuard))
+    : statement.bind(...values);
 }

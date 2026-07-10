@@ -41,6 +41,40 @@
   backdrop-filter: blur(18px) saturate(1.12);
 }
 
+.qitu-page-flow {
+  display: grid;
+  min-width: 0;
+  gap: var(--qitu-layout-gutter);
+}
+
+.qitu-workbench-grid {
+  display: grid;
+  min-width: 0;
+  gap: var(--qitu-layout-gutter);
+}
+
+.qitu-workbench-grid[data-layout="context"] {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+}
+
+.qitu-workbench-grid[data-layout="context-wide"] {
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 520px);
+}
+
+.qitu-workbench-grid[data-layout="data"] {
+  grid-template-columns: minmax(0, 1fr) minmax(460px, min(800px, 44vw));
+}
+
+.qitu-workbench-grid[data-layout="split"] {
+  grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.qitu-context-panel {
+  min-width: 0;
+  border-left: 1px solid var(--qitu-line);
+  padding-left: var(--qitu-space-o5);
+}
+
 .qitu-number {
   font-family: var(--qitu-font-number);
   font-variant-numeric: tabular-nums;

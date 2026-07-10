@@ -23,11 +23,21 @@ export async function assertAuditDateFilter({ page, webUrl }) {
       year: String(date.getFullYear()),
     };
   });
-  await page.getByRole("button", { name: "Select date" }).first().click();
+  const firstDateTrigger = page.locator(".qitu-date-trigger").first();
+  await expect(firstDateTrigger).toHaveAccessibleName("From date");
+  await firstDateTrigger.click();
   await expect(page.locator(".qitu-date-popover")).toBeVisible();
   await expect(page.locator(".qitu-calendar")).toBeVisible();
   const calendarDropdowns = page.locator(".qitu-date-popover select");
   await expect(calendarDropdowns).toHaveCount(2);
+  const hitTargets = await calendarDropdowns.evaluateAll((selects) =>
+    selects.map((select) => {
+      const rect = select.getBoundingClientRect();
+      return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+        ?.tagName;
+    }),
+  );
+  expect(hitTargets).toEqual(["SELECT", "SELECT"]);
   await calendarDropdowns.first().selectOption({ index: pastDate.monthIndex });
   await calendarDropdowns.nth(1).selectOption(pastDate.year);
   await expect(calendarDropdowns.nth(1)).toHaveValue(pastDate.year);
@@ -37,7 +47,7 @@ export async function assertAuditDateFilter({ page, webUrl }) {
     .first()
     .click();
   await expect(page.locator(".qitu-date-popover")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: pastDate.formatted }).first()).toBeVisible();
+  await expect(firstDateTrigger).toHaveAccessibleName(`From date: ${pastDate.formatted}`);
   await page.getByLabel("Action", { exact: true }).fill("import_job.committed");
   await page.getByRole("button", { name: "Apply filters" }).click();
   await expect(page.getByText("import_job.committed", { exact: true }).first()).toBeVisible();

@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { AnimatedIcon, SectionHeader, Surface } from "@qitu/ui";
+import { AnimatedIcon, SectionHeader, Surface, WorkbenchGrid } from "@qitu/ui";
 import { useI18n } from "../i18n";
 import type { ImportJobListItem, SourceFile, UploadQueueEntry } from "../types";
 import { SourceDetailsDrawer } from "./source-details-drawer";
@@ -32,7 +32,7 @@ export function SourcesPage(props: {
   });
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_360px]">
+    <WorkbenchGrid layout="context">
       <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           description={t("sources.description")}
@@ -89,6 +89,6 @@ export function SourcesPage(props: {
           if (!open) sourceSelection.closeSourceDetails();
         }}
       />
-    </div>
+    </WorkbenchGrid>
   );
 }

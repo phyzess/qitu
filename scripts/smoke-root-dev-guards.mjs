@@ -10,8 +10,10 @@ export function assertRootDevGuards(context) {
   assert(
     context.workerPackageJson.scripts.dev === "node ../../scripts/wrangler-dev-local.mjs" &&
       context.wranglerDevLocalScript.includes("QITU_WORKER_PORT") &&
+      context.wranglerDevLocalScript.includes("QITU_D1_PERSIST_TO") &&
+      context.wranglerDevLocalScript.includes('"--persist-to"') &&
       context.wranglerDevLocalScript.includes('"--port"'),
-    "worker dev must route through a local Wrangler wrapper that honors QITU_WORKER_PORT.",
+    "worker dev must honor dynamic ports and isolated D1 persistence.",
   );
   assert(
     context.devAllScript.includes('"@qitu/web"') &&

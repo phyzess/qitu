@@ -9,7 +9,11 @@ export function AuthLoadingPage(props: { notice: string }) {
   const { t } = useI18n();
 
   return (
-    <AuthPageFrame eyebrow={t("auth.secureAccess")} notice={props.notice}>
+    <AuthPageFrame
+      eyebrow={t("auth.secureAccess")}
+      notice={props.notice}
+      title={t("auth.loadingTitle")}
+    >
       <div className="qitu-auth-card">
         <StatusBadge tone="info">{t("loading.session")}</StatusBadge>
         <h1 className="qitu-auth-card-title">{t("auth.loadingTitle")}</h1>
@@ -35,7 +39,11 @@ export function InviteAcceptPage(props: {
   const { t } = useI18n();
 
   return (
-    <AuthPageFrame eyebrow={t("auth.invitationBadge")} notice={props.notice}>
+    <AuthPageFrame
+      eyebrow={t("auth.invitationBadge")}
+      notice={props.notice}
+      title={t("auth.acceptInvitation")}
+    >
       <div className="qitu-auth-card">
         <AuthCardHeader
           badge={t("auth.invitationBadge")}
@@ -75,7 +83,11 @@ export function RoutePasswordResetPage(props: {
   const { t } = useI18n();
 
   return (
-    <AuthPageFrame eyebrow={t("auth.passwordResetBadge")} notice={props.notice}>
+    <AuthPageFrame
+      eyebrow={t("auth.passwordResetBadge")}
+      notice={props.notice}
+      title={t("action.resetPassword")}
+    >
       <div className="qitu-auth-card">
         <AuthCardHeader
           badge={t("auth.passwordResetBadge")}

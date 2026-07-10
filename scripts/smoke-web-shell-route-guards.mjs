@@ -76,6 +76,10 @@ export function assertWebShellRouteGuards(context) {
       webWorkspaceLoadingShell.includes("function ProtectedWorkspaceLoading") &&
       webWorkspaceLoadingShell.includes("function WorkspaceLoadingActions") &&
       webWorkspaceLoadingShell.includes("buildNavigation") &&
+      webWorkspaceLoadingShell.includes("WorkbenchGrid") &&
+      webAppWorkspaceShell.includes("contentKey={props.routeKey}") &&
+      webAppWorkspaceShell.includes("documentTitle={`${props.routeTitle} · qitu`}") &&
+      webAppWorkspaceShell.includes('skipLinkLabel={t("nav.skipToContent")}') &&
       !webWorkspaceShellController.includes("buildSearchEntries") &&
       !webWorkspaceShellController.includes("WorkspaceShellActions") &&
       !webWorkspaceShellController.includes("WorkspaceShellOverlays") &&

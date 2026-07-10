@@ -29,8 +29,17 @@ export async function uploadSourceFile(input: { file: File; workspaceId?: string
     body: input.file,
     headers: {
       "content-type": input.file.type || "application/octet-stream",
-      "x-filename": input.file.name,
+      "x-filename": asciiHeaderFallback(input.file.name),
+      "x-filename-utf8": encodeURIComponent(input.file.name),
       "x-workspace-id": input.workspaceId ?? "default",
     },
   });
+}
+
+function asciiHeaderFallback(value: string): string {
+  const fallback = value
+    .replace(/[\r\n]/g, "_")
+    .replace(/[^\x20-\x7E]/g, "_")
+    .trim();
+  return fallback || "source.bin";
 }

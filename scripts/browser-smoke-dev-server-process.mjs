@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 
 export function spawnBrowserSmokeDevServer({
+  d1PersistTo,
   root,
   webPort,
   webUrl,
@@ -17,6 +18,7 @@ export function spawnBrowserSmokeDevServer({
     env: {
       ...env,
       CI: "1",
+      QITU_D1_PERSIST_TO: d1PersistTo,
       QITU_PUBLIC_APP_URL: webUrl,
       QITU_WEB_PORT: webPort,
       QITU_WORKER_ORIGIN: workerUrl,

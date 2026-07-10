@@ -7,9 +7,11 @@ import { PopoverContent, PopoverRoot, PopoverTrigger } from "./popover";
 import { cn } from "./utils";
 
 export type CalendarLabels = {
+  monthDropdown?: string | undefined;
   nextMonth: string;
   previousMonth: string;
   weekdays?: readonly [string, string, string, string, string, string, string] | undefined;
+  yearDropdown?: string | undefined;
 };
 
 export function DateField(props: {
@@ -28,7 +30,7 @@ export function DateField(props: {
   const [open, setOpen] = useState(false);
   const selectedDate = parseDateValue(props.value);
   const endMonth = props.endMonth ?? new Date(new Date().getFullYear() + 25, 11);
-  const label = props.value
+  const displayValue = props.value
     ? formatDateValue(props.value, props.locale)
     : (props.placeholder ?? "Select date");
   const startMonth = props.startMonth ?? new Date(1900, 0);
@@ -38,14 +40,32 @@ export function DateField(props: {
       <BaseField.Label className="qitu-form-label">{props.label}</BaseField.Label>
       {props.name ? <Input name={props.name} type="hidden" value={props.value} /> : null}
       <PopoverRoot open={open} onOpenChange={(nextOpen: boolean) => setOpen(nextOpen)}>
-        <PopoverTrigger className="qitu-field-control qitu-date-trigger" type="button">
-          <span className={cn("truncate", !props.value && "text-[var(--qitu-dim)]")}>{label}</span>
+        <PopoverTrigger
+          aria-label={selectedDate ? `${props.label}: ${displayValue}` : props.label}
+          className="qitu-field-control qitu-date-trigger"
+          type="button"
+        >
+          <span className={cn("truncate", !props.value && "text-[var(--qitu-dim)]")}>
+            {displayValue}
+          </span>
           <CalendarDays aria-hidden="true" size={14} />
         </PopoverTrigger>
         <PopoverContent className="qitu-date-popover">
           <Calendar
             captionLayout="dropdown"
             endMonth={endMonth}
+            labels={{
+              labelDayButton: (date) =>
+                new Intl.DateTimeFormat(props.locale, { dateStyle: "full" }).format(date),
+              labelMonthDropdown: () => props.labels.monthDropdown ?? "Choose month",
+              labelNext: () => props.labels.nextMonth,
+              labelPrevious: () => props.labels.previousMonth,
+              labelWeekday: (date) =>
+                props.labels.weekdays?.[date.getDay()] ??
+                new Intl.DateTimeFormat(props.locale, { weekday: "long" }).format(date),
+              labelYearDropdown: () => props.labels.yearDropdown ?? "Choose year",
+            }}
+            localeCode={props.locale}
             mode="single"
             selected={selectedDate ?? undefined}
             startMonth={startMonth}

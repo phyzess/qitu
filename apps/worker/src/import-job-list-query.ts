@@ -47,6 +47,7 @@ export async function readImportJobList(
       FROM import_jobs
       INNER JOIN source_files ON source_files.id = import_jobs.source_file_id
       WHERE source_files.workspace_id = ?
+        AND source_files.deleted_at IS NULL
         AND (? IS NULL OR import_jobs.status = ?)
       ORDER BY import_jobs.created_at DESC
       LIMIT ?

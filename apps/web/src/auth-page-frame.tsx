@@ -1,10 +1,19 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { AnimatedIcon, QituMark, StatusBadge } from "@qitu/ui";
 import { useI18n } from "./i18n";
 import { LanguageSelector, ThemeToggleButton } from "./shell-controls";
 
-export function AuthPageFrame(props: { children: ReactNode; eyebrow: string; notice: string }) {
+export function AuthPageFrame(props: {
+  children: ReactNode;
+  eyebrow: string;
+  notice: string;
+  title: string;
+}) {
   const { t } = useI18n();
+
+  useEffect(() => {
+    document.title = `${props.title} · qitu`;
+  }, [props.title]);
 
   return (
     <main className="qitu-auth-page">
@@ -24,7 +33,7 @@ export function AuthPageFrame(props: { children: ReactNode; eyebrow: string; not
       <section className="qitu-auth-shell" aria-label={t("auth.pageLabel")}>
         <div className="qitu-auth-intro">
           <StatusBadge tone="active">{props.eyebrow}</StatusBadge>
-          <h1>{t("auth.heroTitle")}</h1>
+          <p className="qitu-auth-hero-title">{t("auth.heroTitle")}</p>
           <p>{t("auth.heroDescription")}</p>
           <div className="qitu-auth-proof-list" aria-label={t("auth.guardrails")}>
             <AuthProof icon="key" title={t("auth.proofSession")} />
@@ -48,7 +57,7 @@ export function AuthCardHeader(props: { badge: string; description: string; titl
   return (
     <div className="min-w-0">
       <StatusBadge tone="info">{props.badge}</StatusBadge>
-      <h2 className="qitu-auth-card-title">{props.title}</h2>
+      <h1 className="qitu-auth-card-title">{props.title}</h1>
       <p className="qitu-auth-card-copy">{props.description}</p>
     </div>
   );

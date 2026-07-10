@@ -2,13 +2,20 @@ import type { ReviewRecordDecisionAction, StagedRecordStatus } from "@qitu/impor
 import type { CurrentUser } from "./auth-types";
 import type { AppContext } from "./http-utils";
 import type { WorkerImportAdapter } from "./import-adapters";
+import { prepareOpenErrorOverrideStatements } from "./import-review-error-override-statements";
 import { prepareReviewDecisionLedgerStatements } from "./import-review-decision-ledger-statements";
 import { prepareReviewRecordDecisionOutcomeStatements } from "./import-review-decision-outcome-statements";
 import { readImportJobStatusAfterRecordDecision } from "./import-review-status";
 import type { StoredStagedRecordRow } from "./import-review-store";
+import type { ImportReviewIssueRow } from "./import-review-row-types";
+import {
+  prepareImportJobWriteGuardAssertion,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";
 
 export async function writeReviewRecordDecision(input: {
   action: ReviewRecordDecisionAction;
+  acceptedOpenErrors: ImportReviewIssueRow[];
   adapter: WorkerImportAdapter;
   context: AppContext;
   current: CurrentUser;
@@ -16,8 +23,20 @@ export async function writeReviewRecordDecision(input: {
   note: string | null;
   record: StoredStagedRecordRow;
   targetStatus: Extract<StagedRecordStatus, "approved" | "rejected">;
-}): Promise<{ decidedAt: string; record: StoredStagedRecordRow }> {
-  const { action, adapter, context, current, jobId, note, record, targetStatus } = input;
+  writeGuard?: ImportJobWriteGuard;
+}): Promise<{ decidedAt: string; record: StoredStagedRecordRow; status: string }> {
+  const {
+    acceptedOpenErrors,
+    action,
+    adapter,
+    context,
+    current,
+    jobId,
+    note,
+    record,
+    targetStatus,
+    writeGuard,
+  } = input;
   const decidedAt = new Date().toISOString();
   const decisionId = crypto.randomUUID();
   const recordDecisionId = crypto.randomUUID();
@@ -29,6 +48,7 @@ export async function writeReviewRecordDecision(input: {
   });
 
   await context.env.DB.batch([
+    ...(writeGuard ? [prepareImportJobWriteGuardAssertion(context.env, writeGuard)] : []),
     ...prepareReviewDecisionLedgerStatements(context.env, {
       action,
       decidedAt,
@@ -38,6 +58,15 @@ export async function writeReviewRecordDecision(input: {
       recordDecisionId,
       reviewerUserId: current.user.id,
       stagedRecordKey: record.staged_record_key,
+    }),
+    ...prepareOpenErrorOverrideStatements(context.env, {
+      acceptedAt: decidedAt,
+      actorUserId: current.user.id,
+      adapter,
+      decisionId,
+      importJobId: jobId,
+      issues: acceptedOpenErrors,
+      record,
     }),
     ...prepareReviewRecordDecisionOutcomeStatements(context.env, {
       adapter,
@@ -49,6 +78,7 @@ export async function writeReviewRecordDecision(input: {
       record,
       recordDecisionId,
       targetStatus,
+      acceptedOpenErrorCount: acceptedOpenErrors.length,
     }),
   ]);
 
@@ -59,5 +89,6 @@ export async function writeReviewRecordDecision(input: {
       review_status: targetStatus,
       updated_at: decidedAt,
     },
+    status: jobStatus,
   };
 }

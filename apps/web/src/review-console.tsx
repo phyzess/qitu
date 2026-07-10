@@ -16,10 +16,16 @@ export function ReviewConsole(props: ReviewConsoleProps) {
     <AppShell
       actions={props.actions}
       brand="qitu"
+      contentKey="reviews"
+      contentTitle={t("nav.reviews")}
       commandLabel={t("command.findSourceJobRecord")}
       commandShortcutLabel="Cmd K"
+      documentTitle={`${t("nav.reviews")} · qitu`}
       eyebrow={props.notice}
       navigation={props.navigation}
+      primaryNavigationLabel={t("nav.primaryNavigation")}
+      sectionNavigationLabel={t("nav.sectionNavigation")}
+      skipLinkLabel={t("nav.skipToContent")}
       subNavigation={props.subNavigation}
       onCommand={props.onCommand}
     >

@@ -74,8 +74,10 @@ export function AuditFilterPanel(props: {
         <DateField
           label={t("audit.filterOccurredAfter")}
           labels={{
+            monthDropdown: t("calendar.chooseMonth"),
             nextMonth: t("calendar.nextMonth"),
             previousMonth: t("calendar.previousMonth"),
+            yearDropdown: t("calendar.chooseYear"),
           }}
           locale={localeMeta.intlLocale}
           placeholder={t("audit.filterDatePlaceholder")}
@@ -85,8 +87,10 @@ export function AuditFilterPanel(props: {
         <DateField
           label={t("audit.filterOccurredBefore")}
           labels={{
+            monthDropdown: t("calendar.chooseMonth"),
             nextMonth: t("calendar.nextMonth"),
             previousMonth: t("calendar.previousMonth"),
+            yearDropdown: t("calendar.chooseYear"),
           }}
           locale={localeMeta.intlLocale}
           placeholder={t("audit.filterDatePlaceholder")}

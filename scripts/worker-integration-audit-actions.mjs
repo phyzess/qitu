@@ -22,7 +22,12 @@ const expectedAuditActions = [
 export async function assertAuditActionCoverage({ audit, client }) {
   const actions = new Set(audit.auditEvents.map((event) => event.action));
   for (const action of expectedAuditActions) {
-    assert(actions.has(action), `audit list includes ${action}`);
+    if (!actions.has(action)) {
+      const filtered = await client.json(
+        `/api/audit-events?action=${encodeURIComponent(action)}&limit=1`,
+      );
+      assert(filtered.auditEvents.length === 1, `audit list includes ${action}`);
+    }
   }
 
   const committedAudit = await client.json("/api/audit-events?action=import_job.committed");

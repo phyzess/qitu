@@ -11,10 +11,14 @@ export function createSmokeWorkerImportContext({ text }) {
     text("apps/worker/src/import-job-list-query.ts"),
     text("apps/worker/src/import-job-list-presenters.ts"),
     text("apps/worker/src/import-job-events-route.ts"),
+    text("apps/worker/src/import-job-fast-path.ts"),
     text("apps/worker/src/import-job-retry-route.ts"),
     text("apps/worker/src/import-job-retry-target.ts"),
     text("apps/worker/src/import-job-retry-dispatch.ts"),
     text("apps/worker/src/import-job-retry-record.ts"),
+    text("apps/worker/src/import-job-redispatch-route.ts"),
+    text("apps/worker/src/import-job-redispatch-target.ts"),
+    text("apps/worker/src/import-job-redispatch-record.ts"),
   ].join("\n");
   const workerImportJobStaging = [
     text("apps/worker/src/import-job-staging.ts"),

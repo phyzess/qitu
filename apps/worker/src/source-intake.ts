@@ -3,6 +3,7 @@ import { selectImportAdapter } from "./import-adapters";
 import { dispatchSourceImportJob } from "./source-intake-dispatch";
 import { persistSourceFileImportJob } from "./source-intake-persistence";
 import { findDuplicateSourceFile } from "./source-intake-store";
+import type { DuplicateSourceFileRow } from "./source-intake-store";
 import type { SourceIntakeInput, SourceIntakeResult } from "./source-intake-types";
 
 export type {
@@ -32,7 +33,7 @@ export async function createSourceFileImportJob(
   const jobId = crypto.randomUUID();
   const size = input.content.byteLength;
   const contentHash = await hashSourceContent(input.content);
-  const idempotencyKey = `${input.workspaceId}:${contentHash}`;
+  const idempotencyKey = `${input.workspaceId}:${contentHash}:${sourceFileId}`;
   const now = new Date().toISOString();
   const duplicate = await findDuplicateSourceFile(env, {
     contentHash,
@@ -40,14 +41,7 @@ export async function createSourceFileImportJob(
   });
 
   if (duplicate) {
-    return {
-      duplicate: true,
-      importJobId: duplicate.import_job_id,
-      objectKey: duplicate.object_key,
-      ok: true,
-      sourceFileId: duplicate.source_file_id,
-      status: duplicate.status,
-    };
+    return duplicateSourceResult(duplicate);
   }
 
   const objectKey = buildSourceFileKey({
@@ -56,24 +50,33 @@ export async function createSourceFileImportJob(
     workspaceId: input.workspaceId,
   });
 
-  await persistSourceFileImportJob(env, {
-    actor: input.actor,
-    adapterId: adapter.id,
-    content: input.content,
-    contentHash,
-    contentType: input.contentType,
-    filename: input.filename,
-    idempotencyKey,
-    importJobId: jobId,
-    jobKind: adapter.jobKind,
-    metadata: input.metadata,
-    objectKey,
-    requestId: input.requestId,
-    size,
-    sourceFileId,
-    uploadedAt: now,
-    workspaceId: input.workspaceId,
-  });
+  try {
+    await persistSourceFileImportJob(env, {
+      actor: input.actor,
+      adapterId: adapter.id,
+      content: input.content,
+      contentHash,
+      contentType: input.contentType,
+      filename: input.filename,
+      idempotencyKey,
+      importJobId: jobId,
+      jobKind: adapter.jobKind,
+      metadata: input.metadata,
+      objectKey,
+      requestId: input.requestId,
+      size,
+      sourceFileId,
+      uploadedAt: now,
+      workspaceId: input.workspaceId,
+    });
+  } catch (error) {
+    const concurrentWinner = await findDuplicateSourceFile(env, {
+      contentHash,
+      workspaceId: input.workspaceId,
+    });
+    if (concurrentWinner) return duplicateSourceResult(concurrentWinner);
+    throw error;
+  }
 
   const dispatchFailure = await dispatchSourceImportJob(env, {
     jobId,
@@ -98,5 +101,25 @@ export async function createSourceFileImportJob(
     ok: true,
     sourceFileId,
     status: "queued",
+  };
+}
+
+function duplicateSourceResult(duplicate: DuplicateSourceFileRow): SourceIntakeResult {
+  if (duplicate.deletion_started_at) {
+    return {
+      code: "source_deletion_in_progress",
+      message: "An identical source file is currently being deleted; retry after it finishes.",
+      ok: false,
+      sourceFileId: duplicate.source_file_id,
+      status: 409,
+    };
+  }
+  return {
+    duplicate: true,
+    importJobId: duplicate.import_job_id,
+    objectKey: duplicate.object_key,
+    ok: true,
+    sourceFileId: duplicate.source_file_id,
+    status: duplicate.status,
   };
 }

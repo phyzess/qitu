@@ -18,9 +18,16 @@ export async function readImportJobReview(
         import_jobs.created_at,
         import_jobs.updated_at,
         import_jobs.completed_at,
+        import_jobs.processing_started_at,
+        import_jobs.mutation_token,
+        import_jobs.mutation_started_at,
+        import_jobs.mutation_kind,
+        import_jobs.mutation_previous_status,
         source_files.filename,
         source_files.content_type,
-        source_files.object_key
+        source_files.object_key,
+        source_files.deletion_started_at,
+        source_files.deleted_at
       FROM import_jobs
       INNER JOIN source_files ON source_files.id = import_jobs.source_file_id
       WHERE import_jobs.id = ?

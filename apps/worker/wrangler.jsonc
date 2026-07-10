@@ -8,6 +8,9 @@
     "enabled": true,
     "head_sampling_rate": 1,
   },
+  "triggers": {
+    "crons": ["*/5 * * * *"],
+  },
   "vars": {
     "APP_ENV": "local",
     "EMAIL_DELIVERY_MODE": "store",
@@ -46,7 +49,7 @@
       {
         "queue": "qitu-import-jobs-dev",
         "max_batch_size": 10,
-        "max_batch_timeout": 30,
+        "max_batch_timeout": 1,
         "max_retries": 3,
         "dead_letter_queue": "qitu-import-jobs-dev-dlq",
       },
@@ -55,6 +58,9 @@
   "env": {
     "preview": {
       "name": "qitu-worker-preview",
+      "triggers": {
+        "crons": ["*/5 * * * *"],
+      },
       "vars": {
         "APP_ENV": "preview",
         "EMAIL_DELIVERY_MODE": "send",
@@ -97,7 +103,7 @@
           {
             "queue": "qitu-import-jobs-preview",
             "max_batch_size": 10,
-            "max_batch_timeout": 30,
+            "max_batch_timeout": 1,
             "max_retries": 3,
             "dead_letter_queue": "qitu-import-jobs-preview-dlq",
           },
@@ -106,6 +112,9 @@
     },
     "production": {
       "name": "qitu-worker-production",
+      "triggers": {
+        "crons": ["*/5 * * * *"],
+      },
       "vars": {
         "APP_ENV": "production",
         "EMAIL_DELIVERY_MODE": "send",
@@ -148,7 +157,7 @@
           {
             "queue": "qitu-import-jobs-production",
             "max_batch_size": 10,
-            "max_batch_timeout": 30,
+            "max_batch_timeout": 1,
             "max_retries": 3,
             "dead_letter_queue": "qitu-import-jobs-production-dlq",
           },

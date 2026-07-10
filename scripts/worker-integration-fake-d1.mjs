@@ -1,46 +1,64 @@
 export class FakeD1Database {
   constructor(database) {
     this.database = database;
+    this.beforeRun = null;
+    this.batchTail = Promise.resolve();
   }
 
   prepare(sql) {
-    return new FakeD1PreparedStatement(this.database, sql);
+    return new FakeD1PreparedStatement(this, sql);
   }
 
   async batch(statements) {
-    const results = [];
-    for (const statement of statements) {
-      results.push(await statement.run());
-    }
-    return results;
+    const execute = async () => {
+      this.database.exec("BEGIN IMMEDIATE");
+      try {
+        const results = [];
+        for (const statement of statements) {
+          results.push(await statement.run());
+        }
+        this.database.exec("COMMIT");
+        return results;
+      } catch (error) {
+        this.database.exec("ROLLBACK");
+        throw error;
+      }
+    };
+    const pending = this.batchTail.then(execute, execute);
+    this.batchTail = pending.then(
+      () => undefined,
+      () => undefined,
+    );
+    return pending;
   }
 }
 
 class FakeD1PreparedStatement {
-  constructor(database, sql, params = []) {
-    this.database = database;
+  constructor(owner, sql, params = []) {
+    this.owner = owner;
     this.sql = sql;
     this.params = params;
   }
 
   bind(...params) {
-    return new FakeD1PreparedStatement(this.database, this.sql, params);
+    return new FakeD1PreparedStatement(this.owner, this.sql, params);
   }
 
   async first() {
-    return this.database.prepare(this.sql).get(...this.params) ?? null;
+    return this.owner.database.prepare(this.sql).get(...this.params) ?? null;
   }
 
   async all() {
     return {
-      results: this.database.prepare(this.sql).all(...this.params),
+      results: this.owner.database.prepare(this.sql).all(...this.params),
       success: true,
       meta: {},
     };
   }
 
   async run() {
-    const result = this.database.prepare(this.sql).run(...this.params);
+    await this.owner.beforeRun?.({ params: this.params, sql: this.sql });
+    const result = this.owner.database.prepare(this.sql).run(...this.params);
     return {
       success: true,
       meta: {

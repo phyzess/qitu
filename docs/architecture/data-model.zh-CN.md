@@ -103,11 +103,26 @@ source_files (
   size INTEGER,
   uploaded_by TEXT NOT NULL,
   uploaded_at TEXT NOT NULL,
-  content_hash TEXT
+  content_hash TEXT,
+  deleted_at TEXT,
+  deleted_by TEXT,
+  deletion_started_at TEXT,
+  deletion_started_by TEXT,
+  deletion_failure_stage TEXT,
+  deletion_failure_reason TEXT
 )
 ```
 
 D1 只保存 R2 object key 与文件元数据；具体 bucket 来自 Worker binding。core 只知道“文件是什么物理对象”。业务功能决定“这个文件是什么意思”。
+
+Migration `0009_source_lifecycle.sql` 增加 soft tombstone。Active source 的 content-hash
+唯一性只适用于 `deleted_at IS NULL`，因此有意删除后可以重新上传相同内容。普通 source 与
+import-job list 会隐藏 tombstoned rows；R2 object 与 app-owned contributed data 删除后，metadata
+以及 audit/job events 继续作为 report-only evidence 保留。
+
+Migration `0010_source_deletion_claim.sql` 增加 compare-and-swap deletion claim 与 retry-stage
+evidence，并通过 trigger 阻止 deletion 开始后再挂入新的 import job。只有 claim owner 可以删除
+R2 并完成 tombstone，因此并发请求不会重复写 success audit。
 
 ## 5. 邮件表
 
@@ -169,13 +184,19 @@ inbound_email_attachments (
 1. `import_jobs` 保存 source file、状态、adapter/job metadata、幂等 key、尝试次数和失败分类。
 2. `import_review_issues`、`import_review_decisions`、`import_review_record_decisions` 属于 core，使用不透明的 `staged_record_key`。
 3. `example_staged_records` 与 `example_committed_records` 是 example-owned demo 表，真实应用应替换为业务自己的 staging 与 commit 表。
+4. Migration `0011_import_commit_claim.sql` 为 `import_jobs` 增加
+   `processing_owner`、`processing_lease_expires_at`、`mutation_token`、
+   `mutation_started_at`、`mutation_kind` 与 `mutation_previous_status`。对应的
+   status/mutation 和 status/processing-lease indexes 用于过期 claim 恢复；`committing` 是提交期间
+   的 fenced 状态。
 
 推荐状态流：
 
 ```text
 queued -> processing -> needs_review
 needs_review -> approved
-approved -> committed
+approved -> committing -> committed
+needs_review -> committing -> committed (明确 opt-in 的 clean auto-commit)
 approved -> needs_review (partial commit 后仍有 pending records)
 queued -> processing -> failed
 ```
@@ -187,6 +208,10 @@ queued -> processing -> failed
 1. `import_jobs`：作业生命周期与状态。
 2. `import_job_events`：状态变化与时间线。
 3. `import_review_issues`：校验问题、冲突和警告。
+
+当前 issue status 包括 `open`、`accepted` 和 `superseded`。显式接受单条记录的错误会把 open
+errors 改为 `accepted`；staged-record adjustment 会先 supersede 旧 open issues，再写入 adapter
+重新校验后的结果。
 
 未来如果需要更细的解析错误明细，可以增加 `import_errors`；当前 migration 尚未实现该表。
 
@@ -204,7 +229,13 @@ queued -> processing -> failed
 
 Advisory artifact 不是业务事实。commit 路由必须读取“已审批的 staging records”，不能读取 AI advisory 状态来直接提交业务数据。
 
-## 8. 事件表
+## 8. 可选组织访问示例
+
+`examples/organization-access` migration 不属于 core baseline。只有 tenant-aware ownership
+已经成为真实需求时，cloned app 才接入其中的 organization、membership、entitlement、
+support-access 与 resource-grant tables。
+
+## 9. 事件表
 
 当前基线已经实现：
 

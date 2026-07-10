@@ -1,5 +1,5 @@
 export function assertRootCommandGuards(context) {
-  const { assert } = context;
+  const { assert, exists } = context;
 
   assert(context.packageJson.scripts["setup:local"], "package.json must expose setup:local.");
   assert(context.packageJson.scripts["verify:kit"], "package.json must expose verify:kit.");
@@ -60,7 +60,16 @@ export function assertRootCommandGuards(context) {
     context.packageJson.scripts["test:worker-runtime"],
     "package.json must expose test:worker-runtime.",
   );
+  assert(context.packageJson.scripts["test:unit"], "package.json must expose test:unit.");
+  assert(
+    exists("vitest.config.ts") && context.packageJson.devDependencies.vitest,
+    "root unit tests must use an explicit Vitest config and dependency.",
+  );
   assert(context.packageJson.scripts["smoke:browser"], "package.json must expose smoke:browser.");
+  assert(
+    context.packageJson.scripts["verify:kit"].includes("test:unit"),
+    "verify:kit must include root unit tests.",
+  );
   assert(
     context.packageJson.scripts["verify:kit"].includes("test:worker-runtime"),
     "verify:kit must include Worker runtime tests.",

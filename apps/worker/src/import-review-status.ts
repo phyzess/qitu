@@ -14,7 +14,7 @@ export async function readImportJobStatusAfterRecordDecision(
     importJobId: string;
     reviewStore: WorkerReviewStore;
     currentStatus: string;
-    targetStatus: Extract<StagedRecordStatus, "approved" | "rejected">;
+    targetStatus: StagedRecordStatus;
   },
 ): Promise<ImportJobStatus> {
   const summary = await readReviewStatusSummary(env, input.reviewStore, input.importJobId);

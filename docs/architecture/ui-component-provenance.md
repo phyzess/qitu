@@ -1,7 +1,7 @@
 # UI Component Provenance
 
 Status: accepted baseline  
-Date: 2026-07-02
+Date: 2026-07-10
 
 This ledger records where shared `@qitu/ui` primitives come from and how they are allowed to evolve.
 It protects the shadcn/Base UI paved road from drifting into page-local lookalikes.
@@ -63,15 +63,46 @@ It protects the shadcn/Base UI paved road from drifting into page-local lookalik
 | StatusBadge          | `packages/ui/src/status-badge.tsx`                                             | `Badge`                                   | Compliant |
 | TableScrollArea      | `packages/ui/src/table.tsx`                                                    | bounded qitu wrapper for `Table`          | Compliant |
 | UploadQueue          | `packages/ui/src/upload-queue.tsx` + package-internal `upload-queue-*` modules | qitu file queue composition               | Compliant |
+| WorkbenchPage        | `packages/ui/src/workbench-layout.tsx`                                         | qitu page-flow layout using shared tokens | Compliant |
+| WorkbenchGrid        | `packages/ui/src/workbench-layout.tsx`                                         | qitu responsive grid using shared tokens  | Compliant |
+| ContextPanel         | `packages/ui/src/workbench-layout.tsx`                                         | semantic `aside` within `WorkbenchGrid`   | Compliant |
 
 ## Qitu-Specific Primitives
 
-| Primitive                                 | File                                                                             | Reason                                         | Status    |
-| ----------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------- | --------- |
-| AnimatedIcon                              | `packages/ui/src/animated-icon.tsx` + grouped `animated-icon-registry-*` modules | Small semantic icon registry for shell chrome  | Compliant |
-| App shell                                 | `packages/ui/src/shell.tsx`                                                      | Business-neutral authenticated workbench shell | Compliant |
-| Qitu mark                                 | `packages/ui/src/qitu-mark.tsx`                                                  | Project identity mark                          | Compliant |
-| Surface, DataState, Timeline, MetricStrip | `packages/ui/src/primitives.tsx`                                                 | Business-neutral workbench surfaces            | Compliant |
+| Primitive                                 | File                                                                             | Reason                                                    | Status    |
+| ----------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- | --------- |
+| AnimatedIcon                              | `packages/ui/src/animated-icon.tsx` + grouped `animated-icon-registry-*` modules | Small semantic icon registry for shell chrome             | Compliant |
+| App shell                                 | `packages/ui/src/shell.tsx`                                                      | Accessible business-neutral authenticated workbench shell | Compliant |
+| Qitu mark                                 | `packages/ui/src/qitu-mark.tsx`                                                  | Project identity mark                                     | Compliant |
+| Surface, DataState, Timeline, MetricStrip | `packages/ui/src/primitives.tsx`                                                 | Business-neutral workbench surfaces                       | Compliant |
+
+## Interaction and Localization Contracts
+
+1. `AppShell` owns skip navigation, optional route-heading labelling, document-title updates, and
+   focus transfer after a real `contentKey` change. It does not take main-content focus on first
+   mount, and its link wrappers preserve modified-click, external-target, and download behavior.
+2. `Calendar` remains registry-backed. Qitu's wrapper adds a locale-code seam for month rendering and
+   day metadata; `DateField` supplies localized full-date day names plus explicit month/year dropdown
+   labels from app-owned dictionaries.
+3. `WorkbenchPage`, `WorkbenchGrid`, and `ContextPanel` are layout compositions, not business page
+   templates. Their `context`, `context-wide`, `data`, and `split` variants collapse to one column at
+   the shared 1180px breakpoint.
+4. Shared motion must honor `prefers-reduced-motion`; interaction feedback should use opacity or
+   transforms when motion is needed and must not rely on animation to communicate state.
+
+## Adjacent Chart Layer
+
+`@qitu/charts` is governed beside `@qitu/ui` because app pages consume both shared visual layers.
+
+| Surface                 | File                                                                             | Source                                 | Shared contract                                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| TimeSeriesChart         | `packages/charts/src/time-series-chart.tsx`                                      | visx scales/shape behind a qitu facade | Responsive width, pointer inspection, arrow/Home/End/Escape keyboard inspection, live text announcement, app-owned labels |
+| BarChart                | `packages/charts/src/bar-chart.tsx`                                              | visx scales/shape behind a qitu facade | Horizontal/vertical layouts, focusable marks, pointer/focus tooltip, optional interactive legend                          |
+| DonutChart              | `packages/charts/src/donut-chart.tsx`                                            | visx shape behind a qitu facade        | Focusable segments, pointer/focus tooltip, optional interactive legend, total summary                                     |
+| Chart interaction/style | `packages/charts/src/chart-interaction.tsx` and `packages/charts/src/styles.css` | qitu composition and canonical tokens  | Native legend buttons, valid list semantics, focus rings, package-owned tooltip/legend styles, reduced-motion fallback    |
+
+Chart labels, tooltip copy, announcements, and business interpretation remain app-owned inputs.
+Applications must not import `@visx/*` or copy chart interaction CSS directly.
 
 ## Maintenance
 
@@ -79,3 +110,5 @@ It protects the shadcn/Base UI paved road from drifting into page-local lookalik
    `vp run smoke` passing.
 2. When app pages need a common interaction or layout primitive, add it here before page-local
    lookalikes become the default.
+3. Calendar labels and chart interaction props are accessibility inputs. New locales and new chart
+   surfaces must provide meaningful app-owned copy and keep keyboard/browser checks passing.

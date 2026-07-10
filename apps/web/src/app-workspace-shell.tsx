@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppShell, StatusBadge, Surface, type AppShellNavItem } from "@qitu/ui";
+import type { AppRoute } from "./app-routes";
 import { useI18n } from "./i18n";
 
 export function WorkspaceShell(props: {
@@ -8,6 +9,8 @@ export function WorkspaceShell(props: {
   error: string | null;
   navigation: AppShellNavItem[];
   notice: string;
+  routeKey: AppRoute;
+  routeTitle: string;
   subNavigation: AppShellNavItem[];
   onCommand: () => void;
 }) {
@@ -17,10 +20,16 @@ export function WorkspaceShell(props: {
     <AppShell
       actions={props.actions}
       brand="qitu"
+      contentKey={props.routeKey}
+      contentTitle={props.routeTitle}
       commandLabel={t("command.findSourceJobUserAudit")}
       commandShortcutLabel="Cmd K"
+      documentTitle={`${props.routeTitle} · qitu`}
       eyebrow={props.notice}
       navigation={props.navigation}
+      primaryNavigationLabel={t("nav.primaryNavigation")}
+      sectionNavigationLabel={t("nav.sectionNavigation")}
+      skipLinkLabel={t("nav.skipToContent")}
       subNavigation={props.subNavigation}
       onCommand={props.onCommand}
     >

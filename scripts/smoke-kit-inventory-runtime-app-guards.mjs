@@ -1,5 +1,11 @@
 export function assertRuntimeAppInventoryGuards(context) {
+  assertExists(context, "vitest.config.ts", "root unit-test config must exist.");
   assertExists(context, "apps/worker/vitest.config.ts", "worker Vitest runtime config must exist.");
+  assertExists(
+    context,
+    "apps/worker/wrangler.test.jsonc",
+    "worker runtime Wrangler config must exist.",
+  );
   assertExists(
     context,
     "apps/worker/test/tsconfig.json",

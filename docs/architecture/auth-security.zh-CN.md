@@ -125,9 +125,9 @@ viewer
 
 starter 权限：
 
-1. `owner/admin`：邀请、上传、处理导入、retry、review decision、commit、AI advisory write。
-2. `reviewer`：上传、处理导入、retry、review decision、commit、AI advisory write。
-3. `viewer`：只读。
+1. `owner/admin`：邀请、上传、raw source 读取、reparse、source delete、处理导入、retry、review decision、commit、AI advisory write。
+2. `reviewer`：上传、raw source 读取、reparse、处理导入、retry、review decision、commit、AI advisory write。
+3. `viewer`：只读，但不包含 raw source content。
 
 核心 API 保持小：
 
@@ -136,7 +136,12 @@ can(principal, permission);
 permissionsForRole(role);
 ```
 
-变更邀请、源文件、导入作业、review decision、commit、AI advisory 的路由必须调用 `requirePermission`。拒绝时返回 `403` 并写 `rbac.denied` audit event。
+读取 raw source，或变更邀请、源文件、导入作业、review decision、commit、AI advisory 的路由
+必须调用 `requirePermission`。拒绝时返回 `403` 并写 `rbac.denied` audit event。Raw source
+download/preview 成功后也会写 audit event。
+
+Tenant-aware resource scope 不进入默认 starter。真实应用需要时可以接入隔离的
+`examples/organization-access` capability 与其 migration runbook。
 
 ## 6. 审计与安全事件
 
@@ -148,7 +153,7 @@ permissionsForRole(role);
 4. 密码重置请求/成功。
 5. 角色变化。
 6. 用户禁用/恢复。
-7. 文件上传。
+7. 文件上传、raw read、reparse 与删除。
 8. 导入审批、拒绝、作废。
 9. AI advisory 生成或确认。
 10. 权限拒绝。

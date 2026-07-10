@@ -10,8 +10,12 @@ export type AlertEventInput = {
   createdAt?: string | undefined;
 };
 
-export function prepareAlertEventInsert(env: Env, input: AlertEventInput): D1PreparedStatement {
-  return env.DB.prepare(
+export function prepareAlertEventInsert(
+  env: Env,
+  input: AlertEventInput,
+  guard?: ImportJobWriteGuard,
+): D1PreparedStatement {
+  const statement = env.DB.prepare(
     `
       INSERT INTO alert_events (
         id,
@@ -28,9 +32,10 @@ export function prepareAlertEventInsert(env: Env, input: AlertEventInput): D1Pre
         acknowledged_at,
         resolved_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)
+      ${guard ? `SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL WHERE ${activeImportJobGuardSql()}` : "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)"}
     `,
-  ).bind(
+  );
+  const values = [
     crypto.randomUUID(),
     input.severity,
     input.alertType,
@@ -41,5 +46,13 @@ export function prepareAlertEventInsert(env: Env, input: AlertEventInput): D1Pre
     input.status ?? "open",
     JSON.stringify(input.metadata ?? {}),
     input.createdAt ?? new Date().toISOString(),
-  );
+  ];
+  return guard
+    ? statement.bind(...values, ...importJobWriteGuardBindings(guard))
+    : statement.bind(...values);
 }
+import {
+  activeImportJobGuardSql,
+  importJobWriteGuardBindings,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";

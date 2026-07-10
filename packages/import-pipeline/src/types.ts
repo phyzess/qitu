@@ -37,8 +37,13 @@ export type CommitApprovedContext = {
   idempotencyKey: string;
 };
 
+export type ImportCommitPolicy = "manual" | "auto_when_clean";
+
 export type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
   id: string;
+  commitPolicy?: ImportCommitPolicy;
+  /** Compatibility alias for downstream adapters; prefer commitPolicy. */
+  autoCommitCleanImports?: boolean;
   canHandle(source: { filename: string; contentType: string }): boolean;
   parse(source: ReadableStream<Uint8Array>): Promise<TParsed[]>;
   stage(parsed: TParsed[]): Promise<TStaged[]>;

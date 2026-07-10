@@ -8,6 +8,7 @@ export function createClient(worker, env) {
 
   async function request(path, options = {}) {
     const headers = new Headers(options.headers);
+    const waitUntilPromises = [];
     const cookies = cookieHeader(jar);
     if (cookies) {
       headers.set("cookie", cookies);
@@ -20,10 +21,15 @@ export function createClient(worker, env) {
       }),
       env,
       {
-        waitUntil() {},
+        waitUntil(promise) {
+          waitUntilPromises.push(Promise.resolve(promise));
+        },
         passThroughOnException() {},
       },
     );
+    if (waitUntilPromises.length > 0) {
+      await Promise.allSettled(waitUntilPromises);
+    }
 
     storeResponseCookies(jar, response);
     return response;

@@ -48,6 +48,9 @@ export function createSmokePackageContext({ sourceTextUnder, text }) {
     text("apps/worker/migrations/0006_user_roles.sql"),
     text("apps/worker/migrations/0007_event_foundations.sql"),
     text("apps/worker/migrations/0008_inbound_email.sql"),
+    text("apps/worker/migrations/0009_source_lifecycle.sql"),
+    text("apps/worker/migrations/0010_source_deletion_claim.sql"),
+    text("apps/worker/migrations/0011_import_commit_claim.sql"),
   ].join("\n");
   const legacyImportAdapterName = "Domain" + "ImportAdapter";
 

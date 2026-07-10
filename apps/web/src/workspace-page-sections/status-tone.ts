@@ -19,6 +19,7 @@ export function statusTone(status: string): StatusBadgeTone {
 
   if (
     status === "pending" ||
+    status === "committing" ||
     status === "needs_review" ||
     status === "queued" ||
     status === "processing" ||

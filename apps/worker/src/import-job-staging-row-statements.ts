@@ -2,6 +2,11 @@ import { createAuditEvent } from "@qitu/audit";
 import type { ReviewIssue } from "@qitu/import-pipeline";
 import { prepareAuditInsert } from "./audit-store";
 import type { WorkerImportAdapter } from "./import-adapters";
+import {
+  activeImportJobGuardSql,
+  importJobWriteGuardBindings,
+  type ImportJobWriteGuard,
+} from "./import-job-write-guard";
 
 export type StagedImportRow = {
   id: string;
@@ -19,9 +24,10 @@ export function prepareStagedImportRowStatements(
     row: StagedImportRow;
     sourceFileId: string;
     stagedAt: string;
+    writeGuard: ImportJobWriteGuard;
   },
 ): D1PreparedStatement[] {
-  const { adapter, importJobId, row, sourceFileId, stagedAt } = input;
+  const { adapter, importJobId, row, sourceFileId, stagedAt, writeGuard } = input;
 
   return [
     adapter.reviewStore.prepareInsertStagedRecord(env, {
@@ -34,6 +40,7 @@ export function prepareStagedImportRowStatements(
       reviewStatus: "pending",
       createdAt: stagedAt,
       updatedAt: stagedAt,
+      writeGuard,
     }),
     ...row.issues.map((issue) =>
       env.DB.prepare(
@@ -48,7 +55,8 @@ export function prepareStagedImportRowStatements(
             status,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?
+          WHERE ${activeImportJobGuardSql()}
         `,
       ).bind(
         crypto.randomUUID(),
@@ -59,6 +67,7 @@ export function prepareStagedImportRowStatements(
         issue.severity,
         "open",
         stagedAt,
+        ...importJobWriteGuardBindings(writeGuard),
       ),
     ),
     prepareAuditInsert(
@@ -80,6 +89,7 @@ export function prepareStagedImportRowStatements(
           adapterId: adapter.id,
         },
       }),
+      writeGuard,
     ),
   ];
 }

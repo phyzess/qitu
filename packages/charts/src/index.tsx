@@ -1,4 +1,17 @@
-export type { CategoryDatum, ChartDatum, ChartState, ChartTone, ScatterDatum } from "./types";
+import "./styles.css";
+
+export type {
+  CategoryChartLegendMode,
+  CategoryDatum,
+  CategoryTooltipContext,
+  CategoryTooltipRow,
+  ChartDatum,
+  ChartState,
+  ChartTone,
+  ScatterDatum,
+  TimeSeriesTooltipContext,
+  TimeSeriesTooltipRow,
+} from "./types";
 export { chartTheme } from "./theme";
 export type { ChartFrameProps } from "./chart-state";
 export { ChartEmptyState, ChartFrame, ChartLoadingState, ChartStateView } from "./chart-state";

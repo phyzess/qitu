@@ -5,6 +5,7 @@ export const ImportJobStatusSchema = v.picklist([
   "processing",
   "needs_review",
   "approved",
+  "committing",
   "committed",
   "failed",
   "voided",

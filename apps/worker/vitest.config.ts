@@ -5,11 +5,13 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: {
-        configPath: "./wrangler.jsonc",
+        configPath: "./wrangler.test.jsonc",
       },
     }),
   ],
   test: {
     include: ["test/**/*.test.ts"],
+    // Workers pool cold starts can exceed Vitest's 5s default during concurrent local builds.
+    testTimeout: 30_000,
   },
 });

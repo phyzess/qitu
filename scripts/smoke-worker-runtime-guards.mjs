@@ -23,12 +23,14 @@ export function assertWorkerRuntimeGuards(context) {
   );
   assert(
     text("apps/worker/vitest.config.ts").includes("cloudflareTest") &&
-      text("apps/worker/vitest.config.ts").includes("./wrangler.jsonc") &&
+      text("apps/worker/vitest.config.ts").includes("./wrangler.test.jsonc") &&
+      text("apps/worker/vitest.config.ts").includes("testTimeout: 30_000") &&
+      text("apps/worker/wrangler.test.jsonc").includes('"name": "qitu-worker-test"') &&
       text("apps/worker/test/tsconfig.json").includes("@cloudflare/vitest-pool-workers/types") &&
       text("apps/worker/test/worker-runtime.test.ts").includes("cloudflare:workers") &&
       text("apps/worker/test/worker-runtime.test.ts").includes("exports.default.fetch") &&
       text("apps/worker/test/worker-runtime.test.ts").includes("/health") &&
       text("apps/worker/test/worker-runtime.test.ts").includes("/api/source-files"),
-    "Worker runtime tests must use the official Cloudflare Vitest pool and cover health plus unauthenticated upload.",
+    "Worker runtime tests must use an isolated Cloudflare Vitest config and cover health plus unauthenticated upload.",
   );
 }

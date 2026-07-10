@@ -146,13 +146,17 @@ export { Textarea } from "./textarea";
 export { UploadQueue, type UploadQueueItem, type UploadQueueItemStatus } from "./upload-queue";
 export {
   DataState,
+  ContextPanel,
   MetricStrip,
   PanelActionButton,
   SectionHeader,
   Surface,
   Timeline,
+  WorkbenchGrid,
+  WorkbenchPage,
   type DataStateKind,
   type MetricItem,
   type TimelineItem,
+  type WorkbenchGridLayout,
 } from "./primitives";
 export { cn } from "./utils";

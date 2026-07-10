@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { readCurrentUser, requirePermission } from "./auth-routes";
 import { requestFingerprint } from "./event-store";
 import { authError } from "./http-utils";
+import { scheduleFastImportProcessing } from "./import-job-fast-path";
 import { createSourceFileImportJob } from "./source-intake";
 import { sourceUploadResultResponse } from "./source-upload-presenters";
 import { readSourceUploadRequest } from "./source-upload-request";
@@ -30,6 +31,16 @@ export function registerSourceUploadRoute(app: Hono<{ Bindings: Env }>): void {
       requestId: fingerprint.requestId,
       workspaceId: upload.workspaceId,
     });
+
+    if (result.ok && !result.duplicate && result.importJobId && result.status === "queued") {
+      scheduleFastImportProcessing(context, {
+        jobId: result.importJobId,
+        kind: "import.source_file",
+        objectKey: result.objectKey,
+        requestedBy: current.user.id,
+        sourceFileId: result.sourceFileId,
+      });
+    }
 
     return sourceUploadResultResponse(context, result);
   });

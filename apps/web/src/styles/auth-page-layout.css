@@ -88,7 +88,7 @@
   max-width: 34rem;
 }
 
-.qitu-auth-intro h1 {
+.qitu-auth-hero-title {
   margin: var(--qitu-space-o5) 0 0;
   max-width: 12ch;
   color: var(--qitu-text);

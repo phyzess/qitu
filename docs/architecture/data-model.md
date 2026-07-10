@@ -171,13 +171,29 @@ source_files (
   size INTEGER,
   uploaded_by TEXT NOT NULL,
   uploaded_at TEXT NOT NULL,
-  content_hash TEXT
+  content_hash TEXT,
+  deleted_at TEXT,
+  deleted_by TEXT,
+  deletion_started_at TEXT,
+  deletion_started_by TEXT,
+  deletion_failure_stage TEXT,
+  deletion_failure_reason TEXT
 )
 ```
 
 The core table stores what the file is physically. The Worker writes bytes to the configured R2
 binding and stores the object key here; the D1 table does not store a bucket column. App-owned
 feature code decides what the file means.
+
+Migration `0009_source_lifecycle.sql` adds a soft tombstone. Active-source content-hash uniqueness
+applies only where `deleted_at IS NULL`, so an intentionally deleted object may be uploaded again.
+Normal source and import-job lists hide tombstoned rows; metadata and audit/job events remain
+report-only evidence after the R2 object and app-owned contributed data are removed.
+
+Migration `0010_source_deletion_claim.sql` adds a compare-and-swap deletion claim plus retry-stage
+evidence. Its trigger prevents new import jobs from attaching after deletion starts. Only the claim
+owner may delete R2 and finalize the tombstone, so concurrent requests do not duplicate success
+audit events.
 
 ## 5. Email Tables
 
@@ -247,8 +263,15 @@ Current migration baseline:
 1. `import_jobs` stores source file, status, adapter/job metadata, idempotency key, attempt count, and structured failure class.
 2. `import_review_issues`, `import_review_decisions`, and `import_review_record_decisions` are core-owned and use opaque `staged_record_key` values.
 3. `example_staged_records` and `example_committed_records` are example-owned demo tables. Real apps should replace them with feature-owned staging and commit tables.
+4. Migration `0011_import_commit_claim.sql` adds `processing_owner`,
+   `processing_lease_expires_at`, `mutation_token`, `mutation_started_at`, `mutation_kind`, and
+   `mutation_previous_status` to `import_jobs`. The accompanying status/mutation and
+   status/processing-lease indexes support expired-claim recovery; `committing` is the fenced commit
+   state.
 
-The schemas below describe the broader target model and may be richer than the current migration baseline.
+The schemas below describe the broader target model and may be richer than the current migration
+baseline. They do not supersede the current 0011 lease columns above; any future consolidated schema
+must retain equivalent processing and mutation ownership.
 
 ### `import_jobs`
 
@@ -318,6 +341,10 @@ import_review_issues (
 )
 ```
 
+Current issue statuses include `open`, `accepted`, and `superseded`. Explicit single-record error
+acceptance changes `open` errors to `accepted`; staged-record adjustment supersedes prior open
+issues before writing the adapter's new validation results.
+
 ### `import_errors`
 
 ```sql
@@ -361,7 +388,13 @@ ai_advisory_artifacts (
 
 Advisory artifacts are not business truth. They record model or local-helper output plus human disposition. Commit routes must continue to read approved staging records, not AI advisory status.
 
-## 8. Event Tables
+## 8. Optional Organization Access Example
+
+The `examples/organization-access` migration is not part of this core baseline. A cloned
+app adopts its organization, membership, entitlement, support-access, and resource-grant tables
+only when tenant-aware ownership is a real requirement.
+
+## 9. Event Tables
 
 Current migration baseline implements:
 

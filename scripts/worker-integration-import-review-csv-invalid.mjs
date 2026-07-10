@@ -1,4 +1,4 @@
-import { assert, expectStatus } from "./worker-integration-http.mjs";
+import { assert, expectApiError, expectStatus } from "./worker-integration-http.mjs";
 
 export async function testCsvInvalidNumberReview({ client, env, worker }) {
   const invalidUpload = await client.json("/api/source-files", {
@@ -32,6 +32,53 @@ export async function testCsvInvalidNumberReview({ client, env, worker }) {
     invalidIssueCodes.has("manual_review_required") && invalidIssueCodes.has("invalid_number"),
     "invalid fixture records both confirmation and adapter validation issues",
   );
+  const invalidRecord = invalidReview.records[0];
+  await expectApiError(
+    await client.request(
+      `/api/import-jobs/${invalidUpload.importJobId}/staged-records/${invalidRecord.id}/approve`,
+      {
+        method: "POST",
+        body: JSON.stringify({ note: "ordinary approval must stay blocked" }),
+        headers: { "content-type": "application/json" },
+      },
+    ),
+    409,
+    "open_review_errors",
+  );
+  await expectApiError(
+    await client.request(`/api/import-jobs/${invalidUpload.importJobId}/review/confirm-pending`, {
+      method: "POST",
+      body: JSON.stringify({ note: "batch confirmation must stay blocked" }),
+      headers: { "content-type": "application/json" },
+    }),
+    409,
+    "open_review_errors",
+  );
+
+  await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE example_staged_records SET review_status = 'approved' WHERE id = ?",
+    ).bind(invalidRecord.id),
+    env.DB.prepare("UPDATE import_jobs SET status = 'approved' WHERE id = ?").bind(
+      invalidUpload.importJobId,
+    ),
+  ]);
+  await expectApiError(
+    await client.request(`/api/import-jobs/${invalidUpload.importJobId}/commit`, {
+      method: "POST",
+    }),
+    409,
+    "open_review_errors",
+  );
+  await env.DB.batch([
+    env.DB.prepare("UPDATE example_staged_records SET review_status = 'pending' WHERE id = ?").bind(
+      invalidRecord.id,
+    ),
+    env.DB.prepare("UPDATE import_jobs SET status = 'needs_review' WHERE id = ?").bind(
+      invalidUpload.importJobId,
+    ),
+  ]);
+
   await expectStatus(
     await client.request(`/api/import-jobs/${invalidUpload.importJobId}/commit`, {
       method: "POST",

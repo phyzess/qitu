@@ -4,3 +4,9 @@ export { PanelActionButton } from "./panel-action-button";
 export { SectionHeader } from "./section-header";
 export { Surface } from "./surface";
 export { Timeline, type TimelineItem } from "./timeline";
+export {
+  ContextPanel,
+  WorkbenchGrid,
+  WorkbenchPage,
+  type WorkbenchGridLayout,
+} from "./workbench-layout";

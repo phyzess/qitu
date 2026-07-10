@@ -6,6 +6,31 @@
   color: var(--qitu-text);
 }
 
+.qitu-skip-link {
+  position: fixed;
+  top: var(--qitu-space-o3);
+  left: var(--qitu-space-o3);
+  z-index: var(--qitu-z-overlay);
+  border: 1px solid var(--qitu-line-strong);
+  border-radius: var(--qitu-radius-control);
+  padding: var(--qitu-space-o3) var(--qitu-space-o4);
+  color: var(--qitu-text);
+  background: var(--qitu-color-popover);
+  box-shadow: var(--qitu-shadow-overlay);
+  font-size: var(--qitu-text-button-14);
+  font-weight: 600;
+  line-height: var(--qitu-leading-button);
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--qitu-space-o5)));
+  transition: transform var(--qitu-motion-fast) var(--qitu-ease-enter);
+}
+
+.qitu-skip-link:focus-visible {
+  outline: 2px solid var(--qitu-color-ring);
+  outline-offset: 2px;
+  transform: none;
+}
+
 .qitu-topbar {
   position: sticky;
   top: 0;
@@ -36,9 +61,6 @@
   align-items: center;
   gap: var(--qitu-space-o4);
   padding-inline: var(--qitu-space-o4) 0;
-  transition:
-    width var(--qitu-motion-panel) var(--qitu-ease-enter),
-    flex-basis var(--qitu-motion-panel) var(--qitu-ease-enter);
 }
 
 .qitu-brand-mark {

@@ -1,4 +1,5 @@
 import type { AppContext } from "./http-utils";
+import { filenameFromUploadHeaders } from "./source-upload-filename";
 
 type SourceUploadRequestResult =
   | {
@@ -51,7 +52,10 @@ export async function readSourceUploadRequest(
     ok: true,
     content,
     contentType: context.req.header("content-type") ?? "application/octet-stream",
-    filename: context.req.header("x-filename") ?? "source.bin",
+    filename: filenameFromUploadHeaders(
+      context.req.header("x-filename-utf8"),
+      context.req.header("x-filename"),
+    ),
     workspaceId: context.req.header("x-workspace-id") ?? "default",
   };
 }

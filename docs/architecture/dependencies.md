@@ -1,7 +1,7 @@
 # Dependency Baseline
 
 Status: initial  
-Checked: 2026-07-02
+Checked: 2026-07-10
 
 All versions below are intentionally exact. Upgrade through an explicit decision.
 
@@ -29,7 +29,7 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 | `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI                                 |
 | `@playwright/test`                |   `1.61.0` | Scripted browser smoke for the first slice                      |
 | `tslib`                           |    `2.8.1` | Runtime helper needed by the pinned shadcn CLI dependency chain |
-| `vitest`                          |    `4.1.9` | Worker runtime smoke tests                                      |
+| `vitest`                          |    `4.1.9` | Root unit tests and Worker runtime smoke tests                  |
 | `@vitest/runner`                  |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
 | `@vitest/snapshot`                |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
 | `@types/node`                     |   `26.0.0` | Node.js compatibility typings                                   |
@@ -92,6 +92,12 @@ The root `smoke` script runs two layers:
 
 `smoke:browser` runs `scripts/browser-smoke.mjs`, which starts `vp run dev:all` and completes the first slice in a real Chromium browser. If the browser binary is missing on a fresh machine, run `vp exec playwright install chromium`.
 
-`test:worker-runtime` runs `apps/worker/test/worker-runtime.test.ts` with `@cloudflare/vitest-pool-workers`. The baseline intentionally covers only `/health` and unauthenticated upload rejection so it verifies Workers runtime wiring without duplicating the broader Worker integration script.
+`test:worker-runtime` runs `apps/worker/test/worker-runtime.test.ts` with
+`@cloudflare/vitest-pool-workers` and the isolated `apps/worker/wrangler.test.jsonc` binding config.
+The baseline intentionally keeps runtime wiring coverage narrower than the broader Worker
+integration script.
 
-The root `test:unit` command is available for package-level unit tests when a package needs narrower coverage than the current smoke, Worker integration, browser smoke, and Worker runtime checks.
+The root `test:unit` command uses `vitest.config.ts` to collect explicit `*.unit.test.ts` suites
+without collecting Cloudflare runtime tests. `verify:kit` and CI run this unit layer. Browser smoke
+creates a PID-isolated Wrangler persistence directory, applies D1 migrations there, and starts local
+dev against the same directory so test data cannot leak between runs.

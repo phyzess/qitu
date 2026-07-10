@@ -18,6 +18,7 @@ export function assertRuntimeBrowserSmokeInventoryGuards(context) {
     "scripts/browser-smoke-audit-filter.mjs",
     "scripts/browser-smoke-review-diagnostics.mjs",
     "scripts/browser-smoke-admin-flow.mjs",
+    "scripts/browser-smoke-ui.mjs",
   ]) {
     assertExists(context, file);
   }

@@ -1,7 +1,7 @@
 # Release Notes
 
 Status: draft  
-Date: 2026-06-27
+Date: 2026-07-10
 
 `qitu` is not versioned for npm publication yet. These notes describe reusable starter baselines that another team or agent can clone and adopt.
 
@@ -25,6 +25,52 @@ Included:
 
 Verified commands for this baseline are recorded in `docs/kit-completion.md`.
 
+## Baseline Update: Recoverable Operations and Accessible Workbench
+
+The 2026-07-10 baseline incorporates reusable lessons from downstream applications without moving
+their business vocabulary into qitu core.
+
+Import execution and review:
+
+1. Source intake persists a queued job, dispatches it to Cloudflare Queue, and may also schedule a
+   best-effort `ctx.waitUntil` fast path. The Queue remains the durable fallback.
+2. Processing ownership and review mutations use bounded compare-and-swap leases. Commit has an
+   explicit recoverable `committing` state, and still-queued jobs have an audited redispatch route.
+3. Open record errors block ordinary approval and commit. A single-record action may explicitly
+   accept the observed errors; batch confirmation never does so implicitly.
+4. Adapters remain manual by default. A deterministic adapter may opt into
+   `commitPolicy: "auto_when_clean"`; it uses the guarded commit path and a system actor. AI advisory
+   artifacts still require human confirmation and never authorize business writes.
+
+Source lifecycle:
+
+1. Raw download and bounded text preview use a dedicated permission and write audit evidence.
+2. Reparse, queued-job redispatch, job void, staged-record adjustment, single/batch source deletion,
+   soft tombstones, and UTF-8-safe upload/download filenames are included.
+3. Source deletion uses an exclusive claim, structured retry stages, app-owned cleanup hooks, and
+   report-only retention of metadata/audit/job events.
+
+UI and verification:
+
+1. `AppShell` adds skip navigation, document titles, route-change focus, and native link semantics.
+2. `WorkbenchPage`, `WorkbenchGrid`, and `ContextPanel` provide responsive business-neutral layouts.
+3. Charts own their styles and add pointer/focus tooltips, keyboard time-series inspection,
+   interactive legends, live announcements, and reduced-motion handling.
+4. Calendar/date fields receive locale-aware accessible labels. Root unit tests, isolated Worker
+   runtime configuration, and PID-isolated browser persistence are part of `verify:kit`.
+5. CI no longer asks `setup-node` to restore pnpm state before Corepack has made pnpm available, and
+   local Wrangler migration setup discovers the latest numbered migration instead of a fixed marker.
+
+Optional adoption material:
+
+1. `examples/organization-access` demonstrates fail-closed organization context, entitlements,
+   time-boxed read-only support access, and exact resource grants without changing the starter's
+   single-organization default.
+2. The versioned-derived-artifact guide and feature recipe keep formulas, artifact tables, source
+   versions, rebuild triggers, and golden fixtures app-owned.
+
+See `docs/upgrade-notes.md` before applying this update to an existing cloned application.
+
 ## Not Included
 
 This baseline intentionally does not include:
@@ -32,7 +78,8 @@ This baseline intentionally does not include:
 1. Production Cloudflare account provisioning.
 2. Public signup.
 3. Social login or SSO.
-4. Tenant-aware resource scopes.
+4. A production tenant-aware resource scope system. The repository includes only an optional
+   executable organization-access example and migration runbook.
 5. Real AI provider integration.
 6. A full chart catalog.
 7. Business-specific parsers, tables, dashboards, or calculations.
@@ -46,6 +93,6 @@ Pinned toolchain:
 2. Vite+ `0.2.1`.
 3. pnpm `11.5.2`.
 4. Wrangler `4.103.0`.
-5. React `19.2.3`.
+5. React `19.2.7`.
 
 Keep versions exact unless a decision record explains the change.

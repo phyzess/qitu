@@ -52,22 +52,27 @@ apps/web/src/features/*
 
 `qitu` 不强制顶层 `domains/*`。不同 app 可能更适合 feature、workflow、bounded context、vertical slice 或 route-based layout。
 
-`apps/worker/src/*` 可以包含 app-local Worker modules，例如 auth route composition、import adapter registry、import job runner、import review routes、audit/email D1 adapters、HTTP route helpers 和 runtime config helpers。这些 Module 可以知道 D1/R2/Queue/Email bindings 与 starter tables，但不能把业务含义搬进 `packages/*`。
+`apps/worker/src/*` 可以包含 app-local Worker modules，例如 auth route composition、source intake
+与 lifecycle routes、import adapter registry、fast-path/Queue dispatch、import job runner、import
+review routes、audit/email D1 adapters、HTTP route helpers 和 runtime config helpers。这些 Module
+可以知道 D1/R2/Queue/Email bindings 与 starter tables，但不能把业务含义搬进 `packages/*`。
 
 Security events 和 alerts 目前通过 app-owned Worker modules 与通用 event tables 实现；当前没有独立的 `packages/security` 或 `packages/alerts`。只有当多个生产 feature 证明复用压力真实存在时，才应该拆出独立 package。
 
 ## Examples
 
-`examples/*` 是非生产示例，用来证明边界：
+`examples/*` 是非生产、可执行的边界示例：
 
 1. `examples/import-review`
 2. `examples/json-records`
+3. `examples/organization-access`
 
 Worker starter 不依赖这些 optional examples。它有自己的 app-owned starter adapters，避免 core 或 app shell 误依赖示例 package。
 
-当前 example packages 可以保持 `src/index.ts` 作为 package import facade，同时把 parser/source
+Import examples 可以保持 `src/index.ts` 作为 package import facade，同时把 parser/source
 reading、staged-record parsing、adapter behavior 和 example types 放在 example-internal focused
-modules 中。Reusable packages 不能 import optional examples。
+modules 中。`organization-access` 这类 capability example 保持 optional，不改变 starter 默认值。
+Reusable packages 不能 import optional examples。
 
 ## Templates
 
@@ -79,6 +84,7 @@ modules 中。Reusable packages 不能 import optional examples。
 2. app-owned registry starter。
 3. README。
 4. package/tsconfig，用于在加入业务规则前验证 shape。
+5. 可选的 versioned derived-artifact recipe。
 
 ## Import 依赖方向
 
@@ -108,10 +114,18 @@ policy validation / normalization helpers、starter role policy 和 permission c
 package-internal focused modules 中。Worker 和 Web 的 app-owned policy adapters 继续从
 `@qitu/rbac` 导入。
 
+Tenant-aware organization scope 仍是可选能力。`examples/organization-access` 证明 access
+context、support grants、entitlements 与精确的 cross-organization resource grants，但不会把
+tenant tables 或客户语义加入 `packages/rbac`。
+
 `packages/import-pipeline/src/index.ts` 是 `@qitu/import-pipeline` 的 package interface facade。
 Validation schemas、generic import/review types、adapter contract、review issue helpers、staging key
 conventions、confirmation-language aliases 和 review status derivation 放在 package-internal focused
 modules 中。
+
+Adapter auto-commit policy、staged-record adjustment 和 source cleanup hooks 保留在 deployable app
+wiring，因为它们会调用 feature-owned validation、persistence 与 rebuild behavior；通用 review
+state 与 commit contracts 继续保持 reusable。
 
 `packages/email/src/index.ts` 是 `@qitu/email` 的 package interface facade。
 Provider-neutral message / inbound receipt schemas、auth email locale dictionaries，以及

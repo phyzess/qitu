@@ -23,7 +23,11 @@ export function assertWorkerSourceGuards(context) {
     workerSourceRoutes.includes("readSourceFiles") &&
       workerSourceRoutes.includes("publicSourceFile") &&
       workerSourceRoutes.includes("readSourceUploadRequest") &&
+      workerSourceRoutes.includes("filenameFromUploadHeaders") &&
+      workerSourceRoutes.includes('context.req.header("x-filename-utf8")') &&
+      workerSourceRoutes.includes('character === "/"') &&
+      workerSourceRoutes.includes('character === "\\\\"') &&
       workerSourceRoutes.includes("sourceUploadResultResponse"),
-    "source routes must keep list SQL, public projection, upload request parsing, and intake result projection in focused support modules.",
+    "source routes must keep list SQL, UTF-8-safe upload parsing, and intake projection in focused modules.",
   );
 }

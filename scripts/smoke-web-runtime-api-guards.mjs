@@ -27,7 +27,9 @@ export function assertWebRuntimeApiGuards(context) {
       webApiSources.includes("approveStagedRecord") &&
       webApiSources.includes("rejectStagedRecord") &&
       webApiSources.includes("commitImportJob") &&
-      webApiSources.includes("retryImportJob"),
+      webApiSources.includes("retryImportJob") &&
+      webApiSources.includes('"x-filename": asciiHeaderFallback') &&
+      webApiSources.includes('"x-filename-utf8": encodeURIComponent'),
     "web API client must wrap authenticated setup, password reset, upload, source, job, audit, review, AI advisory, decision, commit, and retry calls.",
   );
   assert(

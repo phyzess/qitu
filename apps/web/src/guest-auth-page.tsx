@@ -21,7 +21,11 @@ export function GuestAuthPage(props: {
   const { t } = useI18n();
 
   return (
-    <AuthPageFrame eyebrow={t("auth.secureAccess")} notice={props.notice}>
+    <AuthPageFrame
+      eyebrow={t("auth.secureAccess")}
+      notice={props.notice}
+      title={t("auth.loginTitle")}
+    >
       <div className="qitu-auth-card">
         <AuthCardHeader
           badge={t("auth.protectedWorkspace")}

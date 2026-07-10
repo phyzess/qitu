@@ -1,7 +1,7 @@
 # UI and Design System
 
 Status: accepted baseline  
-Date: 2026-07-06
+Date: 2026-07-10
 
 ## 1. Purpose
 
@@ -83,6 +83,7 @@ Table
 Tabs
 Textarea
 UploadQueue
+WorkbenchPage/WorkbenchGrid/ContextPanel
 Surface/DataState/MetricStrip/Timeline
 ```
 
@@ -107,6 +108,7 @@ packages/charts
 9. Timeline components.
 10. Data-state components.
 11. Animated icon registry for product chrome.
+12. Business-neutral workbench page/grid/context layout compositions.
 
 `packages/ui/src/shell.tsx` is the stable shell interface facade. The AppShell frame,
 primary/secondary navigation controls, shell props/types, and small system icons live in focused
@@ -194,6 +196,12 @@ Shell interaction rules:
 11. Secondary route tabs are text-only with an active underline.
 12. Search sits in the topbar action cluster: icon-only when compact, icon + text + shortcut when wide.
 13. Theme remains a compact icon control; language uses a compact icon trigger that opens explicit locale choices. The user trigger is an identity affordance, such as avatar or initial plus chevron; user actions belong inside the panel.
+14. Shell links preserve browser-native modified-click, external-target, and download behavior even
+    when ordinary same-origin clicks are adapted to the app router.
+15. `AppShell` exposes a skip link, updates `document.title`, and transfers focus to main only after a
+    real `contentKey` change. First mount must not steal focus.
+16. A route may provide one `contentTitle` for the shell-owned `h1`, or omit it when the page already
+    owns its unique `h1`; the shell must not create an empty or duplicate heading.
 
 Workbench page rules:
 
@@ -207,6 +215,11 @@ Workbench page rules:
    adding page-local overflow recipes.
 4. New-user default language is app-owned configuration. `packages/i18n` provides locale primitives;
    the web app owns the default locale and browser persistence policy.
+5. Start two-column work surfaces with `WorkbenchGrid`, selecting `context`, `context-wide`, `data`,
+   or `split` by information relationship. Use `ContextPanel` for supporting information that can
+   follow the primary surface when the grid collapses.
+6. `WorkbenchPage` owns consistent vertical flow. It does not prescribe domain modules, copy, or
+   data-fetching behavior.
 
 Current starter grouping:
 
@@ -226,6 +239,8 @@ Internationalization rules:
 5. Adding a locale requires a complete app dictionary that typechecks against the English key set.
 6. Worker routes may derive locale from request body, `x-qitu-locale`, locale cookie, or `Accept-Language`; package code must not import web dictionaries.
 7. Machine-readable server codes may stay canonical until the API exposes stable display metadata; UI labels should be translated at the app layer.
+8. Shared `DateField` instances receive month/year control labels and locale data from the app.
+   Calendar day buttons use localized full-date accessible names rather than numeric day text alone.
 
 Visual extraction rules:
 
@@ -282,6 +297,9 @@ Responsive rules:
 2. Below `780px`, stack content in workflow order.
 3. Avoid horizontal page scroll. Tables may scroll in bounded containers.
 4. Use `min-width: 0`, truncation, wrapping, and fixed shell dimensions deliberately.
+5. The shared `WorkbenchGrid` variants collapse to one column at or below 1180px; supporting
+   `ContextPanel` content follows the primary surface and switches from a left divider to a top
+   divider.
 
 ## 5. Design Rules
 
@@ -340,6 +358,18 @@ Each chart must support:
 4. Partial-data state.
 5. Dark token-driven colors.
 6. Tabular number formatting.
+7. Responsive width derived from its container while retaining a deterministic fallback width.
+8. Pointer and keyboard/focus inspection without making hover the only path to values.
+9. App-provided accessible labels and localized tooltip/legend terminology.
+10. Shared focus styling and `prefers-reduced-motion` behavior from package-owned chart CSS.
+
+Time-series charts additionally expose Arrow/Home/End/Escape navigation and a text announcement
+hook. Bar and donut marks are focusable, and their optional legends use native buttons inside valid
+list semantics. Tooltip renderers may return rich React content, but live announcements must resolve
+to meaningful text or use an explicit app-provided announcement function.
+
+`@qitu/charts` imports its own stable stylesheet entrypoint. Applications consume the package facade;
+they do not import internal CSS or `@visx/*` directly.
 
 ## 8. Review Surface Pattern
 

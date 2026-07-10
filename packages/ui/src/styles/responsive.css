@@ -61,6 +61,21 @@
   .qitu-main {
     padding: var(--qitu-space-o4);
   }
+
+  .qitu-workbench-grid,
+  .qitu-workbench-grid[data-layout="context"],
+  .qitu-workbench-grid[data-layout="context-wide"],
+  .qitu-workbench-grid[data-layout="data"],
+  .qitu-workbench-grid[data-layout="split"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .qitu-context-panel {
+    border-top: 1px solid var(--qitu-line);
+    border-left: 0;
+    padding-top: var(--qitu-space-o5);
+    padding-left: 0;
+  }
 }
 
 @media (max-width: 640px) {

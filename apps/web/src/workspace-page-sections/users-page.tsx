@@ -1,4 +1,11 @@
-import { AnimatedIcon, DataState, SectionHeader, Surface } from "@qitu/ui";
+import {
+  AnimatedIcon,
+  DataState,
+  SectionHeader,
+  Surface,
+  WorkbenchGrid,
+  WorkbenchPage,
+} from "@qitu/ui";
 import { useI18n } from "../i18n";
 import type { ApiUser, InvitationSummary } from "../types";
 import { InvitationCreatePanel } from "./invitation-create-panel";
@@ -42,8 +49,8 @@ export function UsersPage(props: {
   }
 
   return (
-    <div className="grid gap-[var(--qitu-layout-gutter)] xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="space-y-[var(--qitu-layout-gutter)]">
+    <WorkbenchGrid layout="context">
+      <WorkbenchPage>
         <UserListPanel
           adminError={props.adminError}
           currentUserId={props.user.id}
@@ -61,7 +68,7 @@ export function UsersPage(props: {
           onResendInvitation={props.onResendInvitation}
           onRevokeInvitation={props.onRevokeInvitation}
         />
-      </section>
+      </WorkbenchPage>
 
       <InvitationCreatePanel
         createdInvitationUrl={props.createdInvitationUrl}
@@ -70,6 +77,6 @@ export function UsersPage(props: {
         onCreateInvitation={props.onCreateInvitation}
         onInvitationFormChange={props.onInvitationFormChange}
       />
-    </div>
+    </WorkbenchGrid>
   );
 }

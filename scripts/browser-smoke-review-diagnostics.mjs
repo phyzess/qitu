@@ -17,7 +17,7 @@ export async function runImportDiagnosticsJourney({ page, webUrl, fixture }) {
   await page.getByRole("button", { name: "Upload selected" }).click();
   await expect(
     page.getByRole("button", {
-      name: new RegExp(`${escapeRegExp(rejectedFilename)}.*queued`),
+      name: new RegExp(`^${escapeRegExp(rejectedFilename)}(?:\\s|$)`),
     }),
   ).toBeVisible();
 
@@ -44,7 +44,7 @@ export async function runImportDiagnosticsJourney({ page, webUrl, fixture }) {
 
   await page
     .getByRole("button", {
-      name: new RegExp(`${escapeRegExp(rejectedFilename)}.*queued`),
+      name: new RegExp(`^${escapeRegExp(rejectedFilename)}(?:\\s|$)`),
     })
     .click();
   await drainButton.click();
@@ -73,7 +73,7 @@ export async function runImportDiagnosticsJourney({ page, webUrl, fixture }) {
   await page.getByRole("button", { name: "Upload selected" }).click();
   await expect(
     page.getByRole("button", {
-      name: new RegExp(`${escapeRegExp(failedFilename)}.*queued`),
+      name: new RegExp(`^${escapeRegExp(failedFilename)}(?:\\s|$)`),
     }),
   ).toBeVisible();
   await drainButton.click();

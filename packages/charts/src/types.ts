@@ -20,3 +20,32 @@ export type ScatterDatum = {
   label?: string | undefined;
   tone?: ChartTone | undefined;
 };
+
+export type TimeSeriesTooltipContext = {
+  datum: ChartDatum;
+  firstDatum?: ChartDatum | undefined;
+  index: number;
+  previousDatum?: ChartDatum | undefined;
+};
+
+export type TimeSeriesTooltipRow = {
+  label: string;
+  value: ReactNode;
+  tone?: ChartTone | undefined;
+};
+
+export type CategoryTooltipContext = {
+  datum: CategoryDatum;
+  index: number;
+  share: number;
+  total: number;
+};
+
+export type CategoryTooltipRow = {
+  label: string;
+  value: ReactNode;
+  tone?: ChartTone | undefined;
+};
+
+export type CategoryChartLegendMode = "none" | "inline";
+import type { ReactNode } from "react";

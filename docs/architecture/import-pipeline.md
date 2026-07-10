@@ -57,6 +57,7 @@ The generic adapter shape lives in `@qitu/import-pipeline`:
 ```ts
 type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
   id: string;
+  commitPolicy?: "manual" | "auto_when_clean";
   canHandle(source: { filename: string; contentType: string }): boolean;
   parse(source: ReadableStream<Uint8Array>): Promise<TParsed[]>;
   stage(parsed: TParsed[]): Promise<TStaged[]>;
@@ -68,9 +69,19 @@ type ImportFeatureAdapter<TParsed, TStaged, TCommitted> = {
 };
 ```
 
+The default policy is manual confirmation. A deployable app may opt a deterministic adapter into
+`auto_when_clean`; automatic confirmation and commit run only when no open `error` issue exists and
+must reuse the same audited confirmation and `commitApproved` path as manual review. The Worker
+adapter keeps `autoCommitCleanImports: true` as a compatibility alias for downstream adopters.
+
 The adapter is intentionally narrow. It does not prescribe where app-owned feature code lives.
 
-`CommitApprovedContext` must include the import job, confirmer identity, approved staged record keys, and an idempotency key. This prevents an adapter from treating commit as a raw data write detached from confirmation.
+`CommitApprovedContext` must include the import job, confirmer identity, approved staged record keys,
+and the stable idempotency key `commit:${jobId}`. An adapter that performs external, remote, or
+business-owned writes must use that key, or deterministic child keys, for its own idempotency. A
+stale `committing` claim is recovered by replaying `commitApproved` with the same key; the adapter
+must therefore tolerate the replay even when the first attempt completed an external side effect
+before qitu persisted its local result.
 
 `packages/import-pipeline/src/index.ts` is the package interface facade. Schemas and generic types,
 the adapter contract, manual review issue factory, staging key conventions, review/confirmation
@@ -121,6 +132,20 @@ Job status is derived from staged-record status counts after review and commit a
 2. Pending staged records without approved work keep the job `needs_review`, including after a partial commit.
 3. A job becomes `committed` only after approved rows have been committed and no staged records remain pending or approved.
 4. Rejected-only jobs stay `needs_review` in the neutral starter because there is no separate job-level rejected status.
+5. `committing` is an exclusive, recoverable in-progress state. Review mutations, job void, and
+   source deletion cannot bypass it; a stale claim must resume commit with the same idempotency key
+   before another lifecycle action proceeds.
+
+Open-error rule:
+
+1. A staged record with an open `error` issue cannot be approved normally.
+2. Batch confirmation cannot accept open errors implicitly.
+3. An approved record cannot commit while its own `error` remains open; issues on rejected or
+   pending rows do not block separately approved clean records.
+4. A reviewer may explicitly set `overrideOpenErrors: true` for one record; accepting those issues,
+   recording the decision, and updating review status happen in one D1 batch with audit/job events.
+5. Staged adjustment is app-owned: the adapter validates the replacement payload, old open issues
+   become `superseded`, and the record returns to pending confirmation.
 
 ## 7. Idempotency Requirements
 
@@ -129,7 +154,9 @@ Import work must be safe to retry:
 1. Queue messages carry stable `jobId`.
 2. Source file object keys are stable.
 3. Staging writes are keyed by import job and source row identity when possible.
-4. Commit operations must avoid duplicate business-owned rows.
+4. `commitApproved` uses `context.idempotencyKey = commit:${jobId}`. External and business-owned
+   writes must be idempotent for that stable key because stale `committing` recovery replays the
+   adapter with the same value.
 5. Audit events should describe retries without hiding the original failure.
 
 The starter Worker currently includes app-owned `example_staged_records` and `example_committed_records` tables to prove the path. Real applications should replace those with feature-owned tables without changing core review decisions.
@@ -140,6 +167,16 @@ implementation lives in `apps/worker/src/features/starter-review-*` modules, whi
 generic Worker modules allowed to know the `example_*` table names. A real feature should provide
 its own store beside its adapter so review list, decision, commit, stats, audit subject kind, and AI
 advisory counts stay generic.
+
+Source deletion uses the same boundary. A real review store must implement
+`prepareDeleteSourceRecords` before deletion is enabled, removing or rebuilding every app-owned
+staged, committed, and derived row contributed by the source. The Worker voids jobs, deletes the R2
+object, executes the app cleanup, tombstones `source_files`, and retains metadata plus audit/job
+events as report-only evidence. See `docs/operations/source-lifecycle.md`.
+
+Source deletion and job void fail closed while a commit claim is fresh or recoverable. Operations
+must resume/recover `committing` first; they must not reinterpret it as review work that can be
+voided or cleaned up.
 
 ## 8. Failure Classes
 

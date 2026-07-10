@@ -5,6 +5,9 @@ export type Permission =
   | "import_job:retry"
   | "invitation:create"
   | "review:decide"
+  | "source_file:delete"
+  | "source_file:raw"
+  | "source_file:reparse"
   | "source_file:upload";
 
 export type RoleDefinition<RoleId extends string = string> = {

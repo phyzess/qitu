@@ -1,4 +1,4 @@
-import type { CommitApprovedContext, ReviewIssue } from "@qitu/import-pipeline";
+import type { CommitApprovedContext, ImportCommitPolicy, ReviewIssue } from "@qitu/import-pipeline";
 import { parseStarterStagedRecord, starterImportReviewAdapter } from "./features/import-review";
 import { parseStarterJsonStagedRecord, starterJsonRecordsAdapter } from "./features/json-records";
 import { starterReviewStore } from "./features/starter-review-store";
@@ -7,6 +7,8 @@ import type { WorkerReviewStore } from "./import-review-store";
 export type WorkerImportAdapter = {
   id: string;
   jobKind: string;
+  autoCommitCleanImports?: boolean;
+  commitPolicy?: ImportCommitPolicy;
   canHandle(source: { filename: string; contentType: string }): boolean;
   parseAndStage(source: ReadableStream<Uint8Array>): Promise<
     Array<{
@@ -14,6 +16,10 @@ export type WorkerImportAdapter = {
       issues: ReviewIssue[];
     }>
   >;
+  adjustStagedRecord?(payload: unknown): Promise<{
+    payload: unknown;
+    issues: ReviewIssue[];
+  }>;
   commitApproved(records: unknown[], context: CommitApprovedContext): Promise<unknown[]>;
   reviewStore: WorkerReviewStore;
 };
@@ -32,6 +38,13 @@ const registeredImportAdapters = [
         payload: record,
         issues: starterImportReviewAdapter.validate(record),
       }));
+    },
+    async adjustStagedRecord(payload: unknown) {
+      const record = parseStarterStagedRecord(payload);
+      return {
+        payload: record,
+        issues: starterImportReviewAdapter.validate(record),
+      };
     },
     async commitApproved(records: unknown[], context: CommitApprovedContext) {
       return starterImportReviewAdapter.commitApproved({
@@ -54,6 +67,13 @@ const registeredImportAdapters = [
         payload: record,
         issues: starterJsonRecordsAdapter.validate(record),
       }));
+    },
+    async adjustStagedRecord(payload: unknown) {
+      const record = parseStarterJsonStagedRecord(payload);
+      return {
+        payload: record,
+        issues: starterJsonRecordsAdapter.validate(record),
+      };
     },
     async commitApproved(records: unknown[], context: CommitApprovedContext) {
       return starterJsonRecordsAdapter.commitApproved({

@@ -64,6 +64,40 @@ export async function readImportReviewJobAdapter(
     };
   }
 
+  if (job.status === "voided") {
+    return {
+      ok: false,
+      response: authError(
+        context,
+        "import_job_voided",
+        "Voided import jobs are retained for reporting and cannot be changed.",
+        409,
+      ),
+    };
+  }
+  if (job.deletion_started_at || job.deleted_at) {
+    return {
+      ok: false,
+      response: authError(
+        context,
+        "source_file_deleting",
+        "Review changes are unavailable while the source is being deleted.",
+        409,
+      ),
+    };
+  }
+  if (job.status === "queued" || job.status === "processing" || job.status === "committing") {
+    return {
+      ok: false,
+      response: authError(
+        context,
+        "import_job_not_reviewable",
+        "Queued, processing, or committing import jobs cannot be changed through review routes.",
+        409,
+      ),
+    };
+  }
+
   const adapter = getImportAdapter(job.adapter_id);
   if (!adapter) {
     return {

@@ -1,4 +1,11 @@
-import { AnimatedIcon, MetricStrip, SectionHeader, Surface, type MetricItem } from "@qitu/ui";
+import {
+  AnimatedIcon,
+  MetricStrip,
+  SectionHeader,
+  Surface,
+  WorkbenchPage,
+  type MetricItem,
+} from "@qitu/ui";
 import { routePath, type AppNavigationPath } from "../app-routes";
 import { useI18n } from "../i18n";
 import type { ImportJobListItem, SourceFile } from "../types";
@@ -56,7 +63,7 @@ export function OverviewPage(props: WorkspaceHomeProps) {
   ];
 
   return (
-    <div className="space-y-[var(--qitu-layout-gutter)]">
+    <WorkbenchPage>
       <Surface className="p-[var(--qitu-space-s1)]">
         <SectionHeader
           description={t("overview.description")}
@@ -100,6 +107,6 @@ export function OverviewPage(props: WorkspaceHomeProps) {
           />
         </div>
       </Surface>
-    </div>
+    </WorkbenchPage>
   );
 }

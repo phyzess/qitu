@@ -62,6 +62,17 @@ export async function readImportJobRetryTarget(
       ),
     };
   }
+  if (job.deletion_started_at || job.deleted_at) {
+    return {
+      ok: false,
+      response: authError(
+        context,
+        "source_file_deleting",
+        "Import jobs cannot be retried while their source is being deleted.",
+        409,
+      ),
+    };
+  }
 
   return {
     ok: true,
