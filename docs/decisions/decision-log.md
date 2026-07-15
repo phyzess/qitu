@@ -1666,6 +1666,27 @@ Both patterns are valuable downstream feedback, but adopting either as a default
 and business semantics that many qitu-derived apps do not need. Optional, verified examples preserve
 the learning without expanding the core contract prematurely.
 
+### 2026-07-15: TypeScript 7 Final Baseline
+
+Decision:
+
+Replace the initial TypeScript 7 RC pin with the exact stable release `typescript@7.0.2`.
+
+Rules:
+
+1. The root and every workspace package that explicitly depends on TypeScript use `7.0.2`.
+2. Package manifests, the lockfile, toolchain guards, and current dependency documentation move
+   together when the TypeScript baseline changes.
+3. The configured registry must serve both the `typescript` wrapper and the required
+   `@typescript/typescript-*` platform packages for local development and CI.
+4. The 2026-06-26 RC entries remain as historical records; this decision supersedes them for the
+   active baseline.
+
+Reason:
+
+The stable compiler passed the workspace verification path, and an exact final-version pin keeps
+installs reproducible without leaving the starter on a prerelease toolchain.
+
 ## Pending
 
 1. Whether code generation belongs in core or a separate CLI.

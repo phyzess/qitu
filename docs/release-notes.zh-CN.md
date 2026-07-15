@@ -86,7 +86,7 @@ UI 与验证：
 
 固定 toolchain：
 
-1. TypeScript `7.0.1-rc`。
+1. TypeScript `7.0.2`。
 2. Vite+ `0.2.1`。
 3. pnpm `11.5.2`。
 4. Wrangler `4.103.0`。

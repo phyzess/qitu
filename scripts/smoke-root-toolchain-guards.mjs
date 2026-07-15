@@ -6,8 +6,8 @@ export function assertRootToolchainGuards(context) {
     "packageManager must stay pinned to pnpm@11.5.2.",
   );
   assert(
-    context.packageJson.devDependencies.typescript === "7.0.1-rc",
-    "typescript must stay pinned to 7.0.1-rc.",
+    context.packageJson.devDependencies.typescript === "7.0.2",
+    "typescript must stay pinned to 7.0.2.",
   );
   assert(
     context.packageJson.devDependencies["vite-plus"] === "0.2.1",

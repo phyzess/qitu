@@ -1,11 +1,11 @@
 # Dependency Baseline
 
 Status: initial  
-Checked: 2026-07-10
+Checked: 2026-07-15
 
 All versions below are intentionally exact. Upgrade through an explicit decision.
 
-Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-rc/>
+Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/>
 
 ## Runtime
 
@@ -20,21 +20,21 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 
 ## Tooling
 
-| Package                           |    Version | Use                                                             |
-| --------------------------------- | ---------: | --------------------------------------------------------------- |
-| `pnpm`                            |   `11.5.2` | Workspace package manager                                       |
-| `typescript`                      | `7.0.1-rc` | Official TypeScript 7 RC through `typescript@rc`                |
-| `vite-plus`                       |    `0.2.1` | VoidZero toolchain command surface                              |
-| `vite`                            |   `8.0.16` | Vite plugin peer and client types for the web app               |
-| `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI                                 |
-| `@playwright/test`                |   `1.61.0` | Scripted browser smoke for the first slice                      |
-| `tslib`                           |    `2.8.1` | Runtime helper needed by the pinned shadcn CLI dependency chain |
-| `vitest`                          |    `4.1.9` | Root unit tests and Worker runtime smoke tests                  |
-| `@vitest/runner`                  |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
-| `@vitest/snapshot`                |    `4.1.9` | Explicit peer for Worker runtime test pool                      |
-| `@types/node`                     |   `26.0.0` | Node.js compatibility typings                                   |
-| `@cloudflare/vitest-pool-workers` |  `0.16.18` | Official Cloudflare Worker runtime test pool                    |
-| `drizzle-kit`                     |  `0.31.10` | Migration generation candidate                                  |
+| Package                           |   Version | Use                                                             |
+| --------------------------------- | --------: | --------------------------------------------------------------- |
+| `pnpm`                            |  `11.5.2` | Workspace package manager                                       |
+| `typescript`                      |   `7.0.2` | Official TypeScript 7 stable compiler                           |
+| `vite-plus`                       |   `0.2.1` | VoidZero toolchain command surface                              |
+| `vite`                            |  `8.0.16` | Vite plugin peer and client types for the web app               |
+| `wrangler`                        | `4.103.0` | Cloudflare local/dev/deploy CLI                                 |
+| `@playwright/test`                |  `1.61.0` | Scripted browser smoke for the first slice                      |
+| `tslib`                           |   `2.8.1` | Runtime helper needed by the pinned shadcn CLI dependency chain |
+| `vitest`                          |   `4.1.9` | Root unit tests and Worker runtime smoke tests                  |
+| `@vitest/runner`                  |   `4.1.9` | Explicit peer for Worker runtime test pool                      |
+| `@vitest/snapshot`                |   `4.1.9` | Explicit peer for Worker runtime test pool                      |
+| `@types/node`                     |  `26.0.0` | Node.js compatibility typings                                   |
+| `@cloudflare/vitest-pool-workers` | `0.16.18` | Official Cloudflare Worker runtime test pool                    |
+| `drizzle-kit`                     | `0.31.10` | Migration generation candidate                                  |
 
 ## UI
 
@@ -69,13 +69,13 @@ Reference: <https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-
 
 `vite-plus` is the command surface for local development, build, check, lint, format, and workspace task orchestration.
 
-`typescript@6` is intentionally not a direct dependency. Type checking uses `tsc` from the official `typescript@7.0.1-rc` release candidate, installed via the `typescript@rc` line described by Microsoft.
+`typescript@6` is intentionally not a direct dependency. Type checking uses `tsc` from the official stable `typescript@7.0.2` release.
 
 `apps/web/vite.config.ts` imports `defineConfig` from `vite`, not `vite-plus`, because `@tailwindcss/vite@4.3.1` currently peers and types against `vite`. The project still executes the config through `vp dev` and `vp build`.
 
 `autoInstallPeers` is disabled in `pnpm-workspace.yaml`. Peer dependencies used by workspace source packages must be declared explicitly as package dev dependencies, so the lockfile does not silently install `typescript@6`.
 
-`typescript@7.0.1-rc` depends on an optional platform package such as `@typescript/typescript-darwin-arm64@7.0.1-rc`. A full install requires the configured registry to serve that platform tarball successfully.
+`typescript@7.0.2` depends on an optional platform package such as `@typescript/typescript-darwin-arm64@7.0.2`. A full install requires the configured registry to serve that platform tarball successfully.
 
 Worker runtime types are generated by `wrangler types` into `apps/worker/worker-configuration.d.ts`.
 

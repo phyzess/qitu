@@ -31,19 +31,19 @@ vp run doctor
 
 不要把公司内部 registry 提交到这个 reusable starter 的 `.npmrc`。公司内部需要时，放在 user-level config 或下游私有 fork。
 
-## 2. TypeScript 7 RC 平台包下载失败
+## 2. TypeScript 7 平台包下载失败
 
-`typescript@7.0.1-rc` 可能解析到平台包，例如：
+`typescript@7.0.2` 可能解析到平台包，例如：
 
 ```text
-@typescript/typescript-darwin-arm64@7.0.1-rc
+@typescript/typescript-darwin-arm64@7.0.2
 ```
 
 如果失败，通常是 registry 可达性或 mirror freshness 问题，不是项目 manifest 问题。
 
 建议：
 
-1. 保持 `typescript` pinned 到 `7.0.1-rc`。
+1. 保持 `typescript` pinned 到 `7.0.2`。
 2. 确认 registry 能提供对应平台包。
 3. 不要无记录地替换成 `typescript@6`。
 

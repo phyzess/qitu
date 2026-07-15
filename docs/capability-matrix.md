@@ -43,7 +43,7 @@ Near-term verification should be added in this order:
 
 1. Static smoke checks for template invariants.
 2. Worker handler integration with local D1/R2/Queue fakes.
-3. Package type checks with TypeScript 7 RC.
+3. Package type checks with stable TypeScript 7.0.2.
 4. Worker runtime tests covering Cloudflare Email Service, Queues, D1, and R2 binding behavior beyond the current minimal runtime smoke.
 5. Broader adapter edge-case tests only when new real adapters add parser-specific risk.
 

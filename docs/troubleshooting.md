@@ -31,19 +31,19 @@ Things to inspect:
 
 Do not commit an internal registry into `.npmrc` for this reusable starter. If a specific company needs one, keep it in user-level config or a private downstream fork.
 
-## TypeScript 7 RC Platform Package Fails
+## TypeScript 7 Platform Package Fails
 
-`typescript@7.0.1-rc` installs the official TypeScript RC package and may resolve a platform package such as:
+`typescript@7.0.2` installs the official stable TypeScript 7 package and may resolve a platform package such as:
 
 ```text
-@typescript/typescript-darwin-arm64@7.0.1-rc
+@typescript/typescript-darwin-arm64@7.0.2
 ```
 
 If that package fails to download, the problem is usually registry reachability or mirror freshness, not the project manifest.
 
 Recommended response:
 
-1. Keep `typescript` pinned to `7.0.1-rc`.
+1. Keep `typescript` pinned to `7.0.2`.
 2. Confirm the registry can serve the platform package.
 3. Avoid replacing it with `typescript@6` unless a new decision is recorded.
 

@@ -90,6 +90,7 @@ export async function assertWorkbenchResponsiveAndMotion({ page, webUrl }) {
       timeout: 15_000,
     })
     .toEqual({ animationName: "none", reducedMotion: true });
+  await page.waitForLoadState("networkidle");
 
   await page
     .getByRole("button", { name: /Choose language/ })
@@ -97,9 +98,10 @@ export async function assertWorkbenchResponsiveAndMotion({ page, webUrl }) {
     .click();
   const languageMenu = page.locator('[data-slot="dropdown-menu-content"]');
   await expect(languageMenu).toBeVisible();
-  await expect
-    .poll(() => readReducedMotionState(page, '[data-slot="dropdown-menu-content"]'))
-    .toEqual({ animationName: "none", reducedMotion: true });
+  expect(await readReducedMotionStateFromLocator(languageMenu)).toEqual({
+    animationName: "none",
+    reducedMotion: true,
+  });
   await page.keyboard.press("Escape");
 
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "no-preference" });
@@ -199,4 +201,11 @@ function readReducedMotionState(page, selector) {
       reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
     };
   }, selector);
+}
+
+function readReducedMotionStateFromLocator(locator) {
+  return locator.evaluate((element) => ({
+    animationName: getComputedStyle(element).animationName,
+    reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+  }));
 }

@@ -1,11 +1,11 @@
 # 依赖基线
 
 Status: initial  
-Checked: 2026-07-10
+Checked: 2026-07-15
 
 所有版本都刻意精确锁定。升级必须通过显式 decision。
 
-TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-typescript-7-0-rc/>
+TypeScript 7 正式版参考：<https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/>
 
 ## Runtime
 
@@ -20,21 +20,21 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 
 ## Tooling
 
-| Package                           |    Version | 用途                                      |
-| --------------------------------- | ---------: | ----------------------------------------- |
-| `pnpm`                            |   `11.5.2` | Workspace package manager                 |
-| `typescript`                      | `7.0.1-rc` | 官方 TypeScript 7 RC，即 `typescript@rc`  |
-| `vite-plus`                       |    `0.2.1` | VoidZero toolchain command surface        |
-| `vite`                            |   `8.0.16` | Web app config/plugin peer                |
-| `wrangler`                        |  `4.103.0` | Cloudflare local/dev/deploy CLI           |
-| `@playwright/test`                |   `1.61.0` | 浏览器 smoke                              |
-| `tslib`                           |    `2.8.1` | 固定 shadcn CLI 依赖链所需 runtime helper |
-| `vitest`                          |    `4.1.9` | Root unit tests 与 Worker runtime smoke   |
-| `@vitest/runner`                  |    `4.1.9` | Worker runtime test pool 的显式 peer      |
-| `@vitest/snapshot`                |    `4.1.9` | Worker runtime test pool 的显式 peer      |
-| `@types/node`                     |   `26.0.0` | Node.js compatibility typings             |
-| `@cloudflare/vitest-pool-workers` |  `0.16.18` | Cloudflare Worker runtime test pool       |
-| `drizzle-kit`                     |  `0.31.10` | migration generation candidate            |
+| Package                           |   Version | 用途                                      |
+| --------------------------------- | --------: | ----------------------------------------- |
+| `pnpm`                            |  `11.5.2` | Workspace package manager                 |
+| `typescript`                      |   `7.0.2` | 官方 TypeScript 7 稳定版 compiler         |
+| `vite-plus`                       |   `0.2.1` | VoidZero toolchain command surface        |
+| `vite`                            |  `8.0.16` | Web app config/plugin peer                |
+| `wrangler`                        | `4.103.0` | Cloudflare local/dev/deploy CLI           |
+| `@playwright/test`                |  `1.61.0` | 浏览器 smoke                              |
+| `tslib`                           |   `2.8.1` | 固定 shadcn CLI 依赖链所需 runtime helper |
+| `vitest`                          |   `4.1.9` | Root unit tests 与 Worker runtime smoke   |
+| `@vitest/runner`                  |   `4.1.9` | Worker runtime test pool 的显式 peer      |
+| `@vitest/snapshot`                |   `4.1.9` | Worker runtime test pool 的显式 peer      |
+| `@types/node`                     |  `26.0.0` | Node.js compatibility typings             |
+| `@cloudflare/vitest-pool-workers` | `0.16.18` | Cloudflare Worker runtime test pool       |
+| `drizzle-kit`                     | `0.31.10` | migration generation candidate            |
 
 ## UI 与 Charts
 
@@ -63,10 +63,10 @@ TypeScript 7 RC 参考：<https://devblogs.microsoft.com/typescript/announcing-t
 ## 说明
 
 1. `vite-plus` 是本地开发、build、check、lint、format 和 workspace task orchestration 的命令入口。
-2. 不直接依赖 `typescript@6`。类型检查使用官方 `typescript@7.0.1-rc`。
+2. 不直接依赖 `typescript@6`。类型检查使用官方稳定版 `typescript@7.0.2`。
 3. `apps/web/vite.config.ts` 从 `vite` import `defineConfig`，因为当前 Tailwind Vite plugin peers/types 指向 `vite`；实际命令仍通过 `vp dev` 与 `vp build` 执行。
 4. `autoInstallPeers` 已关闭，workspace package 的 peer 必须显式声明，避免 lockfile 悄悄装入 `typescript@6`。
-5. `typescript@7.0.1-rc` 可能解析到平台包，例如 `@typescript/typescript-darwin-arm64@7.0.1-rc`。完整安装要求 registry 能正确提供该 tarball。
+5. `typescript@7.0.2` 可能解析到平台包，例如 `@typescript/typescript-darwin-arm64@7.0.2`。完整安装要求 registry 能正确提供该 tarball。
 6. Worker runtime types 由 `wrangler types` 生成到 `apps/worker/worker-configuration.d.ts`。
 7. `@cloudflare/vite-plugin` 仍只是 integration candidate，当前 package manifest 与 lockfile 没有声明它；只有在记录显式 decision 并同步依赖后才能加入。
 8. `smoke:browser` 使用真实 Chromium 跑首个纵切。新机器缺浏览器时执行 `vp exec playwright install chromium`。

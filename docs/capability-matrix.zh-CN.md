@@ -43,7 +43,7 @@ Date: 2026-07-10
 
 1. Template invariant 的 static smoke checks。
 2. 使用 local D1/R2/Queue fakes 的 Worker handler integration。
-3. TypeScript 7 RC package type checks。
+3. 稳定版 TypeScript 7.0.2 package type checks。
 4. 超出当前最小 runtime smoke 的 Cloudflare Email Service、Queues、D1、R2 binding runtime tests。
 5. 只有当新真实 adapter 带来 parser-specific risk 时，才增加更广的 adapter edge-case tests。
 
